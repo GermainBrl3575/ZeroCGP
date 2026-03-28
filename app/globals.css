@@ -2,42 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --acc: #D5001C;
-  --bg-main: #F5F4F1;
-  --sidebar: #111111;
-}
+/* La landing gère son propre scroll via snap-container */
+/* Le dashboard doit pouvoir scroller normalement */
+* { box-sizing: border-box; }
 
-* {
-  box-sizing: border-box;
-}
-
-html, body {
-  height: 100%;
-}
+html { height: 100%; }
 
 body {
-  background: var(--bg-main);
+  height: 100%;
+  background: #F5F4F1;
   font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  /* PAS de overflow:hidden ici — sinon le dashboard ne scroll pas */
 }
 
-/* Scrollbar discrète */
-::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
 
-/* Animations */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.fade-up { animation: fadeUp 0.4s ease forwards; }
+.fade-up   { animation: fadeUp 0.4s ease forwards; }
 .fade-up-1 { animation: fadeUp 0.4s 0.1s ease both; }
 .fade-up-2 { animation: fadeUp 0.4s 0.2s ease both; }
 .fade-up-3 { animation: fadeUp 0.4s 0.3s ease both; }
-
-@keyframes progress {
-  from { width: 0%; }
-}

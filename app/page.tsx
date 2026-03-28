@@ -220,3 +220,4 @@ export default function LandingPage() {
     </>
   );
 }
+// scroll lock pour landing uniquement — déjà géré via snap-container

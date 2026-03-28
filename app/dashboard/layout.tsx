@@ -1,4 +1,3 @@
-// app/dashboard/layout.tsx
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -13,10 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
-        router.push("/auth/login");
-        return;
-      }
+      if (!data.user) { router.push("/auth/login"); return; }
       supabase
         .from("portfolios")
         .select("id, name")
@@ -32,22 +28,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     });
   }, [router]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-white/30 text-xs tracking-[0.2em]">CHARGEMENT...</div>
+  if (loading) return (
+    <div style={{
+      minHeight: "100vh", background: "#0A1628",
+      display: "flex", alignItems: "center", justifyContent: "center"
+    }}>
+      <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 11, letterSpacing: ".2em" }}>
+        CHARGEMENT...
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
-    <div className="flex min-h-screen">
+    <div style={{
+      display: "flex",
+      height: "100vh",      /* hauteur fixe pour l'ensemble */
+      overflow: "hidden",   /* empêche le scroll du wrapper */
+    }}>
+      {/* Sidebar fixe, ne scroll pas */}
       <Sidebar
         portfolios={portfolios}
         activePortfolioId={activeId}
         onSelectPortfolio={setActiveId}
       />
-      <main className="flex-1 bg-[#F5F4F1] overflow-y-auto">
+
+      {/* Zone de contenu — SCROLL ici uniquement */}
+      <main style={{
+        flex: 1,
+        background: "#F5F4F1",
+        overflowY: "auto",      /* scroll vertical sur le contenu */
+        overflowX: "hidden",
+        height: "100vh",
+      }}>
         {children}
       </main>
     </div>
