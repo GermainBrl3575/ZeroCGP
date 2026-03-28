@@ -1,28 +1,31 @@
-// app/dashboard/portfolio/page.tsx
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Asset } from "@/types";
-import { eur, pct, TYPE_COLOR, cn } from "@/lib/utils";
+import { eur, cn, TYPE_COLOR } from "@/lib/utils";
 import Treemap from "@/components/Treemap";
-import {
-  ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip,
-} from "recharts";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
-const PERIODS = ["1J", "1S", "1M", "3M", "6M", "1A", "MAX"];
-const TYPE_BADGE: Record<string, string> = {
-  etf:    "bg-blue-50 text-blue-700",
-  stock:  "bg-green-50 text-green-700",
-  crypto: "bg-amber-50 text-amber-700",
+const PERIODS = ["1J","1S","1M","3M","6M","1A","MAX"];
+const TYPE_BADGE: Record<string,string> = {
+  etf:   "bg-blue-50 text-blue-700",
+  stock: "bg-green-50 text-green-700",
+  crypto:"bg-amber-50 text-amber-700",
 };
+
+function pct(n: number, d = 2) { return `${n >= 0 ? "+" : ""}${n.toFixed(d)}%`; }
+function feur(n: number) {
+  return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
+}
 
 export default function PortfolioPage() {
   const router = useRouter();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [period, setPeriod] = useState("1M");
   const [loading, setLoading] = useState(true);
-  const [perfData, setPerfData] = useState<{ j: string; v: number }[]>([]);
+  const [perfData, setPerfData] = useState<{j:string;v:number;p:number}[]>([]);
+  const [showPct, setShowPct] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -30,213 +33,204 @@ export default function PortfolioPage() {
       if (!user) { router.push("/auth/login"); return; }
 
       const { data: portfolios } = await supabase
-        .from("portfolios")
-        .select("id")
-        .eq("user_id", user.id)
-        .limit(1)
+        .from("portfolios").select("id")
+        .eq("user_id", user.id).limit(1)
         .order("created_at", { ascending: false });
 
       if (!portfolios || portfolios.length === 0) {
-        router.push("/dashboard/entry");
-        return;
+        router.push("/dashboard/entry"); return;
       }
 
-      const pfId = portfolios[0].id;
       const { data: rawAssets } = await supabase
-        .from("portfolio_assets")
-        .select("*")
-        .eq("portfolio_id", pfId);
+        .from("portfolio_assets").select("*")
+        .eq("portfolio_id", portfolios[0].id);
 
-      if (!rawAssets || rawAssets.length === 0) {
-        setLoading(false);
-        return;
-      }
+      if (!rawAssets || rawAssets.length === 0) { setLoading(false); return; }
 
-      // Récupérer les prix temps réel
       const enriched: Asset[] = await Promise.all(
-        rawAssets.map(async (a) => {
+        rawAssets.map(async a => {
           try {
             const res = await fetch(`/api/yahoo/quote?symbol=${a.symbol}`);
             const q = await res.json();
             return {
-              id: a.id,
-              symbol: a.symbol,
-              name: a.name,
-              isin: a.isin,
-              type: a.type as "etf" | "stock" | "crypto",
-              quantity: a.quantity,
-              currentPrice: q.price ?? 0,
-              value: a.quantity * (q.price ?? 0),
-              weight: 0,
+              id: a.id, symbol: a.symbol, name: a.name, isin: a.isin,
+              type: a.type as "etf"|"stock"|"crypto",
+              quantity: a.quantity, currentPrice: q.price ?? 0,
+              value: a.quantity * (q.price ?? 0), weight: 0,
               performance24h: q.changePercent ?? 0,
             };
           } catch {
-            return {
-              id: a.id, symbol: a.symbol, name: a.name, isin: a.isin,
-              type: a.type as "etf" | "stock" | "crypto",
-              quantity: a.quantity, currentPrice: 0, value: 0, weight: 0,
-            };
+            return { id:a.id, symbol:a.symbol, name:a.name, isin:a.isin,
+              type:a.type as "etf"|"stock"|"crypto",
+              quantity:a.quantity, currentPrice:0, value:0, weight:0 };
           }
         })
       );
 
-      const tot = enriched.reduce((s, a) => s + a.value, 0);
-      const final = enriched.map((a) => ({ ...a, weight: tot > 0 ? a.value / tot : 0 }));
+      const tot = enriched.reduce((s,a) => s + a.value, 0);
+      const final = enriched.map(a => ({ ...a, weight: tot > 0 ? a.value/tot : 0 }));
       setAssets(final);
 
-      // Générer un graphique de démo (en prod : fetch historique réel)
-      const demo = Array.from({ length: 30 }, (_, i) => ({
-        j: `J-${29 - i}`,
-        v: Math.round(tot * 0.9 + i * (tot * 0.003) + Math.sin(i * 0.7) * tot * 0.015),
-      }));
+      // Graphique perf
+      const base = tot * 0.92;
+      const demo = Array.from({ length: 30 }, (_, i) => {
+        const v = Math.round(base + i * (tot * 0.003) + Math.sin(i*0.7)*tot*0.015);
+        return { j:`J-${29-i}`, v, p: parseFloat(((v - base)/base*100).toFixed(2)) };
+      });
       setPerfData(demo);
       setLoading(false);
     }
     load();
   }, [router]);
 
-  const total = assets.reduce((s, a) => s + a.value, 0);
-  const gain = assets.reduce((s, a) => s + a.value * (a.performance24h ?? 0) / 100, 0);
+  const total = assets.reduce((s,a) => s + a.value, 0);
+  const gain  = assets.reduce((s,a) => s + a.value * (a.performance24h ?? 0) / 100, 0);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[400px]">
-        <div className="text-[#8A8A8A] text-xs tracking-[0.2em]">CHARGEMENT...</div>
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="flex items-center justify-center h-full min-h-[400px]">
+      <div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div>
+    </div>
+  );
 
-  if (assets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4">
-        <p className="text-[#8A8A8A]">Aucun actif dans ce portefeuille.</p>
-        <button
-          onClick={() => router.push("/dashboard/entry")}
-          style={{ background: "#D5001C" }}
-          className="text-white text-xs font-bold tracking-[0.14em] px-8 py-3"
-        >
-          AJOUTER DES ACTIFS →
-        </button>
-      </div>
-    );
-  }
+  if (assets.length === 0) return (
+    <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-4">
+      <p style={{color:"#8A9BB0"}}>Aucun actif dans ce portefeuille.</p>
+      <button onClick={() => router.push("/dashboard/entry")}
+        style={{background:"#0A1628",color:"white",border:"none",padding:"14px 32px",fontSize:10,fontWeight:500,letterSpacing:".14em",cursor:"pointer"}}>
+        AJOUTER DES ACTIFS →
+      </button>
+    </div>
+  );
+
+  const yDataKey = showPct ? "p" : "v";
+  const yFormatter = showPct
+    ? (v: number) => `${v > 0 ? "+" : ""}${v.toFixed(2)}%`
+    : (v: number) => feur(v);
 
   return (
-    <div className="p-9 space-y-5">
-      {/* Header */}
-      <div>
-        <div className="text-[#8A8A8A] text-[10px] font-bold tracking-[0.12em] mb-2">
-          PORTEFEUILLE DE DÉPART
-        </div>
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <div className="text-[#141414] font-black leading-none" style={{ fontSize: 40, letterSpacing: "-0.03em" }}>
-              {eur(total)}
-            </div>
-            <div className={cn("text-sm font-medium mt-1.5", gain >= 0 ? "text-green-600" : "text-red-600")}>
-              {pct(total > 0 ? gain / total * 100 : 0)} · {gain >= 0 ? "+" : ""}{eur(gain)} aujourd'hui
-            </div>
-          </div>
-          <div className="flex gap-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={cn(
-                  "px-3 py-1.5 text-[11px] font-semibold border rounded-md transition-colors",
-                  period === p
-                    ? "bg-[#141414] text-white border-[#141414]"
-                    : "bg-transparent text-[#8A8A8A] border-black/10 hover:border-black/20"
-                )}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@300;400&family=Inter:wght@300;400;500&display=swap');
+        .pf{padding:36px 44px;background:#F5F4F1;min-height:100%;font-family:'Inter',sans-serif}
+        .pf-ey{font-size:9px;font-weight:500;letter-spacing:.14em;color:#1E3A6E;margin-bottom:8px}
+        .pf-total{font-family:'Cormorant Garant',serif;font-size:44px;font-weight:300;color:#0A1628;letter-spacing:-.03em;line-height:1}
+        .pf-gain-pos{color:#16A34A;font-size:13px;font-weight:500;margin-top:6px}
+        .pf-gain-neg{color:#DC2626;font-size:13px;font-weight:500;margin-top:6px}
+        .card{background:white;border-radius:14px;padding:22px;margin-bottom:16px}
+        .card-title{font-size:13px;font-weight:600;color:#0A1628;margin-bottom:16px}
+        .per-btn{padding:5px 11px;font-size:10px;font-weight:600;border-radius:5px;cursor:pointer;transition:all 0.15s;border:1px solid}
+        .per-btn.on{background:#0A1628;color:white;border-color:#0A1628}
+        .per-btn.off{background:transparent;color:#8A9BB0;border-color:rgba(10,22,40,.1)}
+        .toggle-wrap{display:flex;background:rgba(10,22,40,.05);border-radius:6px;padding:3px;gap:3px}
+        .toggle-btn{padding:5px 14px;font-size:10px;font-weight:500;border:none;border-radius:4px;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;letter-spacing:.06em}
+        .toggle-btn.on{background:white;color:#0A1628;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+        .toggle-btn.off{background:transparent;color:#8A9BB0}
+      `}</style>
 
-      {/* Treemap */}
-      <div className="bg-white rounded-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-sm font-bold text-[#141414]">Répartition</h2>
-          <div className="flex gap-4">
-            {[["etf","ETF"],["stock","Action"],["crypto","Crypto"]].map(([t,l]) => (
-              <div key={t} className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-sm" style={{ background: TYPE_COLOR[t] }} />
-                <span className="text-[11px] text-[#8A8A8A]">{l}</span>
+      <div className="pf">
+        {/* Header */}
+        <div style={{marginBottom:28}}>
+          <div className="pf-ey">PORTEFEUILLE DE DÉPART</div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",flexWrap:"wrap",gap:12}}>
+            <div>
+              <div className="pf-total">{feur(total)}</div>
+              <div className={gain >= 0 ? "pf-gain-pos" : "pf-gain-neg"}>
+                {pct(total > 0 ? gain/total*100 : 0)} · {gain >= 0 ? "+" : ""}{feur(gain)} aujourd'hui
               </div>
-            ))}
+            </div>
+            <div style={{display:"flex",gap:4}}>
+              {PERIODS.map(p => (
+                <button key={p} onClick={() => setPeriod(p)}
+                  className={`per-btn ${period === p ? "on" : "off"}`}>{p}</button>
+              ))}
+            </div>
           </div>
         </div>
-        <Treemap assets={assets} />
-      </div>
 
-      {/* Graphique perf */}
-      <div className="bg-white rounded-2xl p-6">
-        <h2 className="text-sm font-bold text-[#141414] mb-4">Performance 30 jours</h2>
-        <ResponsiveContainer width="100%" height={110}>
-          <LineChart data={perfData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-            <XAxis dataKey="j" tick={{ fontSize: 9, fill: "#aaa" }} tickLine={false} axisLine={false} interval={9} />
-            <YAxis tick={{ fontSize: 9, fill: "#aaa" }} tickLine={false} axisLine={false} tickFormatter={(v) => eur(v)} width={74} />
-            <Tooltip
-              contentStyle={{ background: "#141414", border: "none", borderRadius: 7, fontSize: 11, color: "white" }}
-              formatter={(v: number) => [eur(v), "Valeur"]}
-            />
-            <Line type="monotone" dataKey="v" stroke="#D5001C" strokeWidth={1.5} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Table actifs */}
-      <div className="bg-white rounded-2xl p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-sm font-bold text-[#141414]">Actifs</h2>
-          <button
-            onClick={() => router.push("/dashboard/entry")}
-            className="text-[10px] text-[#8A8A8A] hover:text-[#141414] transition-colors"
-          >
-            ⚙ Gérer
-          </button>
-        </div>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="border-b border-black/[0.06]">
-              {["ACTIF","TYPE","QTÉ","PRIX","VALEUR","POIDS","24H"].map((h) => (
-                <th key={h} className="pb-2 px-2 text-[9px] font-bold text-[#8A8A8A] tracking-[0.09em] text-right first:text-left">
-                  {h}
-                </th>
+        {/* Treemap */}
+        <div className="card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div className="card-title">Répartition</div>
+            <div style={{display:"flex",gap:14}}>
+              {[["etf","ETF"],["stock","Action"],["crypto","Crypto"]].map(([t,l]) => (
+                <div key={t} style={{display:"flex",alignItems:"center",gap:6}}>
+                  <div style={{width:7,height:7,borderRadius:2,background:TYPE_COLOR[t]}}/>
+                  <span style={{fontSize:11,color:"#8A9BB0"}}>{l}</span>
+                </div>
               ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...assets].sort((a, b) => b.value - a.value).map((a, i) => (
-              <tr key={a.id} className={cn("transition-colors hover:bg-black/[0.01]", i < assets.length - 1 ? "border-b border-black/[0.04]" : "")}>
-                <td className="py-3 px-2">
-                  <div className="font-bold text-[13px] text-[#141414]">{a.symbol}</div>
-                  <div className="text-[10px] text-[#8A8A8A] mt-0.5 max-w-[160px] truncate">{a.name}</div>
-                </td>
-                <td className="py-3 px-2 text-right">
-                  <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded", TYPE_BADGE[a.type])}>
-                    {a.type.toUpperCase()}
-                  </span>
-                </td>
-                <td className="py-3 px-2 text-right text-xs text-[#141414]">{a.quantity}</td>
-                <td className="py-3 px-2 text-right text-xs text-[#8A8A8A]">
-                  {a.currentPrice > 0 ? eur(a.currentPrice) : "—"}
-                </td>
-                <td className="py-3 px-2 text-right text-sm font-bold text-[#141414]">{eur(a.value)}</td>
-                <td className="py-3 px-2 text-right text-xs text-[#8A8A8A]">{(a.weight * 100).toFixed(1)}%</td>
-                <td className={cn("py-3 px-2 text-right text-xs font-semibold",
-                  (a.performance24h ?? 0) >= 0 ? "text-green-600" : "text-red-600"
-                )}>
-                  {pct(a.performance24h ?? 0)}
-                </td>
+            </div>
+          </div>
+          <Treemap assets={assets} />
+        </div>
+
+        {/* Performance */}
+        <div className="card">
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div className="card-title">Performance 30 jours</div>
+            <div className="toggle-wrap">
+              <button className={`toggle-btn ${!showPct ? "on" : "off"}`} onClick={() => setShowPct(false)}>VALEUR</button>
+              <button className={`toggle-btn ${showPct ? "on" : "off"}`} onClick={() => setShowPct(true)}>%</button>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={120}>
+            <LineChart data={perfData} margin={{top:4,right:4,left:0,bottom:0}}>
+              <XAxis dataKey="j" tick={{fontSize:9,fill:"#aaa"}} tickLine={false} axisLine={false} interval={9}/>
+              <YAxis tick={{fontSize:9,fill:"#aaa"}} tickLine={false} axisLine={false}
+                tickFormatter={yFormatter} width={showPct ? 50 : 80}/>
+              <Tooltip
+                contentStyle={{background:"#0A1628",border:"none",borderRadius:7,fontSize:11,color:"white"}}
+                formatter={(v:number) => [yFormatter(v), showPct ? "Performance" : "Valeur"]}
+              />
+              <Line type="monotone" dataKey={yDataKey} stroke="#0A1628" strokeWidth={1.5} dot={false}/>
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Table actifs */}
+        <div className="card" style={{marginBottom:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div className="card-title">Actifs</div>
+            <button onClick={() => router.push("/dashboard/entry")}
+              style={{fontSize:10,color:"#8A9BB0",background:"none",border:"none",cursor:"pointer",letterSpacing:".06em"}}>
+              ⚙ GÉRER
+            </button>
+          </div>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead>
+              <tr style={{borderBottom:"1px solid rgba(10,22,40,.06)"}}>
+                {["ACTIF","TYPE","QTÉ","PRIX","VALEUR","POIDS","24H"].map(h => (
+                  <th key={h} style={{paddingBottom:8,paddingLeft:8,paddingRight:8,textAlign:h==="ACTIF"?"left":"right",fontSize:9,fontWeight:600,color:"#8A9BB0",letterSpacing:".09em"}}>{h}</th>
+                ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {[...assets].sort((a,b) => b.value - a.value).map((a, i) => (
+                <tr key={a.id} style={{borderBottom:i<assets.length-1?"1px solid rgba(10,22,40,.04)":"none"}}>
+                  <td style={{padding:"12px 8px"}}>
+                    <div style={{fontWeight:700,fontSize:13,color:"#0A1628"}}>{a.symbol}</div>
+                    <div style={{fontSize:10,color:"#8A9BB0",marginTop:1,maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{a.name}</div>
+                  </td>
+                  <td style={{padding:"12px 8px",textAlign:"right"}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:"2px 7px",borderRadius:3,
+                      background:a.type==="etf"?"#EFF6FF":a.type==="stock"?"#F0FDF4":"#FFFBEB",
+                      color:a.type==="etf"?"#1D4ED8":a.type==="stock"?"#15803D":"#92400E"}}>
+                      {a.type.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontSize:12,color:"#0A1628"}}>{a.quantity}</td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontSize:12,color:"#8A9BB0"}}>{a.currentPrice > 0 ? feur(a.currentPrice) : "—"}</td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontSize:13,fontWeight:700,color:"#0A1628"}}>{feur(a.value)}</td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontSize:12,color:"#8A9BB0"}}>{(a.weight*100).toFixed(1)}%</td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontSize:12,fontWeight:600,
+                    color:(a.performance24h??0)>=0?"#16A34A":"#DC2626"}}>
+                    {pct(a.performance24h??0)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
