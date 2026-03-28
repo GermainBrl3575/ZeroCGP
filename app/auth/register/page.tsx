@@ -1,4 +1,3 @@
-// app/auth/register/page.tsx
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -15,90 +14,77 @@ export default function RegisterPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: name } },
-    });
-    if (error) {
-      setError(error.message);
-      setLoading(false);
-    } else {
-      router.push("/dashboard/entry");
-    }
+    setLoading(true); setError("");
+    const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+    if (error) { setError(error.message); setLoading(false); }
+    else router.push("/dashboard/entry");
   }
 
   return (
-    <main className="min-h-screen bg-black flex items-center justify-center">
-      <div className="w-full max-w-sm px-8 py-12">
-        <Link href="/" className="block text-white text-xs font-bold tracking-[0.18em] mb-12">
-          ← ZERO CGT
-        </Link>
-        <h1 className="text-white text-3xl font-black mb-2" style={{ letterSpacing: "-0.03em" }}>
-          Créer un compte
-        </h1>
-        <p className="text-white/30 text-sm mb-10">
-          Déjà inscrit ?{" "}
-          <Link href="/auth/login" className="text-white/60 hover:text-white underline">
-            Se connecter
-          </Link>
-        </p>
-
-        <form onSubmit={handleRegister} className="space-y-4">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Inter:wght@300;400;500&display=swap');
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#FAFAF8;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+        .auth-root{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
+        .auth-left{background:#0A1628;display:flex;flex-direction:column;justify-content:space-between;padding:48px 56px}
+        .auth-logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;text-decoration:none}
+        .auth-left-title{font-family:'Cormorant Garant',serif;font-size:clamp(36px,4vw,52px);font-weight:300;color:white;line-height:1.1;letter-spacing:-.02em}
+        .auth-left-title em{font-style:italic;color:rgba(255,255,255,.4)}
+        .auth-left-sub{font-size:12px;font-weight:300;color:rgba(255,255,255,.3);line-height:1.8;margin-top:14px}
+        .auth-line{width:36px;height:1px;background:rgba(255,255,255,.2);margin-bottom:28px}
+        .auth-right{display:flex;align-items:center;justify-content:center;padding:48px}
+        .form-wrap{width:100%;max-width:340px}
+        .back-link{font-size:10px;letter-spacing:.1em;color:#8A9BB0;text-decoration:none;display:block;margin-bottom:48px;transition:color 0.2s}
+        .back-link:hover{color:#0A1628}
+        .auth-heading{font-family:'Cormorant Garant',serif;font-size:40px;font-weight:300;color:#0A1628;letter-spacing:-.02em;margin-bottom:8px}
+        .auth-hint{font-size:12px;font-weight:300;color:#8A9BB0;margin-bottom:36px}
+        .auth-hint a{color:#1E3A6E;text-decoration:none;border-bottom:1px solid rgba(30,58,110,.2)}
+        .fl{margin-bottom:28px}
+        .fl label{font-size:9px;font-weight:500;letter-spacing:.16em;color:#8A9BB0;display:block;margin-bottom:8px}
+        .fl input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(10,22,40,.15);padding:10px 0;font-size:13px;color:#0A1628;outline:none;transition:border-color 0.3s;font-weight:300;font-family:'Inter',sans-serif}
+        .fl input:focus{border-color:#0A1628}
+        .fl input::placeholder{color:rgba(10,22,40,.2)}
+        .auth-error{font-size:11px;color:#C0392B;margin-bottom:14px}
+        .btn-primary{width:100%;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:#0A1628;color:white;border:none;padding:16px;cursor:pointer;transition:opacity 0.2s;margin-top:8px}
+        .btn-primary:hover{opacity:.82}
+        .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+        .divider{display:flex;align-items:center;gap:14px;margin:24px 0}
+        .divider-line{flex:1;height:1px;background:rgba(10,22,40,.08)}
+        .divider-text{font-size:9px;color:#8A9BB0;letter-spacing:.1em}
+        .btn-secondary{width:100%;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:transparent;color:#0A1628;border:1px solid rgba(10,22,40,.2);padding:16px;cursor:pointer;transition:all 0.35s;position:relative;overflow:hidden}
+        .btn-secondary::before{content:'';position:absolute;inset:0;background:#0A1628;transform:scaleX(0);transform-origin:left;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);z-index:-1}
+        .btn-secondary:hover::before{transform:scaleX(1)}
+        .btn-secondary:hover{color:white;border-color:#0A1628}
+        @media(max-width:768px){.auth-root{grid-template-columns:1fr}.auth-left{display:none}}
+      `}</style>
+      <div className="auth-root">
+        <div className="auth-left">
+          <a href="/" className="auth-logo">ZERO CGP</a>
           <div>
-            <label className="text-white/30 text-[10px] font-bold tracking-[0.12em] block mb-2">
-              PRÉNOM / NOM
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-white/30 transition-colors"
-              placeholder="Jean Dupont"
-            />
+            <div className="auth-line" />
+            <h2 className="auth-left-title">Commencez<br /><em>gratuitement.</em></h2>
+            <p className="auth-left-sub">Créez votre compte en 30 secondes.<br />Aucune carte bancaire requise.<br />Vos données restent privées et sécurisées.</p>
           </div>
-          <div>
-            <label className="text-white/30 text-[10px] font-bold tracking-[0.12em] block mb-2">
-              EMAIL
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full bg-white/5 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-white/30 transition-colors"
-              placeholder="vous@exemple.fr"
-            />
+          <div />
+        </div>
+        <div className="auth-right">
+          <div className="form-wrap">
+            <a href="/" className="back-link">← RETOUR</a>
+            <h1 className="auth-heading">Inscription</h1>
+            <p className="auth-hint">Déjà inscrit ? <Link href="/auth/login">Se connecter</Link></p>
+            <form onSubmit={handleRegister}>
+              <div className="fl"><label>PRÉNOM & NOM</label><input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Jean Dupont" /></div>
+              <div className="fl"><label>ADRESSE EMAIL</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="vous@exemple.fr" /></div>
+              <div className="fl"><label>MOT DE PASSE</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required minLength={8} placeholder="Minimum 8 caractères" /></div>
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-primary">{loading ? "CRÉATION..." : "CRÉER MON COMPTE →"}</button>
+            </form>
+            <div className="divider"><div className="divider-line"/><span className="divider-text">OU</span><div className="divider-line"/></div>
+            <button className="btn-secondary" onClick={()=>router.push("/auth/login")}>SE CONNECTER →</button>
           </div>
-          <div>
-            <label className="text-white/30 text-[10px] font-bold tracking-[0.12em] block mb-2">
-              MOT DE PASSE
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full bg-white/5 border border-white/10 text-white text-sm px-4 py-3 outline-none focus:border-white/30 transition-colors"
-              placeholder="Minimum 8 caractères"
-            />
-          </div>
-
-          {error && <p className="text-red-400 text-xs py-2">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{ background: "#D5001C" }}
-            className="w-full text-white text-xs font-bold tracking-[0.16em] py-4 hover:opacity-85 transition-opacity disabled:opacity-50 mt-2"
-          >
-            {loading ? "CRÉATION..." : "CRÉER MON COMPTE →"}
-          </button>
-        </form>
+        </div>
       </div>
-    </main>
+    </>
   );
 }
