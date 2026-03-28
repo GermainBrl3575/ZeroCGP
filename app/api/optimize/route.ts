@@ -1,23 +1,17 @@
-// app/api/optimize/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { optimize, efficientFrontier, AssetData } from "@/lib/markowitz";
 
-// Univers d'actifs candidats (symboles Yahoo Finance)
-const UNIVERSE: Array<{ symbol: string; name: string; type: "etf" | "stock" | "crypto"; esg: boolean; region: string }> = [
-  { symbol: "IWDA.AS",  name: "iShares MSCI World",        type: "etf",   esg: false, region: "world"   },
-  { symbol: "VWCE.DE",  name: "Vanguard All-World",         type: "etf",   esg: false, region: "world"   },
-  { symbol: "CSPX.AS",  name: "iShares Core S&P 500",       type: "etf",   esg: false, region: "usa"     },
-  { symbol: "EQQQ.DE",  name: "Invesco NASDAQ-100",         type: "etf",   esg: false, region: "usa"     },
-  { symbol: "PAEEM.PA", name: "MSCI Emerging Markets",      type: "etf",   esg: false, region: "em"      },
-  { symbol: "EPRE.PA",  name: "Europe Real Estate",         type: "etf",   esg: false, region: "europe"  },
-  { symbol: "SUSW.L",   name: "MSCI World ESG",             type: "etf",   esg: true,  region: "world"   },
-  { symbol: "MC.PA",    name: "LVMH",                       type: "stock", esg: false, region: "europe"  },
-  { symbol: "AIR.PA",   name: "Airbus SE",                  type: "stock", esg: false, region: "europe"  },
-  { symbol: "ASML.AS",  name: "ASML Holding",               type: "stock", esg: false, region: "europe"  },
-  { symbol: "AAPL",     name: "Apple Inc.",                 type: "stock", esg: false, region: "usa"     },
-  { symbol: "MSFT",     name: "Microsoft Corp.",            type: "stock", esg: false, region: "usa"     },
-  { symbol: "BTC-EUR",  name: "Bitcoin",                    type: "crypto",esg: false, region: "world"   },
-  { symbol: "ETH-EUR",  name: "Ethereum",                   type: "crypto",esg: false, region: "world"   },
+const UNIVERSE = [
+  { symbol: "IWDA.AS",  name: "iShares MSCI World",      type: "etf" as const,   region: "world" },
+  { symbol: "VWCE.DE",  name: "Vanguard All-World",       type: "etf" as const,   region: "world" },
+  { symbol: "CSPX.AS",  name: "iShares Core S&P 500",     type: "etf" as const,   region: "usa"   },
+  { symbol: "EQQQ.DE",  name: "Invesco NASDAQ-100",       type: "etf" as const,   region: "usa"   },
+  { symbol: "PAEEM.PA", name: "MSCI Emerging Markets",    type: "etf" as const,   region: "em"    },
+  { symbol: "MC.PA",    name: "LVMH",                     type: "stock" as const, region: "europe"},
+  { symbol: "AAPL",     name: "Apple Inc.",               type: "stock" as const, region: "usa"   },
+  { symbol: "MSFT",     name: "Microsoft Corp.",          type: "stock" as const, region: "usa"   },
+  { symbol: "BTC-EUR",  name: "Bitcoin",                  type: "crypto" as const,region: "world" },
+  { symbol: "ETH-EUR",  name: "Ethereum",                 type: "crypto" as const,region: "world" },
 ];
 
 async function getReturns(symbol: string): Promise<number[]> {
@@ -32,7 +26,6 @@ async function getReturns(symbol: string): Promise<number[]> {
     }
     return returns;
   } catch {
-    // Fallback : rendements synthétiques si Yahoo indisponible
     return Array.from({ length: 60 }, () => (Math.random() - 0.48) * 0.06);
   }
 }
@@ -41,26 +34,14 @@ export async function POST(req: NextRequest) {
   try {
     const { capital = 50000, answers = {} } = await req.json();
 
-    // Filtrer l'univers selon les réponses
     let candidates = [...UNIVERSE];
-
-    // Q5 : classes d'actifs
     const q5 = answers[5] ?? "";
     if (q5 === "ETF uniquement") candidates = candidates.filter((a) => a.type === "etf");
     else if (q5 === "ETF + Actions") candidates = candidates.filter((a) => ["etf","stock"].includes(a.type));
-    else if (q5 === "ETF + Actions + Crypto") candidates = candidates.filter((a) => ["etf","stock","crypto"].includes(a.type));
 
-    // Q4 : ESG
-    const q4 = answers[4] ?? "";
-    if (q4 === "ESG strict uniquement") candidates = candidates.filter((a) => a.esg);
-
-    // Limiter à 10 actifs max pour performance
     candidates = candidates.slice(0, 10);
 
-    // Récupérer les rendements historiques en parallèle
     const returnsArr = await Promise.all(candidates.map((a) => getReturns(a.symbol)));
-
-    // Filtrer les actifs sans données suffisantes
     const validIndices = returnsArr.map((r, i) => r.length >= 20 ? i : -1).filter((i) => i >= 0);
     const assets: AssetData[] = validIndices.map((i) => ({
       symbol: candidates[i].symbol,
@@ -73,14 +54,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Données insuffisantes", results: [] }, { status: 422 });
     }
 
-    // Optimisation
     const optResults = optimize(assets, capital);
     const frontier = efficientFrontier(assets);
 
     const results = [
-      { method: "gmv",       label: "Variance Minimale", ...optResults.gmv,       frontier },
-      { method: "maxsharpe", label: "Sharpe Maximum",    ...optResults.maxsharpe, frontier, rec: true },
-      { method: "utility",   label: "Utilité Maximale",  ...optResults.utility,   frontier },
+      { method: "gmv",       label: "Variance Minimale", expectedReturn: optResults.gmv.expectedReturn,       volatility: optResults.gmv.volatility,       sharpeRatio: optResults.gmv.sharpeRatio,       var95: optResults.gmv.var95,       weights: optResults.gmv.capitalAllocation, frontier },
+      { method: "maxsharpe", label: "Sharpe Maximum",    expectedReturn: optResults.maxsharpe.expectedReturn, volatility: optResults.maxsharpe.volatility, sharpeRatio: optResults.maxsharpe.sharpeRatio, var95: optResults.maxsharpe.var95, weights: optResults.maxsharpe.capitalAllocation, frontier, rec: true },
+      { method: "utility",   label: "Utilité Maximale",  expectedReturn: optResults.utility.expectedReturn,   volatility: optResults.utility.volatility,   sharpeRatio: optResults.utility.sharpeRatio,   var95: optResults.utility.var95,   weights: optResults.utility.capitalAllocation, frontier },
     ];
 
     return NextResponse.json({ results });
