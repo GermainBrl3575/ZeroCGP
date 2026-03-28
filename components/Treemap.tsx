@@ -1,39 +1,98 @@
-// components/Treemap.tsx
 "use client";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Asset } from "@/types";
-import { eur, TYPE_COLOR } from "@/lib/utils";
+import { TYPE_COLOR } from "@/lib/utils";
 
-interface TreemapProps { assets: Asset[] }
+function feur(n: number) {
+  return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
+}
 
 function TreeCell({ asset, colTotal, grandTotal }: {
   asset: Asset; colTotal: number; grandTotal: number;
 }) {
   const [hov, setHov] = useState(false);
-  const pct = (asset.value / grandTotal * 100).toFixed(1);
+  const ref = useRef<HTMLDivElement>(null);
+  const [fontSize, setFontSize] = useState({ pct: 15, eur: 10, sym: 10 });
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const { offsetWidth: w, offsetHeight: h } = ref.current;
+    // Adapter la taille de police selon la surface disponible
+    const area = w * h;
+    if (area < 4000) {
+      setFontSize({ pct: 9, eur: 8, sym: 8 });
+    } else if (area < 10000) {
+      setFontSize({ pct: 11, eur: 9, sym: 9 });
+    } else if (area < 25000) {
+      setFontSize({ pct: 13, eur: 10, sym: 10 });
+    } else {
+      setFontSize({ pct: 15, eur: 11, sym: 10 });
+    }
+  }, []);
+
+  const pctVal = (asset.value / grandTotal * 100).toFixed(1);
+  const eurVal = feur(asset.value);
+  const isSmall = (asset.value / grandTotal) < 0.06;
+
   return (
     <div
+      ref={ref}
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
-      className="flex flex-col justify-between p-3 cursor-pointer transition-all duration-150"
       style={{
         flex: asset.value / colTotal,
         background: hov ? TYPE_COLOR[asset.type] : TYPE_COLOR[asset.type] + "CC",
-        minHeight: 56,
+        padding: isSmall ? "6px 8px" : "12px 14px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        cursor: "pointer",
+        transition: "background 0.15s",
+        minHeight: 40,
+        overflow: "hidden",
+        position: "relative",
       }}
     >
-      <span className="text-[10px] font-bold tracking-[0.1em] text-white/70 uppercase">
+      <span style={{
+        color: "rgba(255,255,255,0.75)",
+        fontSize: fontSize.sym,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      }}>
         {asset.symbol}
       </span>
-      <div>
-        <div className="text-white font-black text-base">{pct}%</div>
-        <div className="text-white/50 text-[10px]">{eur(asset.value)}</div>
+      <div style={{ overflow: "hidden" }}>
+        <div style={{
+          color: "white",
+          fontSize: fontSize.pct,
+          fontWeight: 800,
+          lineHeight: 1.1,
+          whiteSpace: "nowrap",
+        }}>
+          {pctVal}%
+        </div>
+        {!isSmall && (
+          <div style={{
+            color: "rgba(255,255,255,0.55)",
+            fontSize: fontSize.eur,
+            marginTop: 2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}>
+            {eurVal}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export default function Treemap({ assets }: TreemapProps) {
+export default function Treemap({ assets }: { assets: Asset[] }) {
   const sorted = [...assets].sort((a, b) => b.value - a.value);
   const tot = assets.reduce((s, a) => s + a.value, 0);
   let s1 = 0;
@@ -43,12 +102,12 @@ export default function Treemap({ assets }: TreemapProps) {
     else col2.push(a);
   }
   return (
-    <div className="flex h-64 gap-1 rounded-xl overflow-hidden">
-      <div className="flex flex-col gap-1" style={{ width: `${s1 / tot * 100}%` }}>
-        {col1.map((a) => <TreeCell key={a.id} asset={a} colTotal={s1} grandTotal={tot} />)}
+    <div style={{ display: "flex", height: 280, gap: 3, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ width: `${s1/tot*100}%`, display: "flex", flexDirection: "column", gap: 3 }}>
+        {col1.map(a => <TreeCell key={a.id} asset={a} colTotal={s1} grandTotal={tot} />)}
       </div>
-      <div className="flex flex-col gap-1" style={{ width: `${(tot - s1) / tot * 100}%` }}>
-        {col2.map((a) => <TreeCell key={a.id} asset={a} colTotal={tot - s1} grandTotal={tot} />)}
+      <div style={{ width: `${(tot-s1)/tot*100}%`, display: "flex", flexDirection: "column", gap: 3 }}>
+        {col2.map(a => <TreeCell key={a.id} asset={a} colTotal={tot-s1} grandTotal={tot} />)}
       </div>
     </div>
   );
