@@ -26,6 +26,7 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
   const router = useRouter();
   const [dropOpen, setDropOpen] = useState(false);
   const activePf = portfolios.find(p => p.id === activePortfolioId);
+  const hasPortfolios = portfolios.length > 0;
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -37,8 +38,10 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@300;400&family=Inter:wght@300;400;500&display=swap');
         .sb{width:260px;min-height:100vh;background:#0A1628;display:flex;flex-direction:column;flex-shrink:0;font-family:'Inter',sans-serif}
-        .sb-header{padding:28px 22px 24px;border-bottom:1px solid rgba(255,255,255,.05)}
-        .sb-logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;margin-bottom:18px;display:block;text-decoration:none}
+        .sb-header{padding:28px 22px 20px;border-bottom:1px solid rgba(255,255,255,.05)}
+        .sb-logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;margin-bottom:16px;display:block;text-decoration:none}
+        .sb-btn-entry{display:block;width:100%;text-align:center;padding:10px 13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:10px;font-weight:500;letter-spacing:.1em;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.2s;text-decoration:none}
+        .sb-btn-entry:hover{background:rgba(255,255,255,.13);color:white}
         .sb-dropdown{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:10px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.2s;position:relative}
         .sb-dropdown:hover{background:rgba(255,255,255,.08)}
         .sb-dropdown-text{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;font-weight:300}
@@ -58,24 +61,37 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
         .sb-logout{font-size:9px;color:rgba(255,255,255,.2);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;letter-spacing:.06em;transition:color 0.2s;display:block;padding:0}
         .sb-logout:hover{color:rgba(255,255,255,.5)}
       `}</style>
+
       <aside className="sb">
         <div className="sb-header">
           <Link href="/" className="sb-logo">ZERO CGP</Link>
-          <div className="sb-dropdown" onClick={() => setDropOpen(!dropOpen)}>
-            <span className="sb-dropdown-text">{activePf?.name ?? "Sélectionner un portefeuille"}</span>
-            <span className="sb-dropdown-arrow">▾</span>
-            {dropOpen && portfolios.length > 0 && (
-              <div className="sb-dropdown-menu">
-                {portfolios.map(pf => (
-                  <button key={pf.id} className="sb-dropdown-item"
-                    onClick={() => { onSelectPortfolio?.(pf.id); setDropOpen(false); }}>
-                    {pf.name}
+
+          {!hasPortfolios ? (
+            <Link href="/dashboard/entry" className="sb-btn-entry">
+              + RENSEIGNER MON PORTEFEUILLE
+            </Link>
+          ) : (
+            <div className="sb-dropdown" onClick={() => setDropOpen(!dropOpen)}>
+              <span className="sb-dropdown-text">{activePf?.name ?? "Sélectionner"}</span>
+              <span className="sb-dropdown-arrow">▾</span>
+              {dropOpen && (
+                <div className="sb-dropdown-menu">
+                  {portfolios.map(pf => (
+                    <button key={pf.id} className="sb-dropdown-item"
+                      onClick={() => { onSelectPortfolio?.(pf.id); setDropOpen(false); }}>
+                      {pf.name}
+                    </button>
+                  ))}
+                  <button className="sb-dropdown-item" style={{borderTop:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.25)"}}
+                    onClick={() => { router.push("/dashboard/entry"); setDropOpen(false); }}>
+                    + Nouveau portefeuille
                   </button>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+
         <nav className="sb-nav">
           <div className="sb-section">NAVIGATION</div>
           {NAV.map(({ href, icon, label }) => (
@@ -85,6 +101,7 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
             </Link>
           ))}
         </nav>
+
         <div className="sb-footer">
           <div className="sb-avatar">U</div>
           <div style={{flex:1,minWidth:0}}>
