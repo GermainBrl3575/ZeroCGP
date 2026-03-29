@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { Asset } from "@/types";
-import { cn, TYPE_COLOR } from "@/lib/utils";
+import { TYPE_COLOR } from "@/lib/utils";
 import Treemap from "@/components/Treemap";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
@@ -16,13 +16,13 @@ function fpct(n: number) { return `${n>=0?"+":""}${n.toFixed(2)}%`; }
 function colorVal(n: number) { return n>=0?"#16A34A":"#DC2626"; }
 
 function CustomTooltip({ active, payload, label, showPct }: {
-  active?:boolean; payload?:{value:number;name:string}[]; label?:string; showPct:boolean;
+  active?:boolean; payload?:{value:number}[]; label?:string; showPct:boolean;
 }) {
   if (!active||!payload?.length) return null;
   const val = payload[0].value;
   return (
     <div style={{background:"#0A1628",borderRadius:8,padding:"10px 14px",boxShadow:"0 4px 16px rgba(0,0,0,.2)"}}>
-      <div style={{color:"rgba(255,255,255,.4)",fontSize:10,marginBottom:4,letterSpacing:".08em"}}>{label}</div>
+      <div style={{color:"rgba(255,255,255,.4)",fontSize:10,marginBottom:4}}>{label}</div>
       <div style={{color:showPct?(val>=0?"#4ADE80":"#F87171"):"white",fontSize:15,fontWeight:700}}>
         {showPct?`${val>=0?"+":""}${val.toFixed(2)}%`:feur(val)}
       </div>
@@ -30,25 +30,25 @@ function CustomTooltip({ active, payload, label, showPct }: {
   );
 }
 
-export default function PortfolioPage() {
+function PortfolioInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
-  const [assets,    setAssets]    = useState<Asset[]>([]);
-  const [pfName,    setPfName]    = useState("");
-  const [pfType,    setPfType]    = useState<"manual"|"optimized">("manual");
-  const [period,    setPeriod]    = useState("1M");
-  const [loading,   setLoading]   = useState(true);
-  const [perfData,  setPerfData]  = useState<{j:string;v:number;p:number}[]>([]);
-  const [showPct,   setShowPct]   = useState(false);
+  const [assets,   setAssets]   = useState<Asset[]>([]);
+  const [pfName,   setPfName]   = useState("");
+  const [pfType,   setPfType]   = useState<"manual"|"optimized">("manual");
+  const [period,   setPeriod]   = useState("1M");
+  const [loading,  setLoading]  = useState(true);
+  const [perfData, setPerfData] = useState<{j:string;v:number;p:number}[]>([]);
+  const [showPct,  setShowPct]  = useState(false);
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push("/auth/login"); return; }
 
-      // Lire l'id depuis l'URL, sinon prendre le premier
       const urlId = searchParams.get("id");
       let pfId = urlId;
+      let type: "manual"|"optimized" = "manual";
 
       if (!pfId) {
         const { data: portfolios } = await supabase
@@ -56,14 +56,18 @@ export default function PortfolioPage() {
           .eq("user_id", user.id).limit(1)
           .order("created_at", { ascending: false });
         if (!portfolios?.length) { router.push("/dashboard/entry"); return; }
-        pfId = portfolios[0].id;
+        pfId  = portfolios[0].id;
+        type  = portfolios[0].type as "manual"|"optimized";
         setPfName(portfolios[0].name);
-        setPfType(portfolios[0].type as "manual"|"optimized");
+        setPfType(type);
       } else {
         const { data: pf } = await supabase
-          .from("portfolios").select("id,name,type")
-          .eq("id", pfId).single();
-        if (pf) { setPfName(pf.name); setPfType(pf.type as "manual"|"optimized"); }
+          .from("portfolios").select("id,name,type").eq("id", pfId).single();
+        if (pf) {
+          type = pf.type as "manual"|"optimized";
+          setPfName(pf.name);
+          setPfType(type);
+        }
       }
 
       const { data: rawAssets } = await supabase
@@ -72,20 +76,15 @@ export default function PortfolioPage() {
 
       if (!rawAssets?.length) { setLoading(false); return; }
 
-      // Pour les portefeuilles optimisés, utiliser target_amount directement
-      // Pour les portefeuilles manuels, calculer quantity × prix live
       const enriched: Asset[] = await Promise.all(
         rawAssets.map(async a => {
-          let value = 0;
-          let currentPrice = 0;
-          let changePercent = 0;
+          let value = 0, currentPrice = 0, changePercent = 0;
 
-          if (pfType === "optimized" || a.target_amount) {
-            // Portefeuille optimisé : on utilise directement target_amount
-            value = a.target_amount ?? 0;
-            currentPrice = 0; // pas de prix live
+          if (type === "optimized") {
+            // Portefeuille optimisé : montant cible directement
+            value = Number(a.target_amount) || 0;
           } else {
-            // Portefeuille manuel : prix × quantité
+            // Portefeuille manuel : prix live × quantité
             try {
               const res = await fetch(`/api/yahoo/quote?symbol=${a.symbol}`);
               const q   = await res.json();
@@ -96,10 +95,10 @@ export default function PortfolioPage() {
           }
 
           return {
-            id: a.id, symbol: a.symbol, name: a.name, isin: a.isin,
-            type: a.type as "etf"|"stock"|"crypto",
-            quantity: a.quantity, currentPrice,
-            value, weight: 0, performance24h: changePercent,
+            id: a.id, symbol: a.symbol, name: a.name || a.symbol,
+            isin: a.isin, type: a.type as "etf"|"stock"|"crypto",
+            quantity: a.quantity, currentPrice, value, weight: 0,
+            performance24h: changePercent,
           };
         })
       );
@@ -108,7 +107,7 @@ export default function PortfolioPage() {
       const final = enriched.map(a => ({ ...a, weight: tot>0?a.value/tot:0 }));
       setAssets(final);
 
-      const base  = tot * 0.92;
+      const base = tot * 0.92;
       setPerfData(Array.from({length:30},(_,i)=>({
         j:`J-${29-i}`,
         v:Math.round(base+i*(tot*0.003)+Math.sin(i*0.7)*tot*0.015),
@@ -117,7 +116,7 @@ export default function PortfolioPage() {
       setLoading(false);
     }
     load();
-  }, [router, searchParams, pfType]);
+  }, [router, searchParams]);
 
   const total   = assets.reduce((s,a)=>s+a.value,0);
   const gain    = assets.reduce((s,a)=>s+a.value*(a.performance24h??0)/100,0);
@@ -155,9 +154,7 @@ export default function PortfolioPage() {
         .toggle-btn.on{background:white;color:#0A1628;box-shadow:0 1px 3px rgba(0,0,0,.08)}
         .toggle-btn.off{background:transparent;color:#8A9BB0}
       `}</style>
-
       <div className="pf">
-        {/* Header */}
         <div style={{marginBottom:28}}>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <div style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:"#1E3A6E"}}>{pfName.toUpperCase()}</div>
@@ -174,15 +171,14 @@ export default function PortfolioPage() {
               <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:44,fontWeight:300,color:"#0A1628",letterSpacing:"-.03em",lineHeight:1}}>
                 {feur(total)}
               </div>
-              {!isOpt && (
+              {!isOpt ? (
                 <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
                   <span style={{fontSize:13,fontWeight:600,color:colorVal(gainPct)}}>{fpct(gainPct)}</span>
                   <span style={{fontSize:13,color:"#8A9BB0"}}>·</span>
                   <span style={{fontSize:13,fontWeight:600,color:colorVal(gain)}}>{gain>=0?"+":""}{feur(gain)}</span>
                   <span style={{fontSize:11,color:"#8A9BB0",fontWeight:300}}>aujourd'hui</span>
                 </div>
-              )}
-              {isOpt && (
+              ) : (
                 <div style={{fontSize:12,color:"#8A9BB0",marginTop:6,fontWeight:300}}>
                   Allocation cible — portefeuille optimisé par Markowitz
                 </div>
@@ -199,7 +195,6 @@ export default function PortfolioPage() {
           </div>
         </div>
 
-        {/* Treemap */}
         <div className="card">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div className="card-title">Répartition</div>
@@ -215,7 +210,6 @@ export default function PortfolioPage() {
           <Treemap assets={assets}/>
         </div>
 
-        {/* Graphique perf — seulement pour les portefeuilles manuels */}
         {!isOpt && (
           <div className="card">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
@@ -239,7 +233,6 @@ export default function PortfolioPage() {
           </div>
         )}
 
-        {/* Table actifs */}
         <div className="card" style={{marginBottom:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
             <div className="card-title">Actifs</div>
@@ -253,7 +246,7 @@ export default function PortfolioPage() {
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead>
               <tr style={{borderBottom:"1px solid rgba(10,22,40,.06)"}}>
-                {["ACTIF","TYPE",isOpt?"POIDS":"QTÉ",isOpt?"ALLOCATION":"PRIX","VALEUR","POIDS",!isOpt?"24H":""].filter(Boolean).map(h=>(
+                {["ACTIF","TYPE",isOpt?"POIDS":"QTÉ",isOpt?"ALLOCATION":"PRIX","VALEUR","POIDS",...(!isOpt?["24H"]:[])].map(h=>(
                   <th key={h} style={{paddingBottom:8,paddingLeft:8,paddingRight:8,textAlign:h==="ACTIF"?"left":"right",fontSize:9,fontWeight:600,color:"#8A9BB0",letterSpacing:".09em"}}>{h}</th>
                 ))}
               </tr>
@@ -291,5 +284,18 @@ export default function PortfolioPage() {
         </div>
       </div>
     </>
+  );
+}
+
+// Export avec Suspense — obligatoire pour useSearchParams en Next.js 14
+export default function PortfolioPage() {
+  return (
+    <Suspense fallback={
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}>
+        <div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div>
+      </div>
+    }>
+      <PortfolioInner />
+    </Suspense>
   );
 }

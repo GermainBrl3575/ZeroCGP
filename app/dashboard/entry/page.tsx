@@ -1,5 +1,5 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState, Suspense, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { eur, TYPE_COLOR } from "@/lib/utils";
@@ -20,7 +20,7 @@ const TYPE_COLORS: Record<string, {bg:string,tx:string}> = {
   crypto:{ bg:"#FFFBEB", tx:"#92400E" },
 };
 
-export default function EntryPage() {
+function EntryInner() {
   const router = useRouter();
   const [rows, setRows] = useState<Row[]>([newRow(), newRow()]);
   const [suggestions, setSuggestions] = useState<Record<number, {symbol:string;name:string;type:"etf"|"stock"|"crypto"}[]>>({});
@@ -250,5 +250,13 @@ export default function EntryPage() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function EntryPage() {
+  return (
+    <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}><div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div></div>}>
+      <EntryInner />
+    </Suspense>
   );
 }

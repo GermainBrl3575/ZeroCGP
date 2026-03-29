@@ -1,9 +1,11 @@
+"use client";
+
 export default function Page() {
   return (
-    <div className="p-10 flex items-center justify-center min-h-[400px]">
-      <div className="text-center">
-        <div className="text-[#8A8A8A] text-[10px] font-bold tracking-[0.16em] mb-4">BIENTÔT DISPONIBLE</div>
-        <h1 className="text-[#141414] text-4xl font-black" style={{ letterSpacing: "-0.03em" }}>Module en construction</h1>
+    <div style={{ padding:"40px 48px", display:"flex", alignItems:"center", justifyContent:"center", minHeight:400 }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:9, fontWeight:700, letterSpacing:".16em", color:"#1E3A6E", marginBottom:16 }}>BIENTÔT DISPONIBLE</div>
+        <h1 style={{ fontFamily:"'Cormorant Garant',serif", fontSize:36, fontWeight:300, color:"#0A1628", letterSpacing:"-.02em" }}>Module en construction</h1>
       </div>
     </div>
   );

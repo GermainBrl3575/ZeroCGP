@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { eur } from "@/lib/utils";
@@ -306,7 +306,7 @@ const css = `
   .ac-chip.off:hover{border-color:${NAVY}}
 `;
 
-export default function OptimizerPage() {
+function OptimizerInner() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
@@ -537,4 +537,12 @@ export default function OptimizerPage() {
     </div></>);
   }
   return null;
+}
+
+export default function OptimizerPage() {
+  return (
+    <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}><div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div></div>}>
+      <OptimizerInner />
+    </Suspense>
+  );
 }
