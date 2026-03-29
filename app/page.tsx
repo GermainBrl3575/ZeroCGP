@@ -303,7 +303,7 @@ export default function LandingPage() {
       <nav className="nav" id="mainNav">
         <div className="logo nav-logo" onClick={() => scrollTo(0)}>ZERO CGP
 
-        <div className="nav-center"><div className="nav-tabs">
+        <div className="nav-center"><div className="nav-center"><div className="nav-tabs">
           {["Accueil","Comment ça fonctionne","Simulation"].map((tab, i) => (
             <button key={tab} className={`nav-tab${activeTab === i ? " active" : ""}`}
               onClick={() => scrollTo(i)}>
