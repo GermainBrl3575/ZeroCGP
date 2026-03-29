@@ -33,19 +33,19 @@ function CustomTooltip({ active, payload, label }: { active?: boolean; payload?:
     }}>
       <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginBottom: 6, letterSpacing: ".08em" }}>
         AN {label}
-      </div>
+      
       {payload.map(p => (
         <div key={p.name} style={{ color: "white", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>
           <span style={{ color: p.color, marginRight: 6, fontSize: 8 }}>●</span>
           {p.name} : <span style={{ color: p.color }}>{feur(p.value)}</span>
-        </div>
+        
       ))}
       {payload.length === 2 && (
         <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginTop: 6, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 6 }}>
           Manque à gagner : <span style={{ color: "#F87171" }}>{feur(payload[0].value - payload[1].value)}</span>
-        </div>
+        
       )}
-    </div>
+    
   );
 }
 
@@ -208,7 +208,7 @@ export default function LandingPage() {
         .snap-container::-webkit-scrollbar{display:none}
 
         /* NAV */
-        .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:0 52px;height:68px;transition:background 0.4s}
+        .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;padding:0 52px;height:68px;transition:background 0.4s}.nav-logo{flex:1}.nav-center{position:absolute;left:50%;transform:translateX(-50%)}.nav-right{flex:1;display:flex;justify-content:flex-end;align-items:center}
         .nav.scrolled{background:rgba(250,250,248,0.95);backdrop-filter:blur(14px);border-bottom:1px solid rgba(10,22,40,.06)}
         .logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:#0A1628;cursor:pointer}
 
@@ -235,7 +235,7 @@ export default function LandingPage() {
         .eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:32px;position:relative;z-index:1;animation:fadeUp 0.8s 0.3s ease both}
         .hero-title{font-family:'Cormorant Garant',serif;font-weight:300;font-size:clamp(80px,11vw,118px);line-height:.88;color:#0A1628;letter-spacing:-.025em;position:relative;z-index:1;animation:fadeUp 0.9s 0.5s ease both}
         .hero-title em{font-style:italic;color:#1E3A6E}
-        .hero-sub{font-size:13px;font-weight:300;color:#8A9BB0;line-height:1.9;margin:28px auto 44px;max-width:360px;position:relative;z-index:1;animation:fadeUp 0.8s 0.7s ease both}
+        .hero-sub{font-size:13px;font-weight:300;color:#5A6B80;line-height:1.9;margin:28px auto 44px;max-width:360px;position:relative;z-index:1;animation:fadeUp 0.8s 0.7s ease both}
         .btn-cta{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:#0A1628;color:white;border:none;padding:17px 56px;cursor:pointer;transition:opacity 0.2s;position:relative;z-index:1;animation:fadeUp 0.8s 0.9s ease both}
         .btn-cta:hover{opacity:.82}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
@@ -253,7 +253,7 @@ export default function LandingPage() {
         .how-eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:18px}
         .how-title{font-family:'Cormorant Garant',serif;font-size:clamp(38px,5vw,54px);font-weight:300;color:#0A1628;letter-spacing:-.02em;line-height:1.1;margin-bottom:12px}
         .how-title em{font-style:italic;color:#1E3A6E}
-        .how-mention{font-size:11px;font-weight:300;color:#8A9BB0;letter-spacing:.03em;margin-bottom:52px;line-height:1.7}
+        .how-mention{font-size:11px;font-weight:300;color:#4B5563;letter-spacing:.03em;margin-bottom:52px;line-height:1.7}
         .how-mention strong{color:#1E3A6E;font-weight:400}
         .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);max-width:1160px;margin:0 auto;border-top:1px solid rgba(10,22,40,.08);border-left:1px solid rgba(10,22,40,.08)}
         .step-card{padding:32px 28px;border-right:1px solid rgba(10,22,40,.08);border-bottom:1px solid rgba(10,22,40,.08);background:#FAFAF8;transition:background 0.3s}
@@ -268,7 +268,7 @@ export default function LandingPage() {
         .sim-eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:18px}
         .sim-title{font-family:'Cormorant Garant',serif;font-size:clamp(36px,5vw,52px);font-weight:300;color:#0A1628;letter-spacing:-.02em;line-height:1.1;margin-bottom:14px}
         .sim-title em{font-style:italic;color:#1E3A6E}
-        .sim-sub{font-size:12px;font-weight:300;color:#8A9BB0;line-height:1.7;max-width:560px;margin:0 auto}
+        .sim-sub{font-size:12px;font-weight:300;color:#4B5563;line-height:1.7;max-width:560px;margin:0 auto}
 
         /* Sliders */
         .sliders-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;max-width:900px;margin:0 auto 44px;background:white;border-radius:16px;padding:32px 40px}
@@ -301,22 +301,22 @@ export default function LandingPage() {
 
       {/* NAV */}
       <nav className="nav" id="mainNav">
-        <div className="logo" onClick={() => scrollTo(0)}>ZERO CGP</div>
+        <div className="logo nav-logo" onClick={() => scrollTo(0)}>ZERO CGP
 
-        <div className="nav-tabs">
+        <div className="nav-center"><div className="nav-tabs">
           {["Accueil","Comment ça fonctionne","Simulation"].map((tab, i) => (
             <button key={tab} className={`nav-tab${activeTab === i ? " active" : ""}`}
               onClick={() => scrollTo(i)}>
               {tab.toUpperCase()}
             </button>
           ))}
-        </div>
+        
 
-        <div className="nav-actions">
+        </div><div className="nav-right">
           <button className="btn-connexion" onClick={() => router.push("/auth/login")}>CONNEXION</button>
           <div className="nav-sep" />
           <button className="btn-inscrire" onClick={() => router.push("/auth/register")}>S'INSCRIRE</button>
-        </div>
+        
       </nav>
 
       <div className="snap-container" ref={containerRef} id="snapContainer">
@@ -336,7 +336,7 @@ export default function LandingPage() {
           <div className="scroll-hint" onClick={() => scrollTo(1)}>
             <span>COMMENT ÇA FONCTIONNE</span>
             <div className="scroll-arrow" />
-          </div>
+          
         </section>
 
         {/* ── SECTION 2 : HOW IT WORKS ── */}
@@ -348,16 +348,16 @@ export default function LandingPage() {
               Modèles mathématiques utilisés par les <strong>banques privées</strong>,<br />
               <strong>family offices</strong> et <strong>conseillers en gestion de patrimoine</strong>
             </p>
-          </div>
+          
           <div className="steps-grid">
             {steps.map(s => (
               <div key={s.n} className="step-card">
-                <div className="step-num">ÉTAPE {s.n}</div>
-                <div className="step-title">{s.title}</div>
-                <div className="step-desc">{s.desc}</div>
-              </div>
+                <div className="step-num">ÉTAPE {s.n}
+                <div className="step-title">{s.title}
+                <div className="step-desc">{s.desc}
+              
             ))}
-          </div>
+          
         </section>
 
         {/* ── SECTION 3 : SIMULATEUR ── */}
@@ -371,63 +371,63 @@ export default function LandingPage() {
               Le MSCI World affiche <strong style={{color:"#0A1628",fontWeight:500}}>+8%/an en moyenne</strong> sur 30 ans.
               Après 2,5% de frais CGP, il ne vous reste que 5,5% — soit des centaines de milliers d'euros perdus.
             </p>
-          </div>
+          
 
           {/* Sliders */}
           <div className="sliders-row">
             <div className="slider-item">
               <label>CAPITAL INITIAL</label>
-              <div className="slider-val">{feur(capital)}</div>
+              <div className="slider-val">{feur(capital)}
               <input type="range" min={10000} max={1000000} step={5000}
                 value={capital} onChange={e => setCapital(Number(e.target.value))} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#ccc"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#6B7280"}}>
                 <span>10 k€</span><span>1 M€</span>
-              </div>
-            </div>
+              
+            
             <div className="slider-item">
               <label>DURÉE</label>
-              <div className="slider-val">{years} <em>ans</em></div>
+              <div className="slider-val">{years} <em>ans</em>
               <input type="range" min={5} max={40} step={1}
                 value={years} onChange={e => setYears(Number(e.target.value))} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#ccc"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#6B7280"}}>
                 <span>5 ans</span><span>40 ans</span>
-              </div>
-            </div>
+              
+            
             <div className="slider-item">
               <label>FRAIS CGP / BANQUE</label>
-              <div className="slider-val">{cgpFees.toFixed(1)} <em>%/an</em></div>
+              <div className="slider-val">{cgpFees.toFixed(1)} <em>%/an</em>
               <input type="range" min={0.5} max={4} step={0.1}
                 value={cgpFees} onChange={e => setCgpFees(Number(e.target.value))} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#ccc"}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#6B7280"}}>
                 <span>0,5%</span><span>4%</span>
-              </div>
-            </div>
-          </div>
+              
+            
+          
 
           {/* Résumé chiffré */}
           <div className="sim-cards">
             <div className="sim-card" style={{background:"#EFF6FF"}}>
-              <div className="sim-card-label" style={{color:"#1E3A6E"}}>AVEC ZERO CGP (ETF 0,20%)</div>
-              <div className="sim-card-val" style={{color:"#0A1628"}}>{feur(etfFinal)}</div>
+              <div className="sim-card-label" style={{color:"#1E3A6E"}}>AVEC ZERO CGP (ETF 0,20%)
+              <div className="sim-card-val" style={{color:"#0A1628"}}>{feur(etfFinal)}
               <div className="sim-card-sub" style={{color:"#3D6B9A"}}>
                 Rendement net : <strong>{(MSCI_GROSS - ETF_FEES)*100 | 0}.{Math.round(((MSCI_GROSS - ETF_FEES)*100 % 1)*10)}%/an</strong>
-              </div>
-            </div>
+              
+            
             <div className="sim-card" style={{background:"#FEF2F2"}}>
-              <div className="sim-card-label" style={{color:"#991B1B"}}>AVEC BANQUE / CGP ({cgpFees}%)</div>
-              <div className="sim-card-val" style={{color:"#7F1D1D"}}>{feur(cgpFinal)}</div>
+              <div className="sim-card-label" style={{color:"#991B1B"}}>AVEC BANQUE / CGP ({cgpFees}%)
+              <div className="sim-card-val" style={{color:"#7F1D1D"}}>{feur(cgpFinal)}
               <div className="sim-card-sub" style={{color:"#B91C1C"}}>
                 Rendement net : <strong>{((MSCI_GROSS - cgpFees/100)*100).toFixed(1)}%/an</strong>
-              </div>
-            </div>
+              
+            
             <div className="sim-card" style={{background:"#0A1628"}}>
-              <div className="sim-card-label" style={{color:"rgba(255,255,255,0.4)"}}>MANQUE À GAGNER</div>
-              <div className="sim-card-val" style={{color:"#F87171"}}>{feur(manque)}</div>
+              <div className="sim-card-label" style={{color:"rgba(255,255,255,0.4)"}}>MANQUE À GAGNER
+              <div className="sim-card-val" style={{color:"#F87171"}}>{feur(manque)}
               <div className="sim-card-sub" style={{color:"rgba(255,255,255,0.4)"}}>
                 soit <strong style={{color:"#FCA5A5"}}>{Math.round(manque/capital*100)}%</strong> de patrimoine en moins
-              </div>
-            </div>
-          </div>
+              
+            
+          
 
           {/* Graphique */}
           <div style={{background:"white",borderRadius:16,padding:"28px 24px",maxWidth:900,margin:"0 auto"}}>
@@ -440,10 +440,10 @@ export default function LandingPage() {
                   <div key={lbl} style={{display:"flex",alignItems:"center",gap:6}}>
                     <div style={{width:20,height:2,background:col,borderRadius:1}}/>
                     <span style={{fontSize:11,color:"#8A9BB0"}}>{lbl}</span>
-                  </div>
+                  
                 ))}
-              </div>
-            </div>
+              
+            
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData} margin={{top:5,right:10,left:10,bottom:5}}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,22,40,.05)" />
@@ -460,10 +460,10 @@ export default function LandingPage() {
                   activeDot={{r:5,fill:"#FCA5A5",stroke:"white",strokeWidth:2}} />
               </LineChart>
             </ResponsiveContainer>
-            <p style={{fontSize:10,color:"#ccc",textAlign:"center",marginTop:12,letterSpacing:".04em"}}>
+            <p style={{fontSize:10,color:"#6B7280",textAlign:"center",marginTop:12,letterSpacing:".04em"}}>
               Basé sur le rendement historique du MSCI World (+8%/an sur 30 ans). Simulation à titre indicatif, hors fiscalité.
             </p>
-          </div>
+          
 
           {/* CTA simulateur */}
           <div style={{textAlign:"center",marginTop:36}}>
@@ -471,7 +471,7 @@ export default function LandingPage() {
               onClick={() => router.push("/auth/register")}>
               RÉCUPÉRER MES {feur(manque)} →
             </button>
-          </div>
+          
         </section>
 
         {/* ── SECTION 4 : CTA ── */}
@@ -485,10 +485,10 @@ export default function LandingPage() {
           <div className="cta-footer">
             <span className="cta-footer-logo">ZERO CGP</span>
             <span className="cta-footer-copy">© 2025 TOUS DROITS RÉSERVÉS</span>
-          </div>
+          
         </section>
 
-      </div>
+      
     </>
   );
 }
