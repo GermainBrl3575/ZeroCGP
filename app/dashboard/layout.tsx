@@ -6,6 +6,11 @@ import { supabase } from "@/lib/supabase";
 
 interface Portfolio { id: string; name: string; type: "manual" | "optimized" }
 
+function getUrlId(): string {
+  if (typeof window === "undefined") return "";
+  return new URLSearchParams(window.location.search).get("id") ?? "";
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter();
   const pathname = usePathname();
@@ -21,24 +26,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .select("id, name, type")
       .eq("user_id", data.user.id)
       .order("created_at", { ascending: false });
+
     if (pfs && pfs.length > 0) {
       setPortfolios(pfs as Portfolio[]);
-      // Lire l'id dans window.location.search (côté client uniquement, pas de useSearchParams)
-      if (typeof window !== "undefined") {
-        const urlId = new URLSearchParams(window.location.search).get("id");
-        setActiveId(prev => {
-          if (urlId && pfs.find((p: Portfolio) => p.id === urlId)) return urlId;
-          if (prev  && pfs.find((p: Portfolio) => p.id === prev))  return prev;
-          return pfs[0].id;
-        });
+      // Toujours relire l'URL au moment du chargement
+      const urlId = getUrlId();
+      if (urlId && pfs.find(p => p.id === urlId)) {
+        setActiveId(urlId);
       } else {
-        setActiveId(prev => prev || pfs[0].id);
+        setActiveId(prev => prev && pfs.find(p => p.id === prev) ? prev : pfs[0].id);
       }
     }
     setLoading(false);
   }, [router]);
 
+  // Recharger à chaque changement de pathname
   useEffect(() => { loadPortfolios(); }, [loadPortfolios, pathname]);
+
+  // Écouter aussi les changements de searchParams (popstate + pushState)
+  useEffect(() => {
+    function syncUrlId() {
+      const urlId = getUrlId();
+      if (urlId && portfolios.find(p => p.id === urlId)) {
+        setActiveId(urlId);
+      }
+    }
+    window.addEventListener("popstate", syncUrlId);
+    return () => window.removeEventListener("popstate", syncUrlId);
+  }, [portfolios]);
 
   if (loading) return (
     <div style={{ minHeight:"100vh", background:"#0A1628", display:"flex", alignItems:"center", justifyContent:"center" }}>
