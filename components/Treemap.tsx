@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Asset } from "@/types";
 
-// Performances historiques simulées par actif (en %)
 const PERF_DB: Record<string, Record<string, number>> = {
   "URTH":  {"1D":0.42,"1M":1.8,"3M":4.2,"6M":8.1,"1Y":18.5,"5Y":95.0,"10Y":232.0},
   "AAPL":  {"1D":0.85,"1M":3.1,"3M":8.4,"6M":14.2,"1Y":26.0,"5Y":198.0,"10Y":832.0},
@@ -24,47 +23,60 @@ const PERF_DB: Record<string, Record<string, number>> = {
   "BTC":   {"1D":2.8,"1M":8.2,"3M":28.0,"6M":42.0,"1Y":62.0,"5Y":890.0,"10Y":18400.0},
   "ETH":   {"1D":1.4,"1M":4.1,"3M":12.0,"6M":18.0,"1Y":28.0,"5Y":420.0,"10Y":6800.0},
   "EEM":   {"1D":-0.18,"1M":-0.6,"3M":1.8,"6M":3.6,"1Y":7.2,"5Y":18.0,"10Y":44.0},
-  "MSFT.": {"1D":0.62,"1M":2.2,"3M":6.8,"6M":11.0,"1Y":18.0,"5Y":182.0,"10Y":742.0},
 };
 
 const PERIODS = ["1D","1M","3M","6M","1Y","5Y","10Y"] as const;
 type Period = typeof PERIODS[number];
 
+// Seuils de couleur selon la période — plus prononcé autour de 0
+const THRESHOLDS: Record<Period, number> = {
+  "1D": 1.5, "1M": 5, "3M": 10, "6M": 15, "1Y": 25, "5Y": 80, "10Y": 200,
+};
+
 function getPerf(symbol: string, period: Period): number {
-  const base = symbol.split(".")[0].toUpperCase();
-  return PERF_DB[base]?.[period] ?? PERF_DB[symbol]?.[period] ?? (Math.random() * 10 - 5);
+  const base = symbol.split(".")[0].split("-")[0].toUpperCase();
+  if (PERF_DB[base]?.[period] !== undefined) return PERF_DB[base][period];
+  // Fallback déterministe basé sur le nom
+  const seed = symbol.charCodeAt(0) + symbol.charCodeAt(symbol.length - 1);
+  return ((seed % 31) - 15) * 0.15;
 }
 
-// Couleur rouge→blanc→vert selon la perf
-function perfColor(pct: number): string {
-  const abs = Math.min(Math.abs(pct), 20); // cap à ±20%
-  const intensity = abs / 20;
-  if (pct >= 0) {
-    // Blanc → Vert foncé
-    const r = Math.round(255 - intensity * (255 - 21));
-    const g = Math.round(255 - intensity * (255 - 128));
-    const b = Math.round(255 - intensity * (255 - 61));
+// Courbe de saturation exponentielle — forte couleur même à faible %, gris neutre à 0
+function perfColor(pct: number, period: Period): string {
+  const cap = THRESHOLDS[period];
+  // Saturation exponentielle : 0.3% en 1D donne déjà 20% d'intensité
+  const raw = Math.abs(pct) / cap;
+  const intensity = Math.min(1, Math.pow(raw, 0.5)); // racine carrée = saturation rapide
+
+  if (Math.abs(pct) < 0.01) return "rgb(230,230,228)"; // neutre strict
+
+  if (pct > 0) {
+    // Gris clair → Vert vif (Finviz style)
+    const r = Math.round(230 - intensity * (230 - 0));
+    const g = Math.round(230 - intensity * (230 - 160));
+    const b = Math.round(228 - intensity * (228 - 60));
     return `rgb(${r},${g},${b})`;
   } else {
-    // Blanc → Rouge foncé
-    const r = Math.round(255 - intensity * (255 - 185));
-    const g = Math.round(255 - intensity * (255 - 28));
-    const b = Math.round(255 - intensity * (255 - 28));
+    // Gris clair → Rouge vif
+    const r = Math.round(230 - intensity * (230 - 190));
+    const g = Math.round(230 - intensity * (230 - 30));
+    const b = Math.round(228 - intensity * (228 - 30));
     return `rgb(${r},${g},${b})`;
   }
 }
 
-function textColor(pct: number): string {
-  const abs = Math.min(Math.abs(pct), 20);
-  return abs > 4 ? "white" : "#1a1a1a";
+function textColor(pct: number, period: Period): string {
+  const cap = THRESHOLDS[period];
+  const intensity = Math.min(1, Math.pow(Math.abs(pct) / cap, 0.5));
+  return intensity > 0.25 ? "white" : "#2D3748";
 }
 
 interface Cell {
   asset: Asset;
-  col: number;
-  row: number;
   colSpan: number;
   rowSpan: number;
+  col: number;
+  row: number;
 }
 
 function buildGrid(assets: Asset[], tot: number): Cell[] {
@@ -101,124 +113,144 @@ function buildGrid(assets: Asset[], tot: number): Cell[] {
     else if (w >= 0.06) { rs = 1; cs = 2; }
 
     let slot: [number, number] | null = null;
-    let attempts = 0;
-    while (!slot && attempts < 6) {
+    let tries = 0;
+    while (!slot && tries < 5) {
       slot = findSlot(rs, cs);
       if (!slot) { if (cs > rs && cs > 1) cs--; else if (rs > 1) rs--; else break; }
-      attempts++;
+      tries++;
     }
     if (!slot) slot = findSlot(1, 1);
     if (!slot) continue;
-
     occupy(slot[0], slot[1], rs, cs);
-    cells.push({ asset, col: slot[1], row: slot[0], colSpan: cs, rowSpan: rs });
+    cells.push({ asset, colSpan: cs, rowSpan: rs, col: slot[1], row: slot[0] });
   }
   return cells;
 }
 
-export default function Treemap({ assets, period }: { assets: Asset[]; period?: Period }) {
-  const [activePeriod, setActivePeriod] = useState<Period>(period ?? "1D");
+// Taille de police en fonction de la surface de la case (colSpan × rowSpan × hauteur)
+const CELL_H = 58; // hauteur d'une rangée en px
+function fontSizes(cs: number, rs: number): { sym: number; pct: number; sub: number; showSub: boolean } {
+  const surface = cs * rs; // nombre de cases occupées
+  if (surface >= 9) return { sym: 13, pct: 26, sub: 12, showSub: true };
+  if (surface >= 6) return { sym: 11, pct: 20, sub: 10, showSub: true };
+  if (surface >= 4) return { sym: 10, pct: 16, sub: 9,  showSub: true };
+  if (surface >= 2) return { sym: 9,  pct: 13, sub: 0,  showSub: false };
+  return               { sym: 8,  pct: 10, sub: 0,  showSub: false };
+}
 
+export default function Treemap({ assets }: { assets: Asset[] }) {
+  const [period, setPeriod] = useState<Period>("1D");
   if (!assets.length) return null;
+
   const tot   = assets.reduce((s, a) => s + a.value, 0);
   const cells = buildGrid(assets, tot);
 
   return (
     <div>
-      {/* Sélecteur de période */}
+      {/* Boutons période */}
       <div style={{ display:"flex", gap:4, marginBottom:14 }}>
         {PERIODS.map(p => (
-          <button key={p} onClick={() => setActivePeriod(p)} style={{
-            padding:"5px 12px",
-            fontSize:10,
-            fontWeight:600,
-            borderRadius:5,
-            border:"1px solid",
-            cursor:"pointer",
-            fontFamily:"'Inter',sans-serif",
-            letterSpacing:".06em",
-            transition:"all 0.15s",
-            background: activePeriod === p ? "#0A1628" : "transparent",
-            color:       activePeriod === p ? "white"   : "#8A9BB0",
-            borderColor: activePeriod === p ? "#0A1628" : "rgba(10,22,40,.1)",
+          <button key={p} onClick={() => setPeriod(p)} style={{
+            padding: "5px 11px",
+            fontSize: 10,
+            fontWeight: 600,
+            letterSpacing: ".06em",
+            borderRadius: 5,
+            border: "1px solid",
+            cursor: "pointer",
+            fontFamily: "'Inter',sans-serif",
+            transition: "all 0.12s",
+            background:   period === p ? "#0A1628" : "transparent",
+            color:        period === p ? "white"   : "#8A9BB0",
+            borderColor:  period === p ? "#0A1628" : "rgba(10,22,40,.1)",
           }}>
             {p}
           </button>
         ))}
       </div>
 
-      {/* Légende */}
-      <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:10 }}>
-        <div style={{ display:"flex", gap:2 }}>
-          {[-15,-8,-3,0,3,8,15].map(v => (
-            <div key={v} style={{ width:18, height:8, borderRadius:2, background:perfColor(v) }}/>
-          ))}
+      {/* Légende gradient */}
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+        <div style={{ display:"flex", borderRadius:4, overflow:"hidden", height:10 }}>
+          {[-1,-0.6,-0.25,0,0.25,0.6,1].map((v, i) => {
+            const pct = v * THRESHOLDS[period];
+            return <div key={i} style={{ width:22, background:perfColor(pct, period) }}/>;
+          })}
         </div>
-        <span style={{ fontSize:9, color:"#8A9BB0", marginLeft:4 }}>Négatif → Positif</span>
+        <span style={{ fontSize:9, color:"#9CA3AF", letterSpacing:".04em" }}>
+          Négatif → Neutre → Positif
+        </span>
       </div>
 
-      {/* Heatmap 5×5 */}
+      {/* Grille 5×5 */}
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(5, 1fr)",
-        gridTemplateRows:    "repeat(5, 58px)",
+        gridTemplateRows:    `repeat(5, ${CELL_H}px)`,
         gap: 3,
         borderRadius: 10,
         overflow: "hidden",
       }}>
         {cells.map(cell => {
-          const pct      = getPerf(cell.asset.symbol, activePeriod);
-          const bg       = perfColor(pct);
-          const txtColor = textColor(pct);
-          const isLarge  = cell.colSpan > 1 || cell.rowSpan > 1;
-          const isTiny   = cell.colSpan === 1 && cell.rowSpan === 1 && cell.asset.value / tot < 0.05;
+          const pct  = getPerf(cell.asset.symbol, period);
+          const bg   = perfColor(pct, period);
+          const txt  = textColor(pct, period);
+          const fs   = fontSizes(cell.colSpan, cell.rowSpan);
+          const pad  = cell.colSpan * cell.rowSpan >= 4 ? "12px 14px" : "6px 8px";
 
           return (
-            <div key={cell.asset.id} style={{
-              gridColumn: `span ${cell.colSpan}`,
-              gridRow:    `span ${cell.rowSpan}`,
-              background: bg,
-              padding:    isTiny ? "6px 8px" : isLarge ? "16px 18px" : "10px 12px",
-              display:    "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              overflow: "hidden",
-              borderRadius: 4,
-              transition: "filter 0.15s",
-              cursor: "default",
-            }}
-            onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")}
-            onMouseLeave={e => (e.currentTarget.style.filter = "brightness(1)")}
+            <div
+              key={cell.asset.id}
+              style={{
+                gridColumn: `span ${cell.colSpan}`,
+                gridRow:    `span ${cell.rowSpan}`,
+                background: bg,
+                padding:    pad,
+                display:    "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                overflow:   "hidden",
+                borderRadius: 4,
+                cursor: "default",
+                transition: "filter 0.12s",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.filter = "brightness(0.88)")}
+              onMouseLeave={e => (e.currentTarget.style.filter = "none")}
             >
+              {/* Symbole */}
               <div style={{
-                fontSize: isTiny ? 9 : isLarge ? 13 : 10,
-                fontWeight: 700,
-                color: txtColor,
-                letterSpacing: ".06em",
+                fontSize:      fs.sym,
+                fontWeight:    700,
+                color:         txt,
+                opacity:       0.82,
+                letterSpacing: ".05em",
                 textTransform: "uppercase",
-                opacity: 0.85,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                whiteSpace:    "nowrap",
+                overflow:      "hidden",
+                textOverflow:  "ellipsis",
+                lineHeight:    1.2,
               }}>
-                {cell.asset.symbol}
+                {cell.asset.symbol.split(".")[0].split("-")[0]}
               </div>
 
+              {/* Performance */}
               <div>
                 <div style={{
-                  fontSize: isTiny ? 10 : isLarge ? 22 : 13,
+                  fontSize:   fs.pct,
                   fontWeight: 800,
-                  color: txtColor,
-                  lineHeight: 1.1,
+                  color:      txt,
+                  lineHeight: 1,
+                  marginTop:  2,
                 }}>
                   {pct >= 0 ? "+" : ""}{pct.toFixed(2)}%
                 </div>
-                {!isTiny && (
+                {fs.showSub && (
                   <div style={{
-                    fontSize: isLarge ? 11 : 9,
-                    color: txtColor,
-                    opacity: 0.6,
-                    marginTop: 2,
+                    fontSize: fs.sub,
+                    color:    txt,
+                    opacity:  0.55,
+                    marginTop: 3,
+                    lineHeight: 1.2,
                   }}>
                     {(cell.asset.value / tot * 100).toFixed(1)}% du ptf
                   </div>
