@@ -1,36 +1,42 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 const NAV = [
-  { href: "/dashboard/portfolio",   icon: "▦", label: "Portfolio"    },
-  { href: "/dashboard/optimizer",   icon: "◈", label: "Optimiseur"   },
-  { href: "/dashboard/rebalancing", icon: "⊜", label: "Rééquilibrage"},
-  { href: "/dashboard/alerts",      icon: "◉", label: "Alertes"      },
-  { href: "/dashboard/backtesting", icon: "◷", label: "Backtesting"  },
-  { href: "/dashboard/correlation", icon: "⊞", label: "Corrélation"  },
-  { href: "/dashboard/stress",      icon: "◬", label: "Stress Tests" },
-  { href: "/dashboard/montecarlo",  icon: "⊕", label: "Monte Carlo"  },
+  { href:"/dashboard/portfolio",   icon:"▦", label:"Portfolio"    },
+  { href:"/dashboard/optimizer",   icon:"◈", label:"Optimiseur"   },
+  { href:"/dashboard/rebalancing", icon:"⊜", label:"Rééquilibrage"},
+  { href:"/dashboard/alerts",      icon:"◉", label:"Alertes"      },
+  { href:"/dashboard/backtesting", icon:"◷", label:"Backtesting"  },
+  { href:"/dashboard/correlation", icon:"⊞", label:"Corrélation"  },
+  { href:"/dashboard/stress",      icon:"◬", label:"Stress Tests" },
+  { href:"/dashboard/montecarlo",  icon:"⊕", label:"Monte Carlo"  },
 ];
 
+interface Portfolio { id:string; name:string; type:"manual"|"optimized" }
+
 interface SidebarProps {
-  portfolios?: Array<{ id: string; name: string }>;
+  portfolios?: Portfolio[];
   activePortfolioId?: string;
-  onSelectPortfolio?: (id: string) => void;
 }
 
-export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPortfolio }: SidebarProps) {
+export default function Sidebar({ portfolios = [], activePortfolioId }: SidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
+  const router   = useRouter();
   const [dropOpen, setDropOpen] = useState(false);
   const activePf = portfolios.find(p => p.id === activePortfolioId);
-  const hasPortfolios = portfolios.length > 0;
 
   async function handleLogout() {
     await supabase.auth.signOut();
     router.push("/");
+  }
+
+  // Naviguer vers portfolio avec l'id sélectionné dans l'URL
+  function selectPortfolio(id: string) {
+    setDropOpen(false);
+    router.push(`/dashboard/portfolio?id=${id}`);
   }
 
   return (
@@ -44,11 +50,15 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
         .sb-btn-entry:hover{background:rgba(255,255,255,.13);color:white}
         .sb-dropdown{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:10px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:background 0.2s;position:relative}
         .sb-dropdown:hover{background:rgba(255,255,255,.08)}
-        .sb-dropdown-text{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;font-weight:300}
+        .sb-dropdown-text{font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;font-weight:300}
         .sb-dropdown-arrow{font-size:8px;color:rgba(255,255,255,.2);flex-shrink:0}
-        .sb-dropdown-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0E1F3A;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden;z-index:50}
-        .sb-dropdown-item{display:block;width:100%;text-align:left;padding:10px 13px;font-size:11px;color:rgba(255,255,255,.4);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:300;transition:all 0.15s}
-        .sb-dropdown-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.7)}
+        .sb-dropdown-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0E1F3A;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+        .sb-dropdown-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;padding:10px 13px;font-size:11px;color:rgba(255,255,255,.45);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:300;transition:all 0.15s}
+        .sb-dropdown-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.8)}
+        .sb-dropdown-item.active{color:white;background:rgba(255,255,255,.07)}
+        .sb-badge{font-size:8px;font-weight:600;padding:2px 6px;border-radius:3px;letter-spacing:.06em;flex-shrink:0}
+        .sb-badge-init{background:rgba(30,58,110,0.5);color:rgba(255,255,255,.7)}
+        .sb-badge-opt{background:rgba(213,180,0,0.25);color:rgba(255,220,60,.9)}
         .sb-nav{padding:16px 10px;flex:1}
         .sb-section{font-size:7px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,.18);padding:0 12px 10px;margin-top:8px}
         .sb-link{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:0 6px 6px 0;font-size:12px;font-weight:400;text-decoration:none;transition:all 0.15s;border-left:2px solid transparent;color:rgba(255,255,255,.32)}
@@ -66,24 +76,43 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
         <div className="sb-header">
           <Link href="/" className="sb-logo">ZERO CGP</Link>
 
-          {!hasPortfolios ? (
+          {portfolios.length === 0 ? (
             <Link href="/dashboard/entry" className="sb-btn-entry">
               + RENSEIGNER MON PORTEFEUILLE
             </Link>
           ) : (
             <div className="sb-dropdown" onClick={() => setDropOpen(!dropOpen)}>
-              <span className="sb-dropdown-text">{activePf?.name ?? "Sélectionner"}</span>
+              <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+                {activePf && (
+                  <span className={`sb-badge ${activePf.type==="optimized"?"sb-badge-opt":"sb-badge-init"}`}>
+                    {activePf.type==="optimized"?"0CGP":"INIT"}
+                  </span>
+                )}
+                <span className="sb-dropdown-text">
+                  {activePf?.name ?? "Sélectionner"}
+                </span>
+              </div>
               <span className="sb-dropdown-arrow">▾</span>
+
               {dropOpen && (
                 <div className="sb-dropdown-menu">
                   {portfolios.map(pf => (
-                    <button key={pf.id} className="sb-dropdown-item"
-                      onClick={() => { onSelectPortfolio?.(pf.id); setDropOpen(false); }}>
-                      {pf.name}
+                    <button
+                      key={pf.id}
+                      className={`sb-dropdown-item${pf.id===activePortfolioId?" active":""}`}
+                      onClick={e => { e.stopPropagation(); selectPortfolio(pf.id); }}
+                    >
+                      <span style={{overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{pf.name}</span>
+                      <span className={`sb-badge ${pf.type==="optimized"?"sb-badge-opt":"sb-badge-init"}`}>
+                        {pf.type==="optimized"?"0CGP":"INIT"}
+                      </span>
                     </button>
                   ))}
-                  <button className="sb-dropdown-item" style={{borderTop:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.25)"}}
-                    onClick={() => { router.push("/dashboard/entry"); setDropOpen(false); }}>
+                  <button
+                    className="sb-dropdown-item"
+                    style={{borderTop:"1px solid rgba(255,255,255,.06)",color:"rgba(255,255,255,.25)",fontSize:10}}
+                    onClick={e => { e.stopPropagation(); router.push("/dashboard/entry"); setDropOpen(false); }}
+                  >
                     + Nouveau portefeuille
                   </button>
                 </div>
@@ -95,7 +124,7 @@ export default function Sidebar({ portfolios = [], activePortfolioId, onSelectPo
         <nav className="sb-nav">
           <div className="sb-section">NAVIGATION</div>
           {NAV.map(({ href, icon, label }) => (
-            <Link key={href} href={href} className={`sb-link${pathname === href ? " active" : ""}`}>
+            <Link key={href} href={href} className={`sb-link${pathname.startsWith(href.split("?")[0])?" active":""}`}>
               <span className="sb-link-icon">{icon}</span>
               {label}
             </Link>
