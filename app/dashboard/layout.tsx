@@ -1,15 +1,14 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { supabase } from "@/lib/supabase";
 
-interface Portfolio { id:string; name:string; type:"manual"|"optimized" }
+interface Portfolio { id: string; name: string; type: "manual" | "optimized" }
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router       = useRouter();
-  const pathname     = usePathname();
-  const searchParams = useSearchParams();
+  const router   = useRouter();
+  const pathname = usePathname();
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
   const [activeId,   setActiveId]   = useState<string>("");
   const [loading,    setLoading]    = useState(true);
@@ -24,16 +23,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .order("created_at", { ascending: false });
     if (pfs && pfs.length > 0) {
       setPortfolios(pfs as Portfolio[]);
-      // Priorité : id dans URL > id actif actuel > premier de la liste
-      const urlId = searchParams.get("id");
-      setActiveId(prev => {
-        if (urlId && pfs.find(p => p.id === urlId)) return urlId;
-        if (prev && pfs.find(p => p.id === prev)) return prev;
-        return pfs[0].id;
-      });
+      // Lire l'id dans window.location.search (côté client uniquement, pas de useSearchParams)
+      if (typeof window !== "undefined") {
+        const urlId = new URLSearchParams(window.location.search).get("id");
+        setActiveId(prev => {
+          if (urlId && pfs.find((p: Portfolio) => p.id === urlId)) return urlId;
+          if (prev  && pfs.find((p: Portfolio) => p.id === prev))  return prev;
+          return pfs[0].id;
+        });
+      } else {
+        setActiveId(prev => prev || pfs[0].id);
+      }
     }
     setLoading(false);
-  }, [router, searchParams]);
+  }, [router]);
 
   useEffect(() => { loadPortfolios(); }, [loadPortfolios, pathname]);
 
