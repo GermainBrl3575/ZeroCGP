@@ -394,7 +394,7 @@ function OptimizerInner() {
     <h1 className="op-h1">Créez votre<br/>portefeuille optimal.</h1>
     <p className="op-sub">En 7 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie de Markowitz (1952).</p>
     <div className="op-metrics">
-      {[["7","Questions"],["3","Méthodes"],["170+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
+      {[["7","Questions"],["3","Méthodes"],["462+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
     </div>
     <div className="fl" style={{marginBottom:28}}><label>CAPITAL À INVESTIR (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="Ex: 50 000"/></div>
     <button onClick={()=>setStep(1)} className="btn-navy">CRÉER UN PORTEFEUILLE ZERO CGP →</button>
