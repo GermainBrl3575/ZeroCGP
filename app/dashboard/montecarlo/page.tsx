@@ -37,11 +37,11 @@ const PRESETS=[{l:"Prudent",r:5,v:8},{l:"Équilibré",r:8,v:15},{l:"Dynamique",r
 function FanTip({active,payload,label}:{active?:boolean;payload?:{value:number;name:string}[];label?:number}){
   if(!active||!payload?.length)return null;
   const g=(n:string)=>payload.find(p=>p.name===n)?.value??0;
-  return<div style={{background:NAVY,borderRadius:8,padding:"12px 16px",boxShadow:"0 4px 20px rgba(0,0,0,.25)"}}>
-    <div style={{color:"rgba(255,255,255,.4)",fontSize:10,marginBottom:8}}>AN {label}</div>
+  return<div style={{background:"rgba(245,244,241,0.92)",backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",border:"1px solid rgba(10,22,40,.09)",borderRadius:10,padding:"12px 16px",boxShadow:"0 2px 12px rgba(10,22,40,.08)"}}>
+    <div style={{color:"#8A9BB0",fontSize:10,marginBottom:8,letterSpacing:".06em"}}>AN {label}</div>
     {[["90e pct.","p90","#4ADE80"],["Médiane","p50","white"],["10e pct.","p10","#F87171"]].map(([l,k,c])=>(
       <div key={k} style={{display:"flex",justifyContent:"space-between",gap:16,marginBottom:3}}>
-        <span style={{fontSize:11,color:"rgba(255,255,255,.5)"}}>{l}</span>
+        <span style={{fontSize:11,color:"#6B7280"}}>{l}</span>
         <span style={{fontSize:11,fontWeight:600,color:c}}>{feur(g(k))}</span>
       </div>
     ))}

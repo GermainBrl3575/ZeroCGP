@@ -328,7 +328,7 @@ function StressInner(){
           margin={{top:5,right:16,left:16,bottom:20}}>
           <XAxis dataKey="name" tick={{fontSize:10,fill:"#666"}} tickLine={false} axisLine={false}/>
           <YAxis tick={{fontSize:9,fill:"#aaa"}} tickLine={false} axisLine={false} tickFormatter={v=>feur(v)} width={64}/>
-          <Tooltip contentStyle={{background:"#0A1628",border:"none",borderRadius:8,fontSize:11,color:"white"}}
+          <Tooltip contentStyle={{background:"rgba(245,244,241,0.92)",backdropFilter:"blur(12px)",border:"1px solid rgba(10,22,40,.09)",borderRadius:10,fontSize:11,color:"#0A1628",boxShadow:"0 2px 12px rgba(10,22,40,.08)"}}
             formatter={(v:number,n:string)=>[feur(v),n==="avant"?"Avant":"Après choc"]}/>
           <Bar dataKey="avant" name="avant" fill="rgba(10,22,40,.12)" radius={[4,4,0,0]}/>
           <Bar dataKey="apres" name="apres" radius={[4,4,0,0]}>
@@ -346,7 +346,7 @@ function StressInner(){
           margin={{top:5,right:16,left:16,bottom:0}}>
           <XAxis dataKey="mois" tick={{fontSize:9,fill:"#aaa"}} tickLine={false} axisLine={false}/>
           <YAxis tick={{fontSize:9,fill:"#aaa"}} tickLine={false} axisLine={false} tickFormatter={v=>feur(v)} width={68}/>
-          <Tooltip contentStyle={{background:"#0A1628",border:"none",borderRadius:8,fontSize:11,color:"white"}}
+          <Tooltip contentStyle={{background:"rgba(245,244,241,0.92)",backdropFilter:"blur(12px)",border:"1px solid rgba(10,22,40,.09)",borderRadius:10,fontSize:11,color:"#0A1628",boxShadow:"0 2px 12px rgba(10,22,40,.08)"}}
             formatter={(v:number)=>[feur(v),"Valeur estimée"]}/>
           <ReferenceLine y={totalVal} stroke="rgba(10,22,40,.2)" strokeDasharray="4 4"/>
           <Line type="monotone" dataKey="val" stroke="#DC2626" strokeWidth={2} dot={false}
