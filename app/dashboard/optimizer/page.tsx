@@ -218,37 +218,40 @@ type OptResult = { method:string; label:string; ret:number; vol:number; sharpe:n
 
 // ─── Normalise les résultats API (champs différents du mock) ──────────────────
 function normalizeResult(r: Record<string, unknown>, capital: number): OptResult {
+  // Récupérer les poids depuis différents formats possibles de l'API
+  const rawWeights = (r.weights ?? r.capitalAllocation ?? []) as Array<Record<string, unknown>>;
+  const weights: Weight[] = rawWeights
+    .filter(w => w && ((w.weight as number) ?? 0) >= 0.01)
+    .map(w => ({
+      symbol: String(w.symbol ?? ""),
+      name:   String(w.name ?? w.symbol ?? ""),
+      type:   String(w.type ?? "etf") as "etf"|"stock"|"crypto"|"bond"|"reit",
+      isin:   String(w.isin ?? ""),
+      weight: Number(w.weight ?? 0),
+      amount: Number(w.amount ?? Math.round(capital * Number(w.weight ?? 0))),
+    }))
+    .sort((a, b) => b.weight - a.weight);
+
+  const ret    = Number(r.ret    ?? r.expectedReturn ?? r.annualReturn ?? 0);
+  const vol    = Number(r.vol    ?? r.volatility     ?? r.annualVol   ?? 0);
+  const sharpe = Number(r.sharpe ?? r.sharpeRatio    ?? 0);
+  const var95  = Number(r.var95  ?? r.valueAtRisk    ?? 0);
+
   return {
-    method:   (r.method as string)  ?? "",
-    label:    (r.label as string)   ?? "",
-    rec:      (r.rec as boolean)    ?? false,
-    ret:      (r.ret as number)     ?? (r.expectedReturn as number) ?? 0,
-    vol:      (r.vol as number)     ?? (r.volatility as number)     ?? 0,
-    sharpe:   (r.sharpe as number)  ?? (r.sharpeRatio as number)    ?? 0,
-    var95:    (r.var95 as number)   ?? 0,
-    weights:  (() => {
-      const raw = (r.weights ?? r.capitalAllocation) as Array<Record<string, unknown>>;
-      if (!Array.isArray(raw)) return [];
-      return raw.map(w => ({
-        symbol: (w.symbol as string) ?? "",
-        name:   (w.name as string)   ?? "",
-        type:   (w.type as string)   ?? "etf",
-        weight: (w.weight as number) ?? 0,
-        amount: (w.amount as number) ?? (w.target_amount as number) ?? Math.round(capital * ((w.weight as number) ?? 0)),
-      }));
-    })(),
-    frontier: (() => {
-      const raw = r.frontier as Array<Record<string, unknown>>;
-      if (!Array.isArray(raw)) return [];
-      return raw.map(p => ({
-        vol: (p.vol as number) ?? (p.volatility as number) ?? 0,
-        ret: (p.ret as number) ?? (p.expectedReturn as number) ?? 0,
-      }));
-    })(),
+    method:   String(r.method   ?? "maxsharpe"),
+    label:    String(r.label    ?? "Optimisé"),
+    ret,
+    vol,
+    sharpe,
+    var95,
+    rec:      Boolean(r.rec     ?? false),
+    weights,
+    frontier: (r.frontier as FrontierPt[]) ?? [],
   };
 }
 
 function buildMockResults(capital: number): OptResult[] {
+  console.error("⚠️ FALLBACK MOCK — L'API /api/optimize n'a pas répondu correctement");
   const syms = [
     {symbol:"CSPX.AS",name:"iShares Core S&P 500",type:"etf"},
     {symbol:"VWCE.DE",name:"Vanguard All-World",type:"etf"},
@@ -350,14 +353,25 @@ function OptimizerInner() {
           const cap = parseFloat(capital)||50000;
           let finalResults: OptResult[] = [];
           try{
-            const r = await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({capital:cap,answers:{...answers,[5]:multiSel.join(",")}})});
+            const r = await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+              capital:cap,
+              answers:{
+                "1":answers[1]??"",
+                "2":answers[2]??"",
+                "3":answers[3]??"",
+                "4":answers[4]??"",
+                "5":multiSel.join(","),
+                "6":answers[6]??"",
+                "7":answers[7]??"",
+              }
+            })});
             if(r.ok){
               const d = await r.json();
               if(Array.isArray(d.results)&&d.results.length>0){
                 finalResults = d.results.map((x: Record<string,unknown>)=>normalizeResult(x,cap));
                 // Vérifier que les valeurs sont non-nulles
                 const hasData = finalResults.some(r=>r.ret>0||r.vol>0);
-                if(!hasData) finalResults = buildMockResults(cap);
+                // hasData check removed — API results are always used when available
               } else {
                 finalResults = buildMockResults(cap);
               }
