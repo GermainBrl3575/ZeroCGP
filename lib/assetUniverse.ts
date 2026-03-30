@@ -203,6 +203,397 @@ export const ASSET_UNIVERSE: AssetMeta[] = [
   { symbol:"ADA-EUR",  name:"Cardano",                      type:"crypto",region:"global", sector:"broad",    esg:true  },
   { symbol:"AVAX-EUR", name:"Avalanche",                    type:"crypto",region:"global", sector:"broad",    esg:false },
   { symbol:"DOT-EUR",  name:"Polkadot",                     type:"crypto",region:"global", sector:"broad",    esg:false },
+
+  // ═══════════════════════════════════════════════════════
+  // EXTENSION +320 ACTIFS — TOP 5 PAR PAYS
+  // ═══════════════════════════════════════════════════════
+
+  // ── ROYAUME-UNI ──────────────────────────────────────────
+  { symbol:"AZN.L",     name:"AstraZeneca",              type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"GSK.L",     name:"GSK",                      type:"stock", region:"europe",   sector:"health",    esg:false },
+  { symbol:"RIO.L",     name:"Rio Tinto",                type:"stock", region:"europe",   sector:"materials", esg:false },
+  { symbol:"LSEG.L",    name:"London Stock Exchange",    type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"BA.L",      name:"BAE Systems",              type:"stock", region:"europe",   sector:"defense",   esg:false },
+  { symbol:"RR.L",      name:"Rolls-Royce",              type:"stock", region:"europe",   sector:"industrial",esg:false },
+  { symbol:"VOD.L",     name:"Vodafone",                 type:"stock", region:"europe",   sector:"telecom",   esg:false },
+  { symbol:"BATS.L",    name:"British American Tobacco", type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"ULVR.L",    name:"Unilever UK",              type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"REL.L",     name:"RELX",                     type:"stock", region:"europe",   sector:"tech",      esg:true  },
+  { symbol:"NWG.L",     name:"NatWest Group",            type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"LLOY.L",    name:"Lloyds Banking Group",     type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"BARC.L",    name:"Barclays",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"STAN.L",    name:"Standard Chartered",       type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"PRU.L",     name:"Prudential",               type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"EXPN.L",    name:"Experian",                 type:"stock", region:"europe",   sector:"tech",      esg:false },
+  { symbol:"NG.L",      name:"National Grid",            type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"SSE.L",     name:"SSE",                      type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"HLMA.L",    name:"Halma",                    type:"stock", region:"europe",   sector:"industrial",esg:true  },
+
+  // ── FRANCE (complément) ───────────────────────────────────
+  { symbol:"SU.PA",     name:"Schneider Electric",       type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"EL.PA",     name:"EssilorLuxottica",         type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"BN.PA",     name:"Danone",                   type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"PUB.PA",    name:"Publicis Groupe",          type:"stock", region:"europe",   sector:"tech",      esg:false },
+  { symbol:"ML.PA",     name:"Michelin",                 type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"RI.PA",     name:"Pernod Ricard",            type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"SGO.PA",    name:"Saint-Gobain",             type:"stock", region:"europe",   sector:"materials", esg:false },
+  { symbol:"ORA.PA",    name:"Orange",                   type:"stock", region:"europe",   sector:"telecom",   esg:false },
+  { symbol:"RNO.PA",    name:"Renault",                  type:"stock", region:"europe",   sector:"industrial",esg:false },
+  { symbol:"STM.PA",    name:"STMicroelectronics",       type:"stock", region:"europe",   sector:"tech",      esg:false },
+
+  // ── ALLEMAGNE (complément) ────────────────────────────────
+  { symbol:"ALV.DE",    name:"Allianz",                  type:"stock", region:"europe",   sector:"finance",   esg:true  },
+  { symbol:"ADS.DE",    name:"Adidas",                   type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"DTE.DE",    name:"Deutsche Telekom",         type:"stock", region:"europe",   sector:"telecom",   esg:false },
+  { symbol:"IFX.DE",    name:"Infineon Technologies",    type:"stock", region:"europe",   sector:"tech",      esg:true  },
+  { symbol:"RWE.DE",    name:"RWE",                      type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"EOAN.DE",   name:"E.ON",                     type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"DBK.DE",    name:"Deutsche Bank",            type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"MRK.DE",    name:"Merck KGaA",               type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"HEN3.DE",   name:"Henkel",                   type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"FRE.DE",    name:"Fresenius",                type:"stock", region:"europe",   sector:"health",    esg:false },
+
+  // ── SUISSE (complément) ───────────────────────────────────
+  { symbol:"ZURN.SW",   name:"Zurich Insurance",         type:"stock", region:"europe",   sector:"finance",   esg:true  },
+  { symbol:"ABBN.SW",   name:"ABB",                      type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"SIKA.SW",   name:"Sika",                     type:"stock", region:"europe",   sector:"materials", esg:true  },
+  { symbol:"LONN.SW",   name:"Lonza Group",              type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"GIVN.SW",   name:"Givaudan",                 type:"stock", region:"europe",   sector:"materials", esg:true  },
+  { symbol:"GEBN.SW",   name:"Geberit",                  type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"HOLN.SW",   name:"Holcim",                   type:"stock", region:"europe",   sector:"materials", esg:false },
+
+  // ── PAYS-BAS (complément) ─────────────────────────────────
+  { symbol:"INGA.AS",   name:"ING Groep",                type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"HEIA.AS",   name:"Heineken",                 type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"WKL.AS",    name:"Wolters Kluwer",           type:"stock", region:"europe",   sector:"tech",      esg:true  },
+  { symbol:"AH.AS",     name:"Ahold Delhaize",           type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"PHIA.AS",   name:"Philips",                  type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"RAND.AS",   name:"Randstad",                 type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"ABN.AS",    name:"ABN AMRO",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"AKZA.AS",   name:"Akzo Nobel",               type:"stock", region:"europe",   sector:"materials", esg:true  },
+
+  // ── SUÈDE ────────────────────────────────────────────────
+  { symbol:"VOLV-B.ST", name:"Volvo AB",                 type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"ERIC-B.ST", name:"Ericsson",                 type:"stock", region:"europe",   sector:"tech",      esg:false },
+  { symbol:"ATCO-A.ST", name:"Atlas Copco",              type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"HM-B.ST",   name:"H&M",                      type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"SEB-A.ST",  name:"SEB Bank",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"INVE-B.ST", name:"Investor AB",              type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"SAND.ST",   name:"Sandvik",                  type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"SWED-A.ST", name:"Swedbank",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+
+  // ── NORVÈGE ───────────────────────────────────────────────
+  { symbol:"EQNR.OL",   name:"Equinor",                  type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"DNB.OL",    name:"DNB Bank",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"TEL.OL",    name:"Telenor",                  type:"stock", region:"europe",   sector:"telecom",   esg:false },
+  { symbol:"ORK.OL",    name:"Orkla",                    type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"YAR.OL",    name:"Yara International",       type:"stock", region:"europe",   sector:"materials", esg:true  },
+
+  // ── DANEMARK (complément) ─────────────────────────────────
+  { symbol:"DSV.CO",    name:"DSV Panalpina",            type:"stock", region:"europe",   sector:"industrial",esg:false },
+  { symbol:"MAERSK-B.CO",name:"A.P. Møller-Mærsk",      type:"stock", region:"europe",   sector:"industrial",esg:false },
+  { symbol:"CARL-B.CO", name:"Carlsberg",                type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"ORSTED.CO", name:"Ørsted",                   type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"VWS.CO",    name:"Vestas Wind Systems",      type:"stock", region:"europe",   sector:"utilities", esg:true  },
+
+  // ── FINLANDE (complément) ─────────────────────────────────
+  { symbol:"NESTE.HE",  name:"Neste",                    type:"stock", region:"europe",   sector:"energy",    esg:true  },
+  { symbol:"SAMPO.HE",  name:"Sampo",                    type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"KNEBV.HE",  name:"Kone",                     type:"stock", region:"europe",   sector:"industrial",esg:true  },
+  { symbol:"FORTUM.HE", name:"Fortum",                   type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"METSO.HE",  name:"Metso",                    type:"stock", region:"europe",   sector:"industrial",esg:false },
+
+  // ── BELGIQUE ──────────────────────────────────────────────
+  { symbol:"UCB.BR",    name:"UCB",                      type:"stock", region:"europe",   sector:"health",    esg:true  },
+  { symbol:"GBLB.BR",   name:"Groupe Bruxelles Lambert", type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"COLR.BR",   name:"Colruyt",                  type:"stock", region:"europe",   sector:"consumer",  esg:true  },
+  { symbol:"SOF.BR",    name:"Sofina",                   type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"APAM.AS",   name:"Aperam",                   type:"stock", region:"europe",   sector:"materials", esg:false },
+
+  // ── ITALIE (complément) ───────────────────────────────────
+  { symbol:"ENI.MI",    name:"Eni",                      type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"UCG.MI",    name:"UniCredit",                type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"ISP.MI",    name:"Intesa Sanpaolo",          type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"RACE.MI",   name:"Ferrari",                  type:"stock", region:"europe",   sector:"luxury",    esg:false },
+  { symbol:"G.MI",      name:"Generali",                 type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"STLAM.MI",  name:"Stellantis",               type:"stock", region:"europe",   sector:"industrial",esg:false },
+
+  // ── ESPAGNE (complément) ──────────────────────────────────
+  { symbol:"TEF.MC",    name:"Telefónica",               type:"stock", region:"europe",   sector:"telecom",   esg:false },
+  { symbol:"BBVA.MC",   name:"BBVA",                     type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"REP.MC",    name:"Repsol",                   type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"AMS.MC",    name:"Amadeus IT",               type:"stock", region:"europe",   sector:"tech",      esg:true  },
+  { symbol:"CABK.MC",   name:"CaixaBank",                type:"stock", region:"europe",   sector:"finance",   esg:false },
+
+  // ── PORTUGAL ─────────────────────────────────────────────
+  { symbol:"EDP.LS",    name:"EDP",                      type:"stock", region:"europe",   sector:"utilities", esg:true  },
+  { symbol:"GALP.LS",   name:"Galp Energia",             type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"JMT.LS",    name:"Jerónimo Martins",         type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"BCP.LS",    name:"Millennium BCP",           type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"EDPR.LS",   name:"EDP Renováveis",           type:"stock", region:"europe",   sector:"utilities", esg:true  },
+
+  // ── AUTRICHE ─────────────────────────────────────────────
+  { symbol:"OMV.VI",    name:"OMV",                      type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"EBS.VI",    name:"Erste Group Bank",         type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"VOE.VI",    name:"voestalpine",              type:"stock", region:"europe",   sector:"materials", esg:false },
+  { symbol:"ANDR.VI",   name:"Andritz",                  type:"stock", region:"europe",   sector:"industrial",esg:false },
+  { symbol:"RBI.VI",    name:"Raiffeisen Bank Intl",     type:"stock", region:"europe",   sector:"finance",   esg:false },
+
+  // ── POLOGNE ───────────────────────────────────────────────
+  { symbol:"PKN.WA",    name:"PKN Orlen",                type:"stock", region:"europe",   sector:"energy",    esg:false },
+  { symbol:"PKO.WA",    name:"PKO Bank Polski",          type:"stock", region:"europe",   sector:"finance",   esg:false },
+  { symbol:"DNP.WA",    name:"Dino Polska",              type:"stock", region:"europe",   sector:"consumer",  esg:false },
+  { symbol:"CDR.WA",    name:"CD Projekt",               type:"stock", region:"europe",   sector:"tech",      esg:false },
+  { symbol:"PZU.WA",    name:"PZU Group",                type:"stock", region:"europe",   sector:"finance",   esg:false },
+
+  // ── JAPON (complément) ────────────────────────────────────
+  { symbol:"7974.T",    name:"Nintendo",                 type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"9432.T",    name:"NTT",                      type:"stock", region:"asia",     sector:"telecom",   esg:false },
+  { symbol:"8306.T",    name:"Mitsubishi UFJ Financial", type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"9984.T",    name:"SoftBank Group",           type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"8035.T",    name:"Tokyo Electron",           type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"6367.T",    name:"Daikin Industries",        type:"stock", region:"asia",     sector:"industrial",esg:true  },
+  { symbol:"6902.T",    name:"Denso",                    type:"stock", region:"asia",     sector:"industrial",esg:false },
+  { symbol:"8058.T",    name:"Mitsubishi Corporation",   type:"stock", region:"asia",     sector:"industrial",esg:false },
+  { symbol:"4519.T",    name:"Chugai Pharmaceutical",    type:"stock", region:"asia",     sector:"health",    esg:true  },
+  { symbol:"4063.T",    name:"Shin-Etsu Chemical",       type:"stock", region:"asia",     sector:"materials", esg:false },
+  { symbol:"6501.T",    name:"Hitachi",                  type:"stock", region:"asia",     sector:"industrial",esg:true  },
+  { symbol:"2914.T",    name:"Japan Tobacco",            type:"stock", region:"asia",     sector:"consumer",  esg:false },
+
+  // ── CORÉE DU SUD (complément) ─────────────────────────────
+  { symbol:"000660.KS", name:"SK Hynix",                 type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"035420.KS", name:"NAVER",                    type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"005380.KS", name:"Hyundai Motor",            type:"stock", region:"asia",     sector:"industrial",esg:false },
+  { symbol:"051910.KS", name:"LG Chem",                  type:"stock", region:"asia",     sector:"materials", esg:false },
+  { symbol:"035720.KS", name:"Kakao",                    type:"stock", region:"asia",     sector:"tech",      esg:false },
+
+  // ── TAÏWAN (complément) ───────────────────────────────────
+  { symbol:"2454.TW",   name:"MediaTek",                 type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"2317.TW",   name:"Foxconn",                  type:"stock", region:"asia",     sector:"industrial",esg:false },
+  { symbol:"2382.TW",   name:"Quanta Computer",          type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"2308.TW",   name:"Delta Electronics",        type:"stock", region:"asia",     sector:"industrial",esg:true  },
+  { symbol:"2412.TW",   name:"Chunghwa Telecom",         type:"stock", region:"asia",     sector:"telecom",   esg:false },
+
+  // ── CHINE / HONG KONG (complément) ───────────────────────
+  { symbol:"3690.HK",   name:"Meituan",                  type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"9618.HK",   name:"JD.com",                   type:"stock", region:"asia",     sector:"consumer",  esg:false },
+  { symbol:"2318.HK",   name:"Ping An Insurance",        type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"0941.HK",   name:"China Mobile",             type:"stock", region:"asia",     sector:"telecom",   esg:false },
+  { symbol:"1299.HK",   name:"AIA Group",                type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"BIDU",      name:"Baidu",                    type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"PDD",       name:"PDD Holdings (Pinduoduo)", type:"stock", region:"asia",     sector:"consumer",  esg:false },
+  { symbol:"9999.HK",   name:"NetEase",                  type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"NIO",       name:"NIO (EV)",                 type:"stock", region:"asia",     sector:"industrial",esg:true  },
+
+  // ── INDE (complément) ─────────────────────────────────────
+  { symbol:"TCS.NS",    name:"Tata Consultancy Services",type:"stock", region:"asia",     sector:"tech",      esg:true  },
+  { symbol:"INFY.NS",   name:"Infosys",                  type:"stock", region:"asia",     sector:"tech",      esg:true  },
+  { symbol:"HDFCBANK.NS",name:"HDFC Bank",               type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"ICICIBANK.NS",name:"ICICI Bank",             type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"BHARTIARTL.NS",name:"Bharti Airtel",         type:"stock", region:"asia",     sector:"telecom",   esg:false },
+  { symbol:"WIPRO.NS",  name:"Wipro",                    type:"stock", region:"asia",     sector:"tech",      esg:true  },
+  { symbol:"LT.NS",     name:"Larsen & Toubro",          type:"stock", region:"asia",     sector:"industrial",esg:false },
+  { symbol:"SUNPHARMA.NS",name:"Sun Pharmaceutical",     type:"stock", region:"asia",     sector:"health",    esg:false },
+
+  // ── AUSTRALIE ─────────────────────────────────────────────
+  { symbol:"BHP.AX",    name:"BHP Group",                type:"stock", region:"world",    sector:"materials", esg:false },
+  { symbol:"CBA.AX",    name:"Commonwealth Bank",        type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"CSL.AX",    name:"CSL Limited",              type:"stock", region:"asia",     sector:"health",    esg:true  },
+  { symbol:"ANZ.AX",    name:"ANZ Bank",                 type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"WBC.AX",    name:"Westpac Banking",          type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"NAB.AX",    name:"National Australia Bank",  type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"MQG.AX",    name:"Macquarie Group",          type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"WES.AX",    name:"Wesfarmers",               type:"stock", region:"asia",     sector:"consumer",  esg:false },
+  { symbol:"FMG.AX",    name:"Fortescue Metals",         type:"stock", region:"asia",     sector:"materials", esg:false },
+  { symbol:"TLS.AX",    name:"Telstra",                  type:"stock", region:"asia",     sector:"telecom",   esg:false },
+
+  // ── CANADA ────────────────────────────────────────────────
+  { symbol:"SHOP.TO",   name:"Shopify",                  type:"stock", region:"usa",      sector:"tech",      esg:true  },
+  { symbol:"RY.TO",     name:"Royal Bank of Canada",     type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"TD.TO",     name:"TD Bank",                  type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"CNR.TO",    name:"Canadian National Railway",type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"ENB.TO",    name:"Enbridge",                 type:"stock", region:"usa",      sector:"energy",    esg:false },
+  { symbol:"SU.TO",     name:"Suncor Energy",            type:"stock", region:"usa",      sector:"energy",    esg:false },
+  { symbol:"BAM.TO",    name:"Brookfield Asset Mgmt",    type:"stock", region:"usa",      sector:"finance",   esg:true  },
+  { symbol:"BCE.TO",    name:"BCE Inc.",                 type:"stock", region:"usa",      sector:"telecom",   esg:false },
+  { symbol:"ABX.TO",    name:"Barrick Gold",             type:"stock", region:"usa",      sector:"materials", esg:false },
+  { symbol:"WPM.TO",    name:"Wheaton Precious Metals",  type:"stock", region:"usa",      sector:"materials", esg:true  },
+
+  // ── BRÉSIL ────────────────────────────────────────────────
+  { symbol:"VALE3.SA",  name:"Vale",                     type:"stock", region:"emerging", sector:"materials", esg:false },
+  { symbol:"PETR4.SA",  name:"Petrobras",                type:"stock", region:"emerging", sector:"energy",    esg:false },
+  { symbol:"ITUB4.SA",  name:"Itaú Unibanco",            type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"ABEV3.SA",  name:"Ambev",                    type:"stock", region:"emerging", sector:"consumer",  esg:false },
+  { symbol:"WEGE3.SA",  name:"WEG",                      type:"stock", region:"emerging", sector:"industrial",esg:true  },
+  { symbol:"B3SA3.SA",  name:"B3 (Bolsa Brasileira)",    type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"SUZB3.SA",  name:"Suzano",                   type:"stock", region:"emerging", sector:"materials", esg:false },
+
+  // ── MEXIQUE ───────────────────────────────────────────────
+  { symbol:"AMXL.MX",   name:"América Móvil",            type:"stock", region:"emerging", sector:"telecom",   esg:false },
+  { symbol:"WALMEX.MX", name:"Walmart de México",        type:"stock", region:"emerging", sector:"consumer",  esg:false },
+  { symbol:"FEMSAUBD.MX",name:"FEMSA",                   type:"stock", region:"emerging", sector:"consumer",  esg:false },
+  { symbol:"CX",        name:"Cemex",                    type:"stock", region:"emerging", sector:"materials", esg:false },
+  { symbol:"GFNORTEO.MX",name:"Banorte",                 type:"stock", region:"emerging", sector:"finance",   esg:false },
+
+  // ── SINGAPORE ─────────────────────────────────────────────
+  { symbol:"D05.SI",    name:"DBS Group",                type:"stock", region:"asia",     sector:"finance",   esg:true  },
+  { symbol:"O39.SI",    name:"OCBC Bank",                type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"U11.SI",    name:"UOB",                      type:"stock", region:"asia",     sector:"finance",   esg:false },
+  { symbol:"Z74.SI",    name:"Singtel",                  type:"stock", region:"asia",     sector:"telecom",   esg:false },
+  { symbol:"SEA",       name:"Sea Limited",              type:"stock", region:"asia",     sector:"tech",      esg:false },
+  { symbol:"GRAB",      name:"Grab Holdings",            type:"stock", region:"asia",     sector:"tech",      esg:false },
+
+  // ── ISRAËL ────────────────────────────────────────────────
+  { symbol:"CHKP",      name:"Check Point Software",     type:"stock", region:"world",    sector:"tech",      esg:false },
+  { symbol:"NICE",      name:"NICE Systems",             type:"stock", region:"world",    sector:"tech",      esg:false },
+  { symbol:"CYBR",      name:"CyberArk Software",        type:"stock", region:"world",    sector:"tech",      esg:false },
+  { symbol:"TEVA",      name:"Teva Pharmaceutical",      type:"stock", region:"world",    sector:"health",    esg:false },
+  { symbol:"WIX",       name:"Wix.com",                  type:"stock", region:"world",    sector:"tech",      esg:false },
+
+  // ── ARABIE SAOUDITE ───────────────────────────────────────
+  { symbol:"2222.SR",   name:"Saudi Aramco",             type:"stock", region:"emerging", sector:"energy",    esg:false },
+  { symbol:"1180.SR",   name:"Al Rajhi Bank",            type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"2010.SR",   name:"SABIC",                    type:"stock", region:"emerging", sector:"materials", esg:false },
+  { symbol:"1120.SR",   name:"Al Jazira Bank",           type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"2350.SR",   name:"Saudi Telecom (STC)",      type:"stock", region:"emerging", sector:"telecom",   esg:false },
+
+  // ── AFRIQUE DU SUD ────────────────────────────────────────
+  { symbol:"NPSNY",     name:"Naspers",                  type:"stock", region:"emerging", sector:"tech",      esg:false },
+  { symbol:"AGLXY",     name:"Anglo American",           type:"stock", region:"world",    sector:"materials", esg:false },
+  { symbol:"FSR.JSE",   name:"FirstRand",                type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"SHP.JSE",   name:"Shoprite Holdings",        type:"stock", region:"emerging", sector:"consumer",  esg:false },
+  { symbol:"NED.JSE",   name:"Nedbank",                  type:"stock", region:"emerging", sector:"finance",   esg:false },
+
+  // ── INDONÉSIE ─────────────────────────────────────────────
+  { symbol:"BBCA.JK",   name:"Bank Central Asia",        type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"BBRI.JK",   name:"Bank Rakyat Indonesia",    type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"TLKM.JK",   name:"Telkom Indonesia",         type:"stock", region:"emerging", sector:"telecom",   esg:false },
+  { symbol:"BMRI.JK",   name:"Bank Mandiri",             type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"ASII.JK",   name:"Astra International",      type:"stock", region:"emerging", sector:"industrial",esg:false },
+
+  // ── MALAISIE ──────────────────────────────────────────────
+  { symbol:"1155.KL",   name:"Maybank",                  type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"1023.KL",   name:"CIMB Group",               type:"stock", region:"emerging", sector:"finance",   esg:false },
+  { symbol:"5347.KL",   name:"Tenaga Nasional",          type:"stock", region:"emerging", sector:"utilities", esg:false },
+  { symbol:"6888.KL",   name:"Axiata Group",             type:"stock", region:"emerging", sector:"telecom",   esg:false },
+  { symbol:"5681.KL",   name:"Petronas Chemicals",       type:"stock", region:"emerging", sector:"materials", esg:false },
+
+  // ── THAÏLANDE ─────────────────────────────────────────────
+  { symbol:"PTT.BK",    name:"PTT",                      type:"stock", region:"emerging", sector:"energy",    esg:false },
+  { symbol:"ADVANC.BK", name:"Advanced Info Service",    type:"stock", region:"emerging", sector:"telecom",   esg:false },
+  { symbol:"AOT.BK",    name:"Airports of Thailand",     type:"stock", region:"emerging", sector:"industrial",esg:false },
+  { symbol:"CPALL.BK",  name:"CP All",                   type:"stock", region:"emerging", sector:"consumer",  esg:false },
+  { symbol:"KBANK.BK",  name:"Kasikorn Bank",            type:"stock", region:"emerging", sector:"finance",   esg:false },
+
+  // ════════════════════════════════════════════════════════
+  // ETF THÉMATIQUES ET SECTORIELS SUPPLÉMENTAIRES
+  // ════════════════════════════════════════════════════════
+
+  // ── Sectoriels USA ────────────────────────────────────────
+  { symbol:"XLK",       name:"Technology Select SPDR",   type:"etf",   region:"usa",      sector:"tech",      esg:false, ter:0.10 },
+  { symbol:"XLF",       name:"Financial Select SPDR",    type:"etf",   region:"usa",      sector:"finance",   esg:false, ter:0.10 },
+  { symbol:"XLV",       name:"Health Care Select SPDR",  type:"etf",   region:"usa",      sector:"health",    esg:false, ter:0.10 },
+  { symbol:"XLE",       name:"Energy Select SPDR",       type:"etf",   region:"usa",      sector:"energy",    esg:false, ter:0.10 },
+  { symbol:"XLI",       name:"Industrial Select SPDR",   type:"etf",   region:"usa",      sector:"industrial",esg:false, ter:0.10 },
+  { symbol:"XLY",       name:"Consumer Disc. Select SPDR",type:"etf",  region:"usa",      sector:"consumer",  esg:false, ter:0.10 },
+  { symbol:"XLP",       name:"Consumer Staples Select",  type:"etf",   region:"usa",      sector:"consumer",  esg:false, ter:0.10 },
+  { symbol:"XLRE",      name:"Real Estate Select SPDR",  type:"etf",   region:"usa",      sector:"realestate",esg:false, ter:0.10 },
+  { symbol:"SOXX",      name:"iShares Semiconductor ETF",type:"etf",   region:"usa",      sector:"tech",      esg:false, ter:0.35 },
+  { symbol:"SMH",       name:"VanEck Semiconductor ETF", type:"etf",   region:"usa",      sector:"tech",      esg:false, ter:0.35 },
+
+  // ── Thématiques Innovation ────────────────────────────────
+  { symbol:"BOTZ",      name:"Global X Robotics & AI",   type:"etf",   region:"world",    sector:"tech",      esg:false, ter:0.68 },
+  { symbol:"ROBO",      name:"ROBO Global Robotics ETF", type:"etf",   region:"world",    sector:"tech",      esg:false, ter:0.95 },
+  { symbol:"ARKK",      name:"ARK Innovation ETF",       type:"etf",   region:"usa",      sector:"tech",      esg:false, ter:0.75 },
+  { symbol:"DRIV",      name:"Global X Autonomous & EV", type:"etf",   region:"world",    sector:"industrial",esg:true,  ter:0.68 },
+
+  // ── Énergie verte ─────────────────────────────────────────
+  { symbol:"ICLN",      name:"iShares Global Clean Energy",type:"etf", region:"world",    sector:"utilities", esg:true,  ter:0.40 },
+  { symbol:"IQQH.DE",   name:"iShares Global Clean Energy EUR",type:"etf",region:"world", sector:"utilities", esg:true,  ter:0.65 },
+  { symbol:"INRG.L",    name:"iShares Global Clean Energy GBP",type:"etf",region:"world", sector:"utilities", esg:true,  ter:0.65 },
+  { symbol:"ZPRE.DE",   name:"SPDR S&P Global Clean Energy",type:"etf",region:"world",    sector:"utilities", esg:true,  ter:0.40 },
+
+  // ── Cryptos supplémentaires ────────────────────────────────
+  { symbol:"SOL-EUR",   name:"Solana",                   type:"crypto",region:"global",   sector:"broad",     esg:false },
+  { symbol:"BNB-EUR",   name:"BNB (Binance)",            type:"crypto",region:"global",   sector:"broad",     esg:false },
+  { symbol:"XRP-EUR",   name:"XRP",                      type:"crypto",region:"global",   sector:"broad",     esg:false },
+  { symbol:"ADA-EUR",   name:"Cardano",                  type:"crypto",region:"global",   sector:"broad",     esg:true  },
+  { symbol:"AVAX-EUR",  name:"Avalanche",                type:"crypto",region:"global",   sector:"broad",     esg:false },
+  { symbol:"DOT-EUR",   name:"Polkadot",                 type:"crypto",region:"global",   sector:"broad",     esg:false },
+
+  // ── Obligations supplémentaires ───────────────────────────
+  { symbol:"TLT",       name:"iShares 20+ Year Treasury",type:"bond",  region:"usa",      sector:"broad",     esg:false, ter:0.15 },
+  { symbol:"HYG",       name:"iShares iBoxx High Yield", type:"bond",  region:"usa",      sector:"broad",     esg:false, ter:0.48 },
+  { symbol:"LQD",       name:"iShares iBoxx Invest. Grade",type:"bond",region:"usa",      sector:"broad",     esg:false, ter:0.14 },
+  { symbol:"EMB",       name:"iShares J.P. Morgan EM Bond",type:"bond",region:"emerging", sector:"broad",     esg:false, ter:0.39 },
+  { symbol:"IEMB.L",    name:"iShares EM Local Govt Bond",type:"bond", region:"emerging", sector:"broad",     esg:false, ter:0.50 },
+
+  // ── US stocks secteurs non représentés ────────────────────
+  // Télécom
+  { symbol:"T",         name:"AT&T",                     type:"stock", region:"usa",      sector:"telecom",   esg:false },
+  { symbol:"VZ",        name:"Verizon",                  type:"stock", region:"usa",      sector:"telecom",   esg:false },
+  { symbol:"TMUS",      name:"T-Mobile US",              type:"stock", region:"usa",      sector:"telecom",   esg:false },
+  { symbol:"CMCSA",     name:"Comcast",                  type:"stock", region:"usa",      sector:"telecom",   esg:false },
+  // Biotech
+  { symbol:"AMGN",      name:"Amgen",                    type:"stock", region:"usa",      sector:"health",    esg:false },
+  { symbol:"GILD",      name:"Gilead Sciences",          type:"stock", region:"usa",      sector:"health",    esg:false },
+  { symbol:"REGN",      name:"Regeneron",                type:"stock", region:"usa",      sector:"health",    esg:false },
+  { symbol:"VRTX",      name:"Vertex Pharmaceuticals",   type:"stock", region:"usa",      sector:"health",    esg:false },
+  { symbol:"MRNA",      name:"Moderna",                  type:"stock", region:"usa",      sector:"health",    esg:false },
+  // Semi-conducteurs
+  { symbol:"QCOM",      name:"Qualcomm",                 type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"TXN",       name:"Texas Instruments",        type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"MU",        name:"Micron Technology",        type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"KLAC",      name:"KLA Corporation",          type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"AMAT",      name:"Applied Materials",        type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"LRCX",      name:"Lam Research",             type:"stock", region:"usa",      sector:"tech",      esg:false },
+  // Cybersécurité
+  { symbol:"CRWD",      name:"CrowdStrike",              type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"ZS",        name:"Zscaler",                  type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"NET",       name:"Cloudflare",               type:"stock", region:"usa",      sector:"tech",      esg:false },
+  // Cloud / SaaS
+  { symbol:"NOW",       name:"ServiceNow",               type:"stock", region:"usa",      sector:"tech",      esg:true  },
+  { symbol:"SNOW",      name:"Snowflake",                type:"stock", region:"usa",      sector:"tech",      esg:false },
+  { symbol:"DDOG",      name:"Datadog",                  type:"stock", region:"usa",      sector:"tech",      esg:false },
+  // Fintech
+  { symbol:"PYPL",      name:"PayPal",                   type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"COIN",      name:"Coinbase",                 type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"SQ",        name:"Block (ex-Square)",        type:"stock", region:"usa",      sector:"finance",   esg:false },
+  // Industriels / Défense
+  { symbol:"GD",        name:"General Dynamics",         type:"stock", region:"usa",      sector:"defense",   esg:false },
+  { symbol:"NOC",       name:"Northrop Grumman",         type:"stock", region:"usa",      sector:"defense",   esg:false },
+  { symbol:"HON",       name:"Honeywell",                type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"MMM",       name:"3M",                       type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"ITW",       name:"Illinois Tool Works",      type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"UPS",       name:"UPS",                      type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"FDX",       name:"FedEx",                    type:"stock", region:"usa",      sector:"industrial",esg:false },
+  { symbol:"DE",        name:"John Deere",               type:"stock", region:"usa",      sector:"industrial",esg:false },
+  // Matériaux
+  { symbol:"LIN",       name:"Linde",                    type:"stock", region:"usa",      sector:"materials", esg:true  },
+  { symbol:"APD",       name:"Air Products",             type:"stock", region:"usa",      sector:"materials", esg:true  },
+  { symbol:"ECL",       name:"Ecolab",                   type:"stock", region:"usa",      sector:"materials", esg:true  },
+  { symbol:"FCX",       name:"Freeport-McMoRan",         type:"stock", region:"usa",      sector:"materials", esg:false },
+  { symbol:"NEM",       name:"Newmont",                  type:"stock", region:"usa",      sector:"materials", esg:false },
+  // REITs
+  { symbol:"EQIX",      name:"Equinix (Data Centers)",   type:"reit",  region:"usa",      sector:"realestate",esg:true  },
+  { symbol:"DLR",       name:"Digital Realty Trust",     type:"reit",  region:"usa",      sector:"realestate",esg:true  },
+  { symbol:"PSA",       name:"Public Storage",           type:"reit",  region:"usa",      sector:"realestate",esg:false },
+  { symbol:"O",         name:"Realty Income",            type:"reit",  region:"usa",      sector:"realestate",esg:false },
+  { symbol:"SPG",       name:"Simon Property Group",     type:"reit",  region:"usa",      sector:"realestate",esg:false },
+  // Restauration / Loisirs
+  { symbol:"MCD",       name:"McDonald's",               type:"stock", region:"usa",      sector:"consumer",  esg:false },
+  { symbol:"SBUX",      name:"Starbucks",                type:"stock", region:"usa",      sector:"consumer",  esg:false },
+  { symbol:"NKE",       name:"Nike",                     type:"stock", region:"usa",      sector:"consumer",  esg:true  },
+  { symbol:"TGT",       name:"Target",                   type:"stock", region:"usa",      sector:"consumer",  esg:false },
+  { symbol:"LOW",       name:"Lowe's",                   type:"stock", region:"usa",      sector:"consumer",  esg:false },
+  // Assurance
+  { symbol:"CB",        name:"Chubb",                    type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"AON",       name:"Aon",                      type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"MMC",       name:"Marsh McLennan",           type:"stock", region:"usa",      sector:"finance",   esg:false },
+  { symbol:"CI",        name:"Cigna",                    type:"stock", region:"usa",      sector:"health",    esg:false },
+  { symbol:"HUM",       name:"Humana",                   type:"stock", region:"usa",      sector:"health",    esg:false },
+];
+
 ];
 
 export const UNIVERSE_COUNT = ASSET_UNIVERSE.length;
