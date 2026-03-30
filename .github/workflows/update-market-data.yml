@@ -1,0 +1,55 @@
+name: 📈 Update Market Data Weekly
+
+on:
+  # Tous les dimanches à 6h00 UTC (7h00 Paris heure d'été)
+  schedule:
+    - cron: "0 6 * * 0"
+  # Permettre de déclencher manuellement depuis GitHub
+  workflow_dispatch:
+
+jobs:
+  update-market-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: pip install yfinance pandas numpy requests
+
+      - name: 🔄 Fetch Yahoo Finance & update market data
+        run: python scripts/update_market_data.py
+
+      - name: 📝 Check for changes
+        id: changes
+        run: |
+          if git diff --quiet lib/marketData.ts; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "No data changes detected"
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "Market data updated"
+          fi
+
+      - name: ✅ Commit & push updated data
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "bot@zerocgp.capital"
+          git config --local user.name "Zero CGP Bot"
+          git add lib/marketData.ts
+          git commit -m "📊 Update market data - $(date +'%Y-%m-%d')"
+          git push
+          echo "✅ Data committed and pushed — Vercel will redeploy automatically"
+
+      - name: ℹ️ No changes
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "Market data unchanged this week — no commit needed"

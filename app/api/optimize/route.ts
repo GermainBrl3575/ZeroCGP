@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ASSET_UNIVERSE, AssetMeta } from "@/lib/assetUniverse";
+import { getAnnualReturn, getAnnualVol, MARKET_DATA_UPDATED } from "@/lib/marketData";
 
 // ─── Types ────────────────────────────────────────────────────
 interface FilterAnswers {
@@ -223,10 +224,10 @@ const VOL_DATA: Record<string, number> = {
 };
 
 function getRet(sym: string): number {
-  return HISTORICAL_DATA[sym] ?? 0.10;
+  return getAnnualReturn(sym, 0.10);
 }
 function getVol(sym: string): number {
-  return VOL_DATA[sym] ?? 0.25;
+  return getAnnualVol(sym, 0.25);
 }
 
 // ─── 3. Corrélations sectorielles ────────────────────────────
@@ -363,6 +364,7 @@ export async function POST(req: NextRequest) {
       universeSize: ASSET_UNIVERSE.length,
       filteredSize: filtered.length,
       profile: ans,
+      dataUpdated: MARKET_DATA_UPDATED,
     });
 
   } catch (err) {
