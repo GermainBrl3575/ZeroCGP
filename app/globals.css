@@ -2,30 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* La landing gère son propre scroll via snap-container */
-/* Le dashboard doit pouvoir scroller normalement */
 * { box-sizing: border-box; }
-
 html { height: 100%; }
-
 body {
   height: 100%;
   background: #F5F4F1;
   font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
-  /* PAS de overflow:hidden ici — sinon le dashboard ne scroll pas */
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+/* ── Tooltip global — verre dépoli sur fond clair ──────────── */
+.tooltip-glass {
+  background: rgba(245, 244, 241, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(10, 22, 40, 0.09);
+  border-radius: 10px;
+  box-shadow: 0 2px 16px rgba(10, 22, 40, 0.08);
+  padding: 10px 14px;
+  font-family: 'Inter', sans-serif;
+  color: #0A1628;
+}
+.tooltip-glass .tt-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  color: #8A9BB0;
+  margin-bottom: 5px;
+}
+.tooltip-glass .tt-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0A1628;
+}
+.tooltip-glass .tt-sub {
+  font-size: 10px;
+  color: #8A9BB0;
+  margin-top: 3px;
+}
+
+/* Override Recharts tooltips globalement */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: rgba(245, 244, 241, 0.92) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(10, 22, 40, 0.09) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 2px 16px rgba(10, 22, 40, 0.08) !important;
+  color: #0A1628 !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-label {
+  color: #8A9BB0 !important;
+  font-size: 10px !important;
+  letter-spacing: .06em !important;
+}
+.recharts-tooltip-wrapper .recharts-default-tooltip .recharts-tooltip-item {
+  color: #0A1628 !important;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-up   { animation: fadeUp 0.4s ease forwards; }
-.fade-up-1 { animation: fadeUp 0.4s 0.1s ease both; }
-.fade-up-2 { animation: fadeUp 0.4s 0.2s ease both; }
-.fade-up-3 { animation: fadeUp 0.4s 0.3s ease both; }
