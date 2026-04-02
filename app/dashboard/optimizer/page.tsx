@@ -2,6 +2,7 @@
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { getAssetInfo, getAssetHistory } from "@/lib/assetInfo";
 import { eur } from "@/lib/utils";
 import {
   ResponsiveContainer, LineChart, Line,
