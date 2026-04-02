@@ -101,26 +101,111 @@ const ASSET_INFO_DB: Record<string, AssetInfo> = {
   "AVAX":  { name:"Avalanche",                    type:"crypto", sector:"Blockchain DeFi",         isin:"N/A", desc:"Réseau de blockchains interopérables ultra-rapide. Finalité des transactions en <1 seconde. Populaire pour les applications DeFi et les sous-réseaux (Subnets)." },
   // ── OR / MATIERES PREMIERES ─────────────────────────────────
   "SGLDL": { name:"Invesco Physical Gold",        type:"etf",    sector:"Or Physique",             isin:"IE00B579F325", desc:"ETC adossé à de l'or physique. Valeur refuge en période d'inflation ou de crise. Corrélation faible avec les actions. Cotation à Londres en USD." },
+
+  // ── ETF supplémentaires ─────────────────────────────────────
+  "CMOD":   { name:"iShares Diversified Commodity",  type:"etf",   sector:"Matières Premières",      isin:"IE00BDFL4P12", desc:"Panier diversifié de matières premières : énergie, métaux, agriculture. Décorrélé des actions, protection contre l'inflation. TER 0.19%." },
+  "CMODL":  { name:"iShares Diversified Commodity",  type:"etf",   sector:"Matières Premières",      isin:"IE00BDFL4P12", desc:"Panier diversifié de matières premières : énergie, métaux, agriculture. Décorrélé des actions, protection contre l'inflation. TER 0.19%." },
+  "XDWD":   { name:"Xtrackers MSCI World",            type:"etf",   sector:"ETF Actions Monde",       isin:"IE00BJ0KDQ92", desc:"ETF MSCI World de DWS/Xtrackers, réplique 1 600+ entreprises des pays développés. Alternative à IWDA avec des frais compétitifs. TER 0.19%." },
+  "MEUD":   { name:"Amundi Euro Stoxx 50",            type:"etf",   sector:"ETF Actions Europe",      isin:"FR0007054358", desc:"Les 50 plus grandes entreprises de la zone euro (ASML, LVMH, SAP, Total). ETF Amundi parmi les moins chers du marché européen. TER 0.05%." },
+  "MEUDPA": { name:"Amundi Euro Stoxx 50",            type:"etf",   sector:"ETF Actions Europe",      isin:"FR0007054358", desc:"Les 50 plus grandes entreprises de la zone euro (ASML, LVMH, SAP, Total). ETF Amundi parmi les moins chers du marché européen. TER 0.05%." },
+  "SXRT":   { name:"iShares EURO STOXX 50",           type:"etf",   sector:"ETF Actions Europe",      isin:"DE0005933956", desc:"Réplique l'Euro Stoxx 50, indice phare des marchés européens. Cotation en euros à Francfort. TER 0.10%." },
+  "SXRTDE": { name:"iShares EURO STOXX 50",           type:"etf",   sector:"ETF Actions Europe",      isin:"DE0005933956", desc:"Réplique l'Euro Stoxx 50, indice phare des marchés européens. Cotation en euros à Francfort. TER 0.10%." },
+  "EXW1":   { name:"iShares STOXX Europe 600",        type:"etf",   sector:"ETF Actions Europe",      isin:"DE0002635307", desc:"600 plus grandes entreprises européennes (UK inclus). Exposition large à l'économie européenne dans tous les secteurs. TER 0.20%." },
+  "EXW1DE": { name:"iShares STOXX Europe 600",        type:"etf",   sector:"ETF Actions Europe",      isin:"DE0002635307", desc:"600 plus grandes entreprises européennes. Exposition large à l'économie européenne dans tous les secteurs. TER 0.20%." },
+  "LYPS":   { name:"Lyxor STOXX Europe 600",          type:"etf",   sector:"ETF Actions Europe",      isin:"LU0908500753", desc:"Alternative Lyxor à iShares pour l'Europe 600. Même exposition, frais légèrement inférieurs. TER 0.07%." },
+  "IBGL":   { name:"iShares Core Global Agg Bond",    type:"bond",  sector:"Obligations Monde",       isin:"IE00B3F81409", desc:"Obligations mondiales investment grade (gouvernements + entreprises). Cœur d'un portefeuille obligataire diversifié. TER 0.10%." },
+  "AGGH":   { name:"iShares Core Global Agg Hedged",  type:"bond",  sector:"Obligations Monde",       isin:"IE00BDBRDM35", desc:"Comme IBGL mais avec couverture du risque de change en euros. Idéal pour les investisseurs européens. TER 0.10%." },
+  "IUAG":   { name:"iShares € Corp Bond",             type:"bond",  sector:"Obligations Corp. Euro",  isin:"IE00B3F81R35", desc:"Obligations d'entreprises européennes investment grade. Rendement supérieur aux obligations souveraines pour un risque modéré. TER 0.20%." },
+  "DBZB":   { name:"Xtrackers Euro Gov Bond",         type:"bond",  sector:"Obligations Souveraines", isin:"LU0290358497", desc:"Obligations souveraines de la zone euro (Allemagne, France, Italie…). Actif refuge en période de crise. TER 0.15%." },
+  "EPRE":   { name:"FTSE EPRA Europe Real Estate",    type:"reit",  sector:"Immobilier Coté Europe",  isin:"FR0010686099", desc:"Foncières cotées européennes : bureaux, commerces, logistique. Dividendes réguliers, valorisation décotée par rapport à l'actif net. TER 0.40%." },
+  "IQQP":   { name:"iShares MSCI World REIT",         type:"reit",  sector:"Immobilier Coté Monde",   isin:"IE00B1FZS350", desc:"REITs mondiaux dans tous les sous-secteurs : centres de données, logistique, résidentiel, santé. Diversification immobilière internationale. TER 0.59%." },
+  "BOTZ":   { name:"Global X Robotics & AI ETF",      type:"etf",   sector:"Robotique / IA",          isin:"IE00BMW3QX54", desc:"Entreprises de robotique industrielle, automatisation et intelligence artificielle. Exposition thématique à la révolution de l'IA. TER 0.68%." },
+  "DRIV":   { name:"Global X Autonomous & EV ETF",    type:"etf",   sector:"VE / Conduite Autonome",  isin:"IE00BGV5VN51", desc:"Véhicules électriques, conduite autonome et infrastructure de recharge. Bénéficiaire de la transition vers la mobilité décarbonée. TER 0.68%." },
+  // ── Actions européennes supplémentaires ─────────────────────
+  "ASML":   { name:"ASML",                            type:"stock", sector:"Semi-conducteurs / EUV",  isin:"NL0010273215", desc:"Monopole absolu mondial des machines EUV indispensables pour graver les puces <7nm (TSMC, Samsung, Intel). Aucun concurrent à horizon 10 ans. Carnet : 40 Mds€." },
+  "ASMLAS": { name:"ASML",                            type:"stock", sector:"Semi-conducteurs / EUV",  isin:"NL0010273215", desc:"Monopole absolu mondial des machines EUV indispensables pour graver les puces <7nm. Aucun concurrent à horizon 10 ans. Carnet : 40 Mds€." },
+  "RMS":    { name:"Hermès",                          type:"stock", sector:"Luxe / Maroquinerie",     isin:"FR0000052292", desc:"La maison de luxe la plus exclusive au monde. Sacs Birkin/Kelly en liste d'attente de plusieurs années. Marges brutes de 70%. Famille Hermès détient 67%. CA 2024 : 14 Mds€." },
+  "RMSPA":  { name:"Hermès",                         type:"stock", sector:"Luxe / Maroquinerie",     isin:"FR0000052292", desc:"La maison de luxe la plus exclusive au monde. Sacs Birkin/Kelly en liste d'attente. Marges brutes de 70%. CA 2024 : 14 Mds€." },
+  "KER":    { name:"Kering",                          type:"stock", sector:"Luxe (Gucci, YSL)",       isin:"FR0000121485", desc:"Maison mère de Gucci, Yves Saint Laurent, Balenciaga, Bottega Veneta. En phase de repositionnement stratégique sur le luxe absolu. CA 2024 : 17 Mds€." },
+  "EL":     { name:"EssilorLuxottica",                type:"stock", sector:"Santé / Vision",          isin:"FR0000121667", desc:"Fusion Essilor (verres) + Luxottica (Ray-Ban, Oakley). Monopole virtuel de la correction visuelle mondiale. CA 2024 : 25 Mds€." },
+  "BN":     { name:"Danone",                          type:"stock", sector:"Alimentation / Santé",    isin:"FR0000120644", desc:"Leader mondial des produits laitiers, eaux minérales (Evian, Volvic) et nutrition médicale. Transformation sous le CEO Faber. CA 2024 : 27 Mds€." },
+  "SAF":    { name:"Safran",                          type:"stock", sector:"Moteurs / Aéronautique",  isin:"FR0000073272", desc:"Co-fabricant du moteur LEAP avec GE (équipe 40% des avions neufs). Activité MRO très récurrente. CA 2024 : 27 Mds€. Forte visibilité long terme." },
+  "DSY":    { name:"Dassault Systèmes",               type:"stock", sector:"Logiciels 3D / PLM",      isin:"FR0014003TT8", desc:"Leader mondial des logiciels de simulation 3D (CATIA, SolidWorks, ENOVIA). 350 000 clients industriels. Transition cloud en cours. CA 2024 : 6 Mds€." },
+  "SAN":    { name:"Banco Santander",                 type:"stock", sector:"Banque Espagne/EM",       isin:"ES0113900J37", desc:"Première banque de la zone euro par capitalisation. Forte présence en Amérique latine (50% du résultat). Dividende supérieur à 4%. CA 2024 : 62 Mds€." },
+  "UCG":    { name:"UniCredit",                       type:"stock", sector:"Banque Italie/Europe",    isin:"IT0005239360", desc:"Deuxième banque européenne par résultat net. Présente en Italie, Allemagne (HypoVereinsbank) et Europe centrale. Valorisation très décotée. CA 2024 : 24 Mds€." },
+  "UCGMI":  { name:"UniCredit",                       type:"stock", sector:"Banque Italie/Europe",    isin:"IT0005239360", desc:"Deuxième banque européenne par résultat net. Présente en Italie, Allemagne et Europe centrale. Valorisation très décotée. CA 2024 : 24 Mds€." },
+  "ISP":    { name:"Intesa Sanpaolo",                 type:"stock", sector:"Banque Italie",           isin:"IT0000072618", desc:"Première banque italienne. Spécialiste de la banque de proximité et de la gestion de patrimoine. Dividende très élevé (>8%). CA 2024 : 14 Mds€." },
+  "ENI":    { name:"Eni",                             type:"stock", sector:"Énergie / Pétrole Italie",isin:"IT0003132476", desc:"Major pétrolier international en transformation vers les énergies renouvelables (Plenitude). Opère dans 60 pays. Dividende >5%. CA 2024 : 100 Mds€." },
+  "VOLV":   { name:"Volvo AB",                        type:"stock", sector:"Camions / Industriel",    isin:"SE0000115446", desc:"Leader mondial des camions lourds (Volvo, Renault Trucks, UD Trucks). Bénéficiaire de l'électrification des transports. CA 2024 : 53 Mds SEK." },
+  "ERIC":   { name:"Ericsson",                        type:"stock", sector:"Télécoms / 5G",           isin:"SE0000108656", desc:"Fabricant suédois d'équipements de réseau 5G. En cours de restructuration après l'affaire de corruption. Concurrent de Nokia et Huawei." },
+  "ATCO":   { name:"Atlas Copco",                     type:"stock", sector:"Industriel / Compresseurs",isin:"SE0011166610",desc:"Leader mondial des compresseurs, outils de précision et équipements de vacuum. Clients : semi-conducteurs, aérospatial, médical. TER 0.19%." },
+  "EQNR":   { name:"Equinor",                         type:"stock", sector:"Énergie / Norvège",       isin:"NO0010096985", desc:"Major pétrolier et gazier norvégien. Premier investisseur européen dans les énergies offshore. Dividende élevé soutenu par le fonds souverain." },
+  "DSV":    { name:"DSV Panalpina",                   type:"stock", sector:"Transport / Logistique",  isin:"DK0060079531", desc:"Troisième groupe mondial de fret (route, mer, air). Croissances externa fortes (Agility, Schenker). CA 2024 : 100 Mds DKK." },
+  "NOVOB":  { name:"Novo Nordisk B",                  type:"stock", sector:"Pharma / Obésité / GLP-1",isin:"DK0060534915", desc:"Ozempic (sémaglutide) et Wegovy dominent le marché des GLP-1 contre le diabète et l'obésité. Plus grande capitalisation européenne (500+ Mds€). Croissance exceptionnelle." },
+  "NESTE":  { name:"Neste",                           type:"stock", sector:"Carburants Durables",     isin:"FI0009013403", desc:"Leader mondial des carburants d'aviation durables (SAF) et des biocarburants. Transformation profonde en cours vers la chimie renouvelable. CA 2024 : 20 Mds€." },
+  "ORSTED": { name:"Ørsted",                          type:"stock", sector:"Éolien Offshore",         isin:"DK0060094928", desc:"Premier producteur mondial d'énergie éolienne offshore. Projets en Europe, USA et Asie. Valorisation pénalisée par la hausse des taux. CA 2024 : 77 Mds DKK." },
+  "IBE":    { name:"Iberdrola",                       type:"stock", sector:"Électricité / Renouvelable",isin:"ES0144580Y14",desc:"Premier producteur mondial d'énergie éolienne. Parmi les 10 plus grandes entreprises européennes. Dividende régulier, expansion aux USA et au Brésil. CA 2024 : 43 Mds€." },
+  "RACE":   { name:"Ferrari",                         type:"stock", sector:"Luxe / Automobile",       isin:"NL0011585146", desc:"Le seul constructeur auto coté comme une marque de luxe. Prix moyen 350 000€, liste d'attente 2 ans. Marges nettes de 22%, les plus élevées de l'auto. CA 2024 : 6,7 Mds€." },
+  "RACEMI": { name:"Ferrari",                         type:"stock", sector:"Luxe / Automobile",       isin:"NL0011585146", desc:"Le seul constructeur auto coté comme une marque de luxe. Prix moyen 350 000€, liste d'attente 2 ans. Marges nettes de 22%. CA 2024 : 6,7 Mds€." },
+  "LDO":    { name:"Leonardo",                        type:"stock", sector:"Défense / Aérospatial",   isin:"IT0003856405", desc:"Champion national italien de la défense et de l'aérospatial. Hélicoptères (60% du CA), radar, cybersécurité. Carnet de commandes record. CA 2024 : 17 Mds€." },
+  "HLMA":   { name:"Halma",                           type:"stock", sector:"Tech / Sécurité",         isin:"GB0004052071", desc:"Conglomérat technologique britannique spécialisé dans la sécurité, la santé et l'environnement. Croissance organique constante depuis 45 ans. CA 2024 : 2,2 Mds£." },
+  "REL":    { name:"RELX",                            type:"stock", sector:"Données / Analytics",     isin:"GB00B2B0DG97", desc:"Groupe d'information et d'analytics (Elsevier, LexisNexis, Reed Exhibitions). Modèle d'abonnement récurrent avec marges élevées. CA 2024 : 9 Mds£." },
+  // ── Actions asiatiques supplémentaires ──────────────────────
+  "8035T":  { name:"Tokyo Electron",                  type:"stock", sector:"Équipements Semi-cond.",  isin:"JP3571400005", desc:"Principal fabricant japonais d'équipements pour semi-conducteurs (gravure, dépôt de couches). Bénéficiaire direct du boom des puces IA. CA 2024 : 2 200 Mds¥." },
+  "9984T":  { name:"SoftBank Group",                  type:"stock", sector:"Tech / Investissement",   isin:"JP3436100006", desc:"Conglomérat tech japonais et investisseur ($100 Mds Vision Fund). Paris sur l'IA, la robotique et la tech mondiale via Arm Holdings. Très volatile." },
+  "6861T":  { name:"Keyence",                         type:"stock", sector:"Automatisation Industrielle",isin:"JP3236200006",desc:"Fabricant japonais de capteurs, systèmes de vision et microscopes. Marges opérationnelles de 50%, parmi les plus élevées du monde industriel. CA 2024 : 960 Mds¥." },
+  "2454TW": { name:"MediaTek",                        type:"stock", sector:"Semi-conducteurs",        isin:"TW0002454009", desc:"Deuxième fabless de puces mondiale. Processeurs pour smartphones (Dimensity), TV, IoT et véhicules connectés. CA 2024 : 530 Mds TWD." },
+  "000660": { name:"SK Hynix",                        type:"stock", sector:"Mémoire / DRAM HBM",      isin:"KR7000660001", desc:"Deuxième fabricant mondial de DRAM et NAND. Fournisseur exclusif des mémoires HBM3e utilisées dans les GPU IA de Nvidia. Croissance explosive en 2024." },
+  "9988HK": { name:"Alibaba Group",                   type:"stock", sector:"E-commerce / Cloud Chine",isin:"KYG017191142", desc:"Géant du e-commerce (Taobao, Tmall) et cloud (Aliyun). Valorisation très décotée post-régulation (P/E 10x). Rachat d'actions massif en 2024." },
+  "TCNS":   { name:"Tata Consultancy Services",       type:"stock", sector:"IT / Services Inde",      isin:"INE467B01029", desc:"Premier groupe IT indien. Services d'outsourcing, cloud et transformation numérique pour 3 000 clients Fortune 500. 600 000 employés. CA 2024 : 25 Mds$." },
+  // ── Actions américaines supplémentaires ─────────────────────
+  "REGN":   { name:"Regeneron Pharmaceuticals",       type:"stock", sector:"Biotech / Ophtalmologie", isin:"US75886F1075", desc:"Eylea (dégénérescence maculaire) et Dupixent (dermatite, asthme) génèrent 15 Mds$ de revenus. Pipeline très solide. Modèle sans dilution actionnariale." },
+  "VRTX":   { name:"Vertex Pharmaceuticals",          type:"stock", sector:"Biotech / Mucoviscidose", isin:"US92532F1003", desc:"Monopole thérapeutique sur la mucoviscidose (Trikafta). Expansion dans la douleur chronique et les maladies rénales. Bilan solide, sans dette." },
+  "ISRG":   { name:"Intuitive Surgical",              type:"stock", sector:"Robotique Chirurgicale",  isin:"US46120E6023", desc:"Monopole de facto en chirurgie robotique (da Vinci, Ion). 8 000 robots installés. Revenus récurrents via instruments jetables. CA 2024 : 8 Mds$." },
+  "BX":     { name:"Blackstone",                      type:"stock", sector:"Private Equity / Alter.", isin:"US09260D1072", desc:"Plus grand gestionnaire d'actifs alternatifs (1 000 Mds$). Private equity, immobilier, infrastructure et crédit. Dividende variable élevé." },
+  "CRWD":   { name:"CrowdStrike",                     type:"stock", sector:"Cybersécurité / IA",      isin:"US2270791014", desc:"Leader de la cybersécurité cloud-native (Falcon Platform). Protection endpoint alimentée par l'IA. ARR dépasse 3 Mds$. Croissance >30%/an." },
+  "NOW":    { name:"ServiceNow",                      type:"stock", sector:"SaaS / Automatisation IT",isin:"US81762P1021", desc:"Plateforme d'automatisation des workflows IT et RH. Intégration de l'IA générative (Now Assist). ARR 10 Mds$. Clients : 85% du Fortune 500." },
+  "AMAT":   { name:"Applied Materials",               type:"stock", sector:"Équipements Semi-cond.",  isin:"US0382221051", desc:"Leader mondial des équipements de dépôt de couches minces. Bénéficiaire structurel de la multiplication des usines de puces (TSMC, Samsung, Intel). CA 2024 : 27 Mds$." },
+  "LRCX":   { name:"Lam Research",                    type:"stock", sector:"Équipements Semi-cond.",  isin:"US5128071082", desc:"Équipements de gravure et de dépôt pour semi-conducteurs. Duopole avec Applied Materials sur certains segments. CA 2024 : 17 Mds$." },
+  "KLAC":   { name:"KLA Corporation",                 type:"stock", sector:"Contrôle Qualité Semi-cond.",isin:"US4824801009",desc:"Monopole sur les équipements d'inspection et de métrologie pour semi-conducteurs. Marges très élevées (65% brut). CA 2024 : 10 Mds$." },
+  "CYBR":   { name:"CyberArk Software",               type:"stock", sector:"Cybersécurité / IAM",     isin:"IL0011334468", desc:"Leader mondial de la gestion des accès à privilèges (PAM). Protège les comptes administrateurs contre les cyberattaques. Israélien coté au Nasdaq. ARR 900M$." },
+  "CHKP":   { name:"Check Point Software",            type:"stock", sector:"Cybersécurité",           isin:"IL0010824113", desc:"Pionnier de la cybersécurité réseau (pare-feux, VPN). Basé à Tel Aviv. Valorisation raisonnable pour le secteur. Dividendes et rachats d'actions réguliers." },
+  "SPGI":   { name:"S&P Global",                      type:"stock", sector:"Finance / Indices / Data",isin:"US78409V1044", desc:"Fournit les indices S&P 500/400/600, les notations de crédit et les données de marché. Oligopole avec Moody's. Marges opérationnelles >45%. CA 2024 : 14 Mds$." },
+  "MCO":    { name:"Moody's Corporation",             type:"stock", sector:"Notation / Données Fin.", isin:"US6153691059", desc:"Duopole avec S&P Global sur la notation des obligations mondiales. Activité données et analytics (Moody's Analytics) en forte croissance. CA 2024 : 7 Mds$." },
+  "GS":     { name:"Goldman Sachs",                   type:"stock", sector:"Banque d'Investissement", isin:"US38141G1040", desc:"La banque d'investissement la plus prestigious au monde. Trading, M&A, gestion d'actifs. Retour en force post-2022. Dirigée par David Solomon. CA 2024 : 47 Mds$." },
+  "MS":     { name:"Morgan Stanley",                  type:"stock", sector:"Banque / Gestion de Patrimoine",isin:"US6174464486",desc:"Banque d'investissement et de gestion de fortune. Acquisition E*Trade et Eaton Vance renforcent la gestion de patrimoine. AUM 5 500 Mds$." },
+  "TMO":    { name:"Thermo Fisher Scientific",        type:"stock", sector:"Sciences de la Vie / Labo",isin:"US8835561023",desc:"Leader des équipements et réactifs scientifiques. Clients : pharma, biotech, hôpitaux, gouvernements. Croissance inorganique régulière. CA 2024 : 43 Mds$." },
+  "MRK":    { name:"Merck & Co.",                     type:"stock", sector:"Pharma / Oncologie",      isin:"US58933Y1055", desc:"Keytruda (immunothérapie) est le médicament le plus vendu au monde (25 Mds$). Pipeline oncologie très solide. CA 2024 : 63 Mds$." },
+  "ABBV":   { name:"AbbVie",                          type:"stock", sector:"Pharma / Immunologie",    isin:"US0031721050", desc:"Humira (autoimmun) et Skyrizi/Rinvoq prennent le relais. Acquisition d'Allergan (Botox) complète le portefeuille. Dividende en croissance continue. CA 2024 : 56 Mds$." },
+
 };
 
 // ── Lookup avec gestion des suffixes de bourse ─────────────────
 function normalizeKey(symbol: string): string {
-  // Essayer le symbole complet d'abord, puis la base
-  const bases = [
-    symbol,
-    symbol.split(".")[0],
-    symbol.split("-")[0],
-    symbol.replace("-B.CO","B").replace(".CO","").replace(".AS","")
-          .replace(".DE","").replace(".PA","").replace(".SW","")
-          .replace(".L","").replace(".MI","").replace(".MC","")
-          .replace(".HK","HK").replace(".T","T").replace(".NS","")
-          .replace(".AX","").replace(".TO","").replace(".ST",""),
+  // Générer toutes les variantes possibles du symbole
+  const upper = symbol.toUpperCase();
+  const noSuffix = upper
+    .replace(/-B\.CO$/,"B").replace(/\.CO$/,"").replace(/\.AS$/,"")
+    .replace(/\.DE$/,"").replace(/\.PA$/,"").replace(/\.SW$/,"")
+    .replace(/\.L$/,"").replace(/\.MI$/,"").replace(/\.MC$/,"")
+    .replace(/\.(HK|T|NS|AX|TO|ST|OL|JK|KL|BK|SI|SA|MX|SR|JO|VI|LS|BR|WA)$/,"")
+    .replace(/-EUR$/,"").replace(/-USD$/,"")
+    .replace(/\./g,"").replace(/-/g,"");
+
+  const candidates = [
+    symbol,           // Exact
+    upper,            // Majuscules
+    noSuffix,         // Sans suffixe bourse
+    upper.split(".")[0], // Avant le premier point
+    upper.split("-")[0], // Avant le premier tiret
+    noSuffix.replace(/B$/,""),  // Retirer le B final (NOVO-B → NOVO)
+    upper.replace(".AS","").replace(".DE","").replace(".PA","").replace(".L",""),
   ];
-  for (const b of bases) {
-    if (ASSET_INFO_DB[b]) return b;
-    if (ASSET_INFO_DB[b.toUpperCase()]) return b.toUpperCase();
+
+  for (const key of candidates) {
+    if (key && ASSET_INFO_DB[key]) return key;
   }
-  return symbol.split(".")[0].toUpperCase();
+  return upper.split(".")[0];
 }
 
 export function getAssetInfo(symbol: string): AssetInfo {
