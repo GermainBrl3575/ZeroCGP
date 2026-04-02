@@ -175,19 +175,35 @@ interface StrategicAlloc {
 }
 
 function getStrategicAlloc(risk:string, maxLoss:string, classes:string, diversif:string): StrategicAlloc {
-  const isConservative = risk.includes("conservateur");
-  const isModerate     = risk.includes("modéré")||risk.includes("modere")||risk.includes("équilibré")||risk.includes("equilibre");
-  const isDynamic      = risk.includes("dynamique");
-  const isAggressive   = risk.includes("agressif");
-  const maxLossPct     = maxLoss.includes("10")?10:maxLoss.includes("20")?20:maxLoss.includes("35")?35:50;
+  // Tout normaliser en minuscules pour éviter les problèmes de casse
+  const r  = risk.toLowerCase().trim();
+  const ml = maxLoss.toLowerCase().trim();
+  const cl = classes.toLowerCase().trim();
+  const dv = diversif.toLowerCase().trim();
 
-  const wantCrypto   = classes.toLowerCase().includes("crypto");
-  const wantBond     = classes.toLowerCase().includes("obligation");
-  const wantReit     = classes.toLowerCase().includes("immobilier");
-  const wantStock    = classes.toLowerCase().includes("action");
-  const wantEtf      = classes.toLowerCase().includes("etf")||!wantStock;
-  const isLarge      = diversif.includes("large")||diversif.includes("15")||diversif.includes("20")||diversif.includes("30");
-  const isConcentre  = diversif.includes("concentré")||diversif.includes("concentre")||diversif.includes("6")||diversif.includes("8");
+  // Q2 — options exactes: "Conservateur" | "Modéré" | "Dynamique" | "Agressif"
+  const isConservative = r === "conservateur" || r.includes("conserv");
+  const isModerate     = r === "modéré" || r === "modere" || r.includes("modér") || r.includes("moder");
+  const isDynamic      = r === "dynamique" || r.includes("dynam");
+  const isAggressive   = r === "agressif" || r.includes("agressi");
+
+  // Q3 — options exactes: "−10% maximum" | "−20% maximum" | "−35% maximum" | "Pas de limite"
+  const maxLossPct = ml.includes("10") ? 10
+    : ml.includes("20") ? 20
+    : ml.includes("35") ? 35
+    : ml.includes("pas") ? 100
+    : 50;
+
+  // Q5 — classes cochées (multi-select séparé par virgules)
+  const wantCrypto = cl.includes("crypto");
+  const wantBond   = cl.includes("obligation");
+  const wantReit   = cl.includes("immobilier");
+  const wantStock  = cl.includes("action");
+  const wantEtf    = cl.includes("etf") || !wantStock;
+
+  // Q7 — options exactes: "Concentré (5 actifs)" | "Équilibré (8–10 actifs)" | "Large (15+ actifs)"
+  const isConcentre = dv.includes("concentr") || dv.includes("5 actif");
+  const isLarge     = dv.includes("large") || dv.includes("15") || dv.includes("20+");
 
   let alloc: StrategicAlloc;
 
@@ -233,14 +249,21 @@ function selectByBucket(
   risk: string
 ): AssetMeta[] {
 
-  const isAggressive = risk.includes("agressif")||risk.includes("dynamique");
+  const isAggressive = risk.toLowerCase().includes("agressi") || risk.toLowerCase().includes("dynam");
 
   // Zones souhaitées
-  const wantWorld    = geo.includes("monde")||geo==="";
-  const wantUSA      = geo.includes("usa")||geo.includes("états")||wantWorld;
-  const wantEurope   = geo.includes("europe")||wantWorld;
-  const wantAsia     = geo.includes("asie")||wantWorld;
-  const wantEmerging = geo.includes("émergent")||geo.includes("emergent")||wantWorld;
+  // Q6 — options exactes: "Monde entier" | "USA dominante" | "Europe" | "Marchés émergents"
+  const g = geo.toLowerCase().trim();
+  const wantWorld    = g === "" || g.includes("monde") || g.includes("world");
+  const wantUSA      = g.includes("usa") || g.includes("états") || g.includes("etat") || g.includes("amér") || wantWorld;
+  const wantEurope   = g.includes("europ") || wantWorld;
+  const wantAsia     = g.includes("asie") || g.includes("asia") || g.includes("japon") || wantWorld;
+  const wantEmerging = g.includes("émerg") || g.includes("emerg") || g.includes("march") || wantWorld;
+
+  // Si Europe seule → exclure ETF monde qui sont majoritairement USA
+  const strictEurope = g.includes("europ") && !wantWorld;
+  const strictUSA    = (g.includes("usa") || g.includes("amér")) && !wantWorld;
+  const strictEmerge = g.includes("émerg") && !wantWorld;
 
   const pool = universe.filter(a => {
     if(!type.includes(a.type)) return false;
@@ -249,6 +272,9 @@ function selectByBucket(
     if(a.region==="asia"     && !wantAsia)     return false;
     if(a.region==="emerging" && !wantEmerging) return false;
     if(a.sector==="defense"  && sector==="nodefefense") return false;
+    // Si zone exclusive : exclure ETF larges "monde" qui diluent la zone choisie
+    if(strictEurope && a.region==="world" && a.type==="etf") return false;
+    if(strictUSA    && a.region==="world" && a.type==="etf" && a.sector==="broad") return false;
     return true;
   });
 
@@ -414,12 +440,17 @@ export async function POST(req: NextRequest) {
     const { capital=50000, answers={} } = body;
 
     const get=(k:number)=>String(answers[k]??answers[String(k)]??"");
-    const risk    = get(2)||"Modéré";
-    const maxLoss = get(3)||"−20% maximum";
-    const esg     = get(4)||"";
-    const classes = get(5)||"ETF,Actions";
-    const geo     = get(6)||"Monde entier";
-    const diversif= get(7)||"Équilibré";
+    // Les valeurs sont passées telles quelles depuis le frontend
+    // La normalisation se fait dans chaque fonction via .toLowerCase()
+    const risk    = String(get(2)||"Modéré");
+    const maxLoss = String(get(3)||"−20% maximum");
+    const esg     = String(get(4)||"");
+    const classes = String(get(5)||"ETF,Actions");
+    const geo     = String(get(6)||"Monde entier");
+    const diversif= String(get(7)||"Équilibré (8–10 actifs)");
+
+    // Log pour debug
+    console.log("📊 Profil reçu:", {risk, maxLoss, classes, geo, diversif});
 
     const esgStrict  = esg.toLowerCase().includes("strict");
     const noDefense  = esg.toLowerCase().includes("armement")||esg.toLowerCase().includes("exclure");
