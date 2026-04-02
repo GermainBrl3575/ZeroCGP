@@ -355,11 +355,11 @@ function optimize(
 
     let pRet=0; for(let i=0;i<n;i++) pRet+=w[i]*rets[i];
     let pVar=0; for(let i=0;i<n;i++) for(let j=0;j<n;j++) pVar+=w[i]*w[j]*cov[i][j];
-    const pVol=Math.sqrt(Math.max(0,pVar));
+    const pVol=Math.sqrt(Math.max(0,isNaN(pVar)?0:pVar));
     if(pVol<0.001) continue;
 
-    const sharpe=(pRet-riskFree)/pVol;
-    const util=pRet-0.5*3*pVar;
+    const sharpe=pVol>0.001?(pRet-riskFree)/pVol:0;
+    const util=isNaN(pRet)?-999:pRet-0.5*3*(isNaN(pVar)?0:pVar);
 
     if(pVol<gmv.vol)        gmv  ={w,ret:pRet,vol:pVol,sharpe};
     if(sharpe>maxSh.sharpe) maxSh={w,ret:pRet,vol:pVol,sharpe};
@@ -384,15 +384,15 @@ function optimize(
       }))
       .filter(w=>w.weight>=0.02)
       .sort((a,b)=>b.weight-a.weight);
-    const totW=wts.reduce((s,w)=>s+w.weight,0);
+    const totW=Math.max(0.001,wts.reduce((s,w)=>s+(w.weight||0),0));
     const normalized=wts.map(w=>({...w,weight:parseFloat((w.weight/totW).toFixed(4)),amount:Math.round(capital*w.weight/totW)}));
-    const var95=Math.abs(opt.ret-1.645*opt.vol)*100;
+    const var95=Math.abs((opt.ret||0)-1.645*(opt.vol||0))*100;
     return {
       method,label,rec,
-      ret:parseFloat((opt.ret*100).toFixed(2)),
-      vol:parseFloat((opt.vol*100).toFixed(2)),
-      sharpe:parseFloat(opt.sharpe.toFixed(3)),
-      var95:parseFloat(var95.toFixed(2)),
+      ret:parseFloat(((opt.ret||0)*100).toFixed(2)),
+      vol:parseFloat(((opt.vol||0)*100).toFixed(2)),
+      sharpe:parseFloat((opt.sharpe||0).toFixed(3)),
+      var95:parseFloat((var95||0).toFixed(2)),
       weights:normalized,
       frontier:pareto,
     };
