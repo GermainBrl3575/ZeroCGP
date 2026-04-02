@@ -369,10 +369,9 @@ function OptimizerInner() {
               const d = await r.json();
               if(Array.isArray(d.results)&&d.results.length>0){
                 finalResults = d.results.map((x: Record<string,unknown>)=>normalizeResult(x,cap));
-                // Vérifier que les valeurs sont non-nulles
-                const hasData = finalResults.some(r=>r.ret>0||r.vol>0);
-                // hasData check removed — API results are always used when available
+                console.log("✅ API OK:", finalResults.length, "portefeuilles");
               } else {
+                console.warn("⚠️ Fallback mock");
                 finalResults = buildMockResults(cap);
               }
             } else { finalResults = buildMockResults(cap); }
