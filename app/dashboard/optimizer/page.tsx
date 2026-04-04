@@ -119,6 +119,8 @@ function InfoBubble({ text, dark }: { text: string; dark?: boolean }) {
 // ─── Accordéon actif ────────────────────────────────────────────────────────────
 function AssetRow({ w }: { w: Weight }) {
   const [open, setOpen] = useState(false);
+  const [newsData, setNewsData] = useState<{title:string;publisher:string;link:string;time:string}[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
   const info    = getAssetInfo(w.symbol);
   const hist    = getAssetHistory(w.symbol);
   const isin    = w.isin || info.isin || "";
@@ -128,7 +130,18 @@ function AssetRow({ w }: { w: Weight }) {
     <div style={{marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid rgba(10,22,40,.07)",background:"white"}}>
       {/* Ligne principale */}
       <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",cursor:"pointer"}}
-        onClick={()=>setOpen(!open)}>
+        onClick={()=>{
+          setOpen(o=>{
+            if(!o && newsData.length===0){
+              setNewsLoading(true);
+              fetch(`/api/yahoo/news?symbol=${encodeURIComponent(w.symbol)}`)
+                .then(r=>r.json())
+                .then(d=>{ setNewsData(d.news??[]); setNewsLoading(false); })
+                .catch(()=>setNewsLoading(false));
+            }
+            return !o;
+          });
+        }}>
         <div style={{width:140,flexShrink:0}}>
           <div style={{fontSize:12,fontWeight:700,color:NAVY}}>{w.symbol.split(".")[0]}</div>
           <div style={{fontSize:10,color:"#8A9BB0",marginTop:1,fontWeight:300}}>{info.name}</div>
@@ -195,6 +208,25 @@ function AssetRow({ w }: { w: Weight }) {
                 })}
               </div>
             </div>
+          </div>
+        </div>
+          {/* Actualités */}
+          <div style={{marginTop:16,borderTop:"1px solid rgba(10,22,40,.06)",paddingTop:14}}>
+            <div style={{fontSize:9,fontWeight:600,letterSpacing:".14em",color:"#8A9BB0",marginBottom:10}}>ACTUALITÉS RÉCENTES</div>
+            {newsLoading&&<div style={{fontSize:11,color:"#8A9BB0",fontStyle:"italic"}}>Chargement...</div>}
+            {!newsLoading&&newsData.length===0&&<div style={{fontSize:11,color:"#8A9BB0",fontStyle:"italic"}}>Actualités non disponibles.</div>}
+            {newsData.map((n,i)=>(
+              <a key={i} href={n.link} target="_blank" rel="noopener noreferrer"
+                style={{display:"block",marginBottom:8,textDecoration:"none"}}>
+                <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:12,color:"#0A1628",fontWeight:500,lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical" as "vertical",overflow:"hidden"}}>{n.title}</div>
+                    <div style={{fontSize:10,color:"#8A9BB0",marginTop:2}}>{n.publisher}{n.time?` · ${n.time}`:""}</div>
+                  </div>
+                  <span style={{fontSize:10,color:"#4A7FBF",flexShrink:0,marginTop:2}}>→</span>
+                </div>
+              </a>
+            ))}
           </div>
         </div>
       )}
