@@ -1,4 +1,4 @@
-import { HISTORICAL_RETURNS, HISTORICAL_VOLS } from "./marketData";
+import { HISTORICAL_RETURNS, HISTORICAL_VOLS, getRealPerf } from "./marketData";
 
 export interface AssetInfo {
   name:    string;
@@ -226,25 +226,16 @@ export function getAssetInfo(symbol: string): AssetInfo {
 
 // ── Performances historiques depuis les vraies données Yahoo Finance ──
 export function getAssetHistory(symbol: string): Record<string, string> {
-  const annualRet = HISTORICAL_RETURNS[symbol]
-    ?? HISTORICAL_RETURNS[symbol.split(".")[0]]
-    ?? HISTORICAL_RETURNS[symbol.split("-")[0]]
-    ?? null;
-
-  if (annualRet === null) return { "1M":"N/D","6M":"N/D","1A":"N/D","5A":"N/D","10A":"N/D" };
-
-  const monthly  = annualRet / 12;
-  const r6m      = ((1 + monthly) ** 6  - 1) * 100;
-  const r1a      = annualRet * 100;
-  const r5a      = ((1 + annualRet) ** 5  - 1) * 100;
-  const r10a     = ((1 + annualRet) ** 10 - 1) * 100;
-
-  const fmt = (n: number) => (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+  // Utilise les VRAIES performances historiques calculées depuis Yahoo Finance
+  const fmt = (n: number | null) => {
+    if (n === null) return "N/D";
+    return (n >= 0 ? "+" : "") + n.toFixed(1) + "%";
+  };
   return {
-    "1M":  fmt(monthly * 100),
-    "6M":  fmt(r6m),
-    "1A":  fmt(r1a),
-    "5A":  fmt(r5a),
-    "10A": fmt(r10a),
+    "1M":  fmt(getRealPerf(symbol, "1M")),
+    "6M":  fmt(getRealPerf(symbol, "6M")),
+    "1A":  fmt(getRealPerf(symbol, "1A")),
+    "5A":  fmt(getRealPerf(symbol, "5A")),
+    "10A": fmt(getRealPerf(symbol, "10A")),
   };
 }
