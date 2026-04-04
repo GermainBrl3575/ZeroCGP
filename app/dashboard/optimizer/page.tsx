@@ -131,16 +131,14 @@ function AssetRow({ w }: { w: Weight }) {
       {/* Ligne principale */}
       <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",cursor:"pointer"}}
         onClick={()=>{
-          setOpen(o=>{
-            if(!o && newsData.length===0){
-              setNewsLoading(true);
-              fetch(`/api/yahoo/news?symbol=${encodeURIComponent(w.symbol)}`)
-                .then(r=>r.json())
-                .then(d=>{ setNewsData(d.news??[]); setNewsLoading(false); })
-                .catch(()=>setNewsLoading(false));
-            }
-            return !o;
-          });
+          if(!open && newsData.length===0){
+            setNewsLoading(true);
+            fetch(`/api/yahoo/news?symbol=${encodeURIComponent(w.symbol)}`)
+              .then(r=>r.json())
+              .then(d=>{ setNewsData(d.news??[]); setNewsLoading(false); })
+              .catch(()=>setNewsLoading(false));
+          }
+          setOpen(o=>!o);
         }}>
         <div style={{width:140,flexShrink:0}}>
           <div style={{fontSize:12,fontWeight:700,color:NAVY}}>{w.symbol.split(".")[0]}</div>
