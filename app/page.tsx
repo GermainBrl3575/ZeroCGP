@@ -1,9 +1,10 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { motion, useAnimation, useMotionValue, animate } from "framer-motion";
 import {
   ResponsiveContainer, LineChart, Line,
-  XAxis, YAxis, Tooltip, CartesianGrid,
+  XAxis, YAxis, Tooltip,
 } from "recharts";
 
 const MSCI_GROSS = 0.08;
@@ -23,46 +24,235 @@ function feur(n: number) {
   }).format(n);
 }
 
-interface TooltipPayload {
-  value: number;
-  name: string;
-  color: string;
-}
-
-function CustomTooltip({ active, payload, label }: {
-  active?: boolean;
-  payload?: TooltipPayload[];
-  label?: number;
-}) {
+interface TooltipPayload { value: number; name: string; color: string; }
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: TooltipPayload[]; label?: number; }) {
   if (!active || !payload || !payload.length) return null;
   return (
-    <div style={{
-      background: "#0A1628", borderRadius: 8, padding: "10px 14px",
-      boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-    }}>
-      <div style={{ color: "rgba(255,255,255,0.4)", fontSize: 10, marginBottom: 6, letterSpacing: ".08em" }}>
-        AN {label}
-      </div>
+    <div style={{ background:"rgba(10,22,40,0.92)", backdropFilter:"blur(12px)", borderRadius:10, padding:"10px 14px", border:"1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ color:"rgba(255,255,255,0.4)", fontSize:10, marginBottom:6, letterSpacing:".1em" }}>AN {label}</div>
       {payload.map(function(p) {
         return (
-          <div key={p.name} style={{ color: "white", fontSize: 13, fontWeight: 600, marginBottom: 3 }}>
-            <span style={{ color: p.color, marginRight: 6, fontSize: 8 }}>●</span>
-            {p.name} : <span style={{ color: p.color }}>{feur(p.value)}</span>
+          <div key={p.name} style={{ color:"white", fontSize:13, fontWeight:600, marginBottom:3 }}>
+            <span style={{ color:p.color, marginRight:6, fontSize:8 }}>●</span>
+            {p.name} : <span style={{ color:p.color }}>{feur(p.value)}</span>
           </div>
         );
       })}
       {payload.length === 2 && (
-        <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 10, marginTop: 6, borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: 6 }}>
-          Manque à gagner : <span style={{ color: "#F87171" }}>{feur(payload[0].value - payload[1].value)}</span>
+        <div style={{ color:"rgba(255,255,255,0.3)", fontSize:10, marginTop:6, borderTop:"1px solid rgba(255,255,255,0.1)", paddingTop:6 }}>
+          Manque à gagner : <span style={{ color:"#F87171" }}>{feur(payload[0].value - payload[1].value)}</span>
         </div>
       )}
     </div>
   );
 }
 
+// ── Courbe SVG boursière ──────────────────────────────────────
+// Points normalisés [x%,y%] simulant une vraie courbe de marché
+// avec pics et creux anguleux
+const CURVE_PTS: [number,number][] = [
+  [0,72],[3,68],[6,71],[9,62],[12,58],[15,64],[17,52],[20,48],
+  [23,54],[26,44],[29,50],[31,38],[34,42],[37,32],[40,38],
+  [42,28],[45,34],[48,22],[51,30],[54,18],[57,24],[59,14],
+  [62,20],[65,10],[68,16],[71,8],[74,14],[77,6],[80,12],
+  [83,4],[86,10],[89,6],[92,2],[96,5],[100,0],
+];
+
+function buildSVGPath(pts: [number,number][], W: number, H: number, pad=40): string {
+  const toX = (px: number) => pad + (px/100)*(W-pad*2);
+  const toY = (py: number) => pad + (py/100)*(H-pad*2);
+  let d = `M ${toX(pts[0][0])} ${toY(pts[0][1])}`;
+  for (let i=1; i<pts.length; i++) {
+    const [x,y] = pts[i];
+    const [px,py] = pts[i-1];
+    const cpx = toX(px + (x-px)*0.5);
+    const cpy = toY(py);
+    const cpx2 = toX(x - (x-px)*0.1);
+    const cpy2 = toY(y);
+    d += ` C ${cpx} ${cpy}, ${cpx2} ${cpy2}, ${toX(x)} ${toY(y)}`;
+  }
+  return d;
+}
+
+function buildAreaPath(pts: [number,number][], W: number, H: number, pad=40): string {
+  const line = buildSVGPath(pts, W, H, pad);
+  const lastX = pad + (pts[pts.length-1][0]/100)*(W-pad*2);
+  const firstX = pad + (pts[0][0]/100)*(W-pad*2);
+  const bottom = H - pad + 16;
+  return `${line} L ${lastX} ${bottom} L ${firstX} ${bottom} Z`;
+}
+
+function HeroCurve() {
+  const W = 900, H = 260, PAD = 40;
+  const linePath = buildSVGPath(CURVE_PTS, W, H, PAD);
+  const areaPath = buildAreaPath(CURVE_PTS, W, H, PAD);
+
+  // Position du dernier point pour le glowy dot
+  const lastPt = CURVE_PTS[CURVE_PTS.length-1];
+  const dotX = PAD + (lastPt[0]/100)*(W-PAD*2);
+  const dotY = PAD + (lastPt[1]/100)*(H-PAD*2);
+
+  const pathVariants = {
+    hidden: { pathLength: 0, opacity: 0 },
+    visible: {
+      pathLength: 1,
+      opacity: 1,
+      transition: { pathLength: { duration: 2.2, ease: "easeInOut" }, opacity: { duration: 0.3 } }
+    }
+  };
+  const areaVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { delay: 0.4, duration: 1.8 } }
+  };
+  const dotVariants = {
+    hidden: { scale: 0, opacity: 0 },
+    visible: { scale: 1, opacity: 1, transition: { delay: 2.2, duration: 0.4, type:"spring", stiffness:300 } }
+  };
+
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%" height="100%"
+      style={{ overflow:"visible", filter:"drop-shadow(0 0 12px rgba(74,127,191,0.18))" }}
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <defs>
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#1E3A6E" stopOpacity="0.18"/>
+          <stop offset="60%" stopColor="#1E3A6E" stopOpacity="0.05"/>
+          <stop offset="100%" stopColor="#1E3A6E" stopOpacity="0"/>
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#4A7FBF" stopOpacity="0.4"/>
+          <stop offset="50%" stopColor="#2A5FA0" stopOpacity="0.9"/>
+          <stop offset="100%" stopColor="#1E3A6E" stopOpacity="1"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <filter id="dotGlow">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        {/* Grille de fond subtile */}
+        <pattern id="grid" width="60" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 60 0 L 0 0 0 40" fill="none" stroke="rgba(10,22,40,0.04)" strokeWidth="1"/>
+        </pattern>
+      </defs>
+
+      {/* Grille */}
+      <rect width={W} height={H} fill="url(#grid)" opacity="0.5"/>
+
+      {/* Axe Y labels */}
+      {[0,25,50,75,100].map(y => {
+        const yPos = PAD + (y/100)*(H-PAD*2);
+        return (
+          <g key={y}>
+            <line x1={PAD-8} y1={yPos} x2={W-PAD+8} y2={yPos}
+              stroke="rgba(10,22,40,0.05)" strokeWidth="1" strokeDasharray="3 4"/>
+          </g>
+        );
+      })}
+
+      {/* Area fill */}
+      <motion.path
+        d={areaPath}
+        fill="url(#areaGrad)"
+        variants={areaVariants}
+        initial="hidden"
+        animate="visible"
+      />
+
+      {/* Ligne principale */}
+      <motion.path
+        d={linePath}
+        fill="none"
+        stroke="url(#lineGrad)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter="url(#glow)"
+        variants={pathVariants}
+        initial="hidden"
+        animate="visible"
+      />
+
+      {/* Glowy dot à l'extrémité */}
+      <motion.g variants={dotVariants} initial="hidden" animate="visible">
+        {/* Halo externe */}
+        <circle cx={dotX} cy={dotY} r="10" fill="#1E3A6E" opacity="0.12"/>
+        <circle cx={dotX} cy={dotY} r="6"  fill="#1E3A6E" opacity="0.20"/>
+        {/* Point principal */}
+        <circle cx={dotX} cy={dotY} r="4"  fill="#4A7FBF" filter="url(#dotGlow)"/>
+        <circle cx={dotX} cy={dotY} r="2.5" fill="white" opacity="0.9"/>
+      </motion.g>
+
+      {/* Label performance */}
+      <motion.g
+        initial={{ opacity:0, y:8 }}
+        animate={{ opacity:1, y:0 }}
+        transition={{ delay:2.4, duration:0.5 }}
+      >
+        <rect x={dotX-34} y={dotY-32} width={68} height={22} rx="6"
+          fill="rgba(10,22,40,0.85)" stroke="rgba(74,127,191,0.3)" strokeWidth="1"/>
+        <text x={dotX} y={dotY-17} textAnchor="middle"
+          style={{ fontSize:11, fontWeight:700, fill:"#4ADE80", fontFamily:"Inter,sans-serif", letterSpacing:"0.04em" }}>
+          +242%
+        </text>
+      </motion.g>
+    </svg>
+  );
+}
+
+// ── Effet de grain CSS (noise texture) ───────────────────────
+const GRAIN_CSS = `
+  @keyframes grain {
+    0%,100%{transform:translate(0,0)}
+    10%{transform:translate(-2%,-3%)}
+    20%{transform:translate(-4%,2%)}
+    30%{transform:translate(3%,-4%)}
+    40%{transform:translate(-1%,5%)}
+    50%{transform:translate(-3%,2%)}
+    60%{transform:translate(4%,-1%)}
+    70%{transform:translate(2%,4%)}
+    80%{transform:translate(-4%,-2%)}
+    90%{transform:translate(3%,3%)}
+  }
+  .grain-overlay::before {
+    content:"";
+    position:fixed;
+    inset:-200%;
+    width:400%;height:400%;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity:0.022;
+    animation:grain 0.8s steps(2) infinite;
+    pointer-events:none;
+    z-index:1;
+  }
+  @keyframes shine {
+    0%   { left:-80%; }
+    40%,100% { left:130%; }
+  }
+  .btn-shine {
+    position:relative;
+    overflow:hidden;
+  }
+  .btn-shine::after {
+    content:"";
+    position:absolute;
+    top:0;left:-80%;
+    width:50%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
+    transform:skewX(-15deg);
+    animation:shine 3.5s ease-in-out infinite;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@300;400;600&family=Inter:wght@300;400;500;600&display=swap');
+`;
+
+// ── Landing page principale ───────────────────────────────────
 export default function LandingPage() {
   const router = useRouter();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [capital, setCapital] = useState(150000);
@@ -83,109 +273,6 @@ export default function LandingPage() {
     };
   });
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-    let W = 0, H = 0, animId = 0;
-    function resize() {
-      W = canvas!.width  = canvas!.offsetWidth;
-      H = canvas!.height = canvas!.offsetHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    const N = 80;
-    const basePoints: number[] = [];
-    for (let i = 0; i <= N; i++) {
-      const prog  = i / N;
-      const trend = 0.85 - prog * 0.63;
-      const micro = Math.sin(i * 1.7) * 0.022 + Math.sin(i * 3.1) * 0.012 +
-                    Math.sin(i * 5.3) * 0.006 + (Math.random() - 0.5) * 0.018;
-      basePoints.push(Math.max(0.08, Math.min(0.95, trend + micro)));
-    }
-
-    const DRAW_DURATION = 7000;
-    const START = performance.now();
-    let done = false;
-    let oscT = 0;
-
-    function getPoint(i: number, oscTime: number): [number, number] {
-      const x = (i / N) * W;
-      let y = H * basePoints[i];
-      if (done) {
-        y += Math.sin(oscTime * 0.0004 + i * 0.18) * 3.5 +
-             Math.sin(oscTime * 0.0007 + i * 0.32) * 1.8;
-      }
-      return [x, Math.max(8, Math.min(H - 8, y))];
-    }
-
-    function drawCurve(pts: [number, number][]) {
-      if (pts.length < 2) return;
-      const last = pts[pts.length - 1];
-
-      ctx.beginPath();
-      ctx.moveTo(pts[0][0], pts[0][1]);
-      for (let j = 1; j < pts.length - 1; j++) {
-        ctx.quadraticCurveTo(pts[j][0], pts[j][1],
-          (pts[j][0] + pts[j + 1][0]) / 2, (pts[j][1] + pts[j + 1][1]) / 2);
-      }
-      ctx.lineTo(last[0], H);
-      ctx.lineTo(pts[0][0], H);
-      ctx.closePath();
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, "rgba(30,58,110,0.07)");
-      g.addColorStop(1, "rgba(30,58,110,0)");
-      ctx.fillStyle = g;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(pts[0][0], pts[0][1]);
-      for (let j = 1; j < pts.length - 1; j++) {
-        ctx.quadraticCurveTo(pts[j][0], pts[j][1],
-          (pts[j][0] + pts[j + 1][0]) / 2, (pts[j][1] + pts[j + 1][1]) / 2);
-      }
-      ctx.lineTo(last[0], last[1]);
-      ctx.strokeStyle = "rgba(30,58,110,0.22)";
-      ctx.lineWidth   = 2;
-      ctx.lineJoin    = "round";
-      ctx.stroke();
-
-      if (!done) {
-        ctx.beginPath();
-        ctx.arc(last[0], last[1], 3.5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(30,58,110,0.55)";
-        ctx.fill();
-      }
-    }
-
-    function animate(now: number) {
-      ctx.clearRect(0, 0, W, H);
-      if (!done) {
-        const progress = Math.min((now - START) / DRAW_DURATION, 1);
-        const vc   = Math.floor(progress * N);
-        const frac = progress * N - vc;
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= vc; i++) pts.push(getPoint(i, 0));
-        if (vc < N && frac > 0) {
-          const [x0, y0] = getPoint(vc, 0);
-          const [x1, y1] = getPoint(Math.min(vc + 1, N), 0);
-          pts.push([x0 + (x1 - x0) * frac, y0 + (y1 - y0) * frac]);
-        }
-        drawCurve(pts);
-        if (progress >= 1) { done = true; oscT = now; }
-      } else {
-        oscT = now;
-        const pts: [number, number][] = [];
-        for (let i = 0; i <= N; i++) pts.push(getPoint(i, oscT));
-        drawCurve(pts);
-      }
-      animId = requestAnimationFrame(animate);
-    }
-    animId = requestAnimationFrame(animate);
-    return function() { cancelAnimationFrame(animId); window.removeEventListener("resize", resize); };
-  }, []);
-
   function scrollTo(idx: number) {
     const c = containerRef.current;
     if (!c) return;
@@ -198,292 +285,415 @@ export default function LandingPage() {
     if (!c) return;
     function handle() {
       const i = Math.round(c!.scrollTop / window.innerHeight);
-      setActiveTab(Math.min(i, 2));
+      setActiveTab(i);
     }
     c.addEventListener("scroll", handle, { passive: true });
-    return function() { c.removeEventListener("scroll", handle); };
+    return () => c.removeEventListener("scroll", handle);
   }, []);
 
-  const steps = [
-    { n:"01", title:"Créez votre compte",            desc:"Inscription en 30 secondes. Vos données sont chiffrées et ne sont jamais partagées." },
-    { n:"02", title:"Saisissez vos actifs",           desc:"Recherchez chaque actif par nom, symbole ou ISIN. La valeur est calculée automatiquement en temps réel." },
-    { n:"03", title:"Visualisez votre exposition",    desc:"Une treemap interactive affiche la répartition. Taille proportionnelle au poids, couleur par classe d'actif." },
-    { n:"04", title:"Répondez à 7 questions",         desc:"Horizon, risque, capital, ESG, classes d'actifs, zones géographiques — votre profil en 2 minutes." },
-    { n:"05", title:"L'algorithme de Markowitz calcule", desc:"5 ans de données historiques, matrice de covariance avec shrinkage de Ledoit-Wolf, frontière efficiente." },
-    { n:"06", title:"Choisissez parmi 3 portefeuilles", desc:"Variance Minimale, Sharpe Maximum ou Utilité Maximale. Chaque résultat affiche rendement, volatilité et VaR." },
-    { n:"07", title:"Suivez les dérives",             desc:"Zero CGP surveille vos poids cibles vs actuels. Alerte dès qu'un actif dérive de plus de 5%." },
-    { n:"08", title:"Projetez votre patrimoine",      desc:"1 000 simulations Monte Carlo projettent votre portefeuille sur 10, 20 ou 30 ans." },
-  ];
-
-  const netEtf   = ((MSCI_GROSS - ETF_FEES) * 100).toFixed(1);
-  const netCgp   = (MSCI_GROSS * 100 - cgpFees).toFixed(1);
-  const pctPerdu = Math.round(manque / capital * 100);
+  // Variants stagger
+  const containerVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.15, delayChildren: 1.8 } }
+  };
+  const itemVariants = {
+    hidden: { opacity: 0, y: 22 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22,1,0.36,1] } }
+  };
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;0,600;1,300&family=Inter:wght@300;400;500&display=swap');
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
-        .snap-container{height:100vh;overflow-y:scroll;scroll-snap-type:y mandatory;-webkit-overflow-scrolling:touch}
-        .snap-container::-webkit-scrollbar{display:none}
-        .nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;padding:0 52px;height:68px;transition:background 0.4s}
-        .nav.scrolled{background:rgba(250,250,248,0.95);backdrop-filter:blur(14px);border-bottom:1px solid rgba(10,22,40,.06)}
-        .logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:#0A1628;cursor:pointer}
-        .nav-tabs{display:flex;align-items:center;gap:2px;background:rgba(10,22,40,.05);border-radius:8px;padding:4px}
-        .nav-tab{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.1em;padding:7px 18px;border:none;background:transparent;color:#8A9BB0;cursor:pointer;border-radius:6px;transition:all 0.2s}
-        .nav-tab:hover{color:#0A1628}
-        .nav-tab.active{background:white;color:#0A1628;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-        .nav.scrolled .nav-tabs{background:rgba(10,22,40,.06)}
-        .btn-connexion{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.14em;color:#0A1628;background:transparent;border:1px solid rgba(10,22,40,.3);padding:9px 22px;cursor:pointer;position:relative;overflow:hidden;transition:color 0.5s}
-        .btn-connexion::before{content:'';position:absolute;inset:0;background:#0A1628;transform:scaleX(0);transform-origin:left;transition:transform 0.5s cubic-bezier(0.4,0,0.2,1);z-index:-1}
-        .btn-connexion:hover::before{transform:scaleX(1)}
-        .btn-connexion:hover{color:white}
-        .nav-sep{width:1px;height:24px;background:#0A1628;opacity:.15;margin:0 1px}
-        .btn-inscrire{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.14em;color:white;background:#0A1628;border:1px solid #0A1628;padding:9px 22px;cursor:pointer;transition:opacity 0.2s}
-        .btn-inscrire:hover{opacity:.82}
-        .hero-section{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;background:#FAFAF8;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;position:relative;overflow:hidden}
-        .bg-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
-        .eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:32px;position:relative;z-index:1;animation:fadeUp 0.8s 0.3s ease both}
-        .hero-title{font-family:'Cormorant Garant',serif;font-weight:300;font-size:clamp(80px,11vw,118px);line-height:.88;color:#0A1628;letter-spacing:-.025em;position:relative;z-index:1;animation:fadeUp 0.9s 0.5s ease both}
-        .hero-title em{font-style:italic;color:#1E3A6E}
-        .hero-sub{font-size:13px;font-weight:300;color:#5A6B80;line-height:1.9;margin:28px auto 44px;max-width:360px;position:relative;z-index:1;animation:fadeUp 0.8s 0.7s ease both}
-        .btn-cta{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:#0A1628;color:white;border:none;padding:17px 56px;cursor:pointer;transition:opacity 0.2s;position:relative;z-index:1;animation:fadeUp 0.8s 0.9s ease both}
-        .btn-cta:hover{opacity:.82}
-        @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-        .scroll-hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;z-index:2;animation:fadeHint 1s 7.5s ease both}
-        .scroll-hint span{font-size:8px;font-weight:500;letter-spacing:.22em;color:#8A9BB0}
-        .scroll-arrow{width:1px;height:40px;background:linear-gradient(to bottom,transparent,#1E3A6E);position:relative;animation:arrowPulse 2s ease-in-out infinite}
-        .scroll-arrow::after{content:'';position:absolute;bottom:-1px;left:50%;width:5px;height:5px;border-right:1px solid #1E3A6E;border-bottom:1px solid #1E3A6E;transform:translateX(-50%) rotate(45deg)}
-        @keyframes arrowPulse{0%,100%{opacity:.3}50%{opacity:1}}
-        @keyframes fadeHint{from{opacity:0;transform:translateX(-50%) translateY(14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-        .how-section{scroll-snap-align:start;scroll-snap-stop:always;min-height:100vh;background:#FAFAF8;padding:96px 52px 80px}
-        .how-header{text-align:center;margin-bottom:20px}
-        .how-eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:18px}
-        .how-title{font-family:'Cormorant Garant',serif;font-size:clamp(38px,5vw,54px);font-weight:300;color:#0A1628;letter-spacing:-.02em;line-height:1.1;margin-bottom:12px}
-        .how-title em{font-style:italic;color:#1E3A6E}
-        .how-mention{font-size:11px;font-weight:300;color:#4B5563;letter-spacing:.03em;margin-bottom:52px;line-height:1.7}
-        .how-mention strong{color:#1E3A6E;font-weight:400}
-        .steps-grid{display:grid;grid-template-columns:repeat(4,1fr);max-width:1160px;margin:0 auto;border-top:1px solid rgba(10,22,40,.08);border-left:1px solid rgba(10,22,40,.08)}
-        .step-card{padding:32px 28px;border-right:1px solid rgba(10,22,40,.08);border-bottom:1px solid rgba(10,22,40,.08);background:#FAFAF8;transition:background 0.3s}
-        .step-card:hover{background:rgba(10,22,40,.02)}
-        .step-num{font-size:9px;font-weight:500;letter-spacing:.18em;color:#1E3A6E;margin-bottom:14px;opacity:.7}
-        .step-title{font-family:'Cormorant Garant',serif;font-size:17px;font-weight:400;color:#0A1628;margin-bottom:10px;line-height:1.25}
-        .step-desc{font-size:11.5px;font-weight:400;color:#3D4F63;line-height:1.85}
-        .sim-section{scroll-snap-align:start;scroll-snap-stop:always;min-height:100vh;background:#FAFAF8;padding:96px 52px 80px;overflow-y:auto}
-        .sim-header{text-align:center;margin-bottom:44px}
-        .sim-eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:#1E3A6E;margin-bottom:18px}
-        .sim-title{font-family:'Cormorant Garant',serif;font-size:clamp(36px,5vw,52px);font-weight:300;color:#0A1628;letter-spacing:-.02em;line-height:1.1;margin-bottom:14px}
-        .sim-title em{font-style:italic;color:#1E3A6E}
-        .sim-sub{font-size:12px;font-weight:300;color:#4B5563;line-height:1.7;max-width:560px;margin:0 auto}
-        .sliders-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;max-width:900px;margin:0 auto 36px;background:white;border-radius:16px;padding:32px 40px}
-        .slider-item label{font-size:9px;font-weight:500;letter-spacing:.16em;color:#8A9BB0;display:block;margin-bottom:12px}
-        .slider-val{font-family:'Cormorant Garant',serif;font-size:28px;font-weight:300;color:#0A1628;margin-bottom:10px;letter-spacing:-.02em;line-height:1}
-        .slider-val em{font-style:normal;font-size:14px;color:#6B7280;font-family:'Inter',sans-serif;font-weight:300}
-        input[type=range]{width:100%;height:2px;background:rgba(10,22,40,.1);border-radius:1px;outline:none;-webkit-appearance:none;cursor:pointer}
-        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#0A1628;cursor:pointer;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.2)}
-        .sim-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:900px;margin:0 auto 28px}
-        .sim-card{border-radius:14px;padding:22px 24px}
-        .sim-card-label{font-size:9px;font-weight:500;letter-spacing:.14em;margin-bottom:10px}
-        .sim-card-val{font-family:'Cormorant Garant',serif;font-size:32px;font-weight:300;letter-spacing:-.02em;line-height:1}
-        .sim-card-sub{font-size:11px;font-weight:300;margin-top:6px;line-height:1.5}
-        .cta-section{scroll-snap-align:start;scroll-snap-stop:always;height:100vh;background:#0A1628;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 48px;position:relative}
-        .cta-eyebrow{font-size:9px;font-weight:500;letter-spacing:.32em;color:rgba(255,255,255,.25);margin-bottom:22px}
-        .cta-title{font-family:'Cormorant Garant',serif;font-size:clamp(40px,5.5vw,64px);font-weight:300;color:white;letter-spacing:-.025em;line-height:1.05;margin-bottom:16px}
-        .cta-title em{font-style:italic;color:rgba(255,255,255,.4)}
-        .cta-sub{font-size:12px;font-weight:300;color:rgba(255,255,255,.45);margin-bottom:48px}
-        .btn-cta-white{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.2em;background:white;color:#0A1628;border:none;padding:18px 60px;cursor:pointer;transition:opacity 0.2s}
-        .btn-cta-white:hover{opacity:.88}
-        .cta-footer{position:absolute;bottom:28px;left:0;right:0;display:flex;justify-content:space-between;padding:0 52px}
-        .cta-footer-logo{font-family:'Cormorant Garant',serif;font-size:11px;letter-spacing:.22em;color:rgba(255,255,255,.15)}
-        .cta-footer-copy{font-size:9px;color:rgba(255,255,255,.15);letter-spacing:.08em}
-      `}</style>
+      <style>{GRAIN_CSS}</style>
+      {/* Container snap scroll */}
+      <div
+        ref={containerRef}
+        style={{ height:"100vh", overflowY:"scroll", scrollSnapType:"y mandatory", scrollBehavior:"smooth" }}
+      >
 
-      <nav className="nav" id="mainNav">
-        <div style={{ flex:1 }}>
-          <div className="logo" onClick={function(){scrollTo(0);}}>ZERO CGP</div>
-        </div>
-        <div style={{ position:"absolute", left:"50%", transform:"translateX(-50%)" }}>
-          <div className="nav-tabs">
-            {["Accueil","Comment ça fonctionne","Simulation"].map(function(tab, i) {
-              return (
-                <button key={tab} className={"nav-tab" + (activeTab === i ? " active" : "")}
-                  onClick={function(){scrollTo(i);}}>
-                  {tab.toUpperCase()}
+        {/* ══ SECTION 1 — HERO ══════════════════════════════════ */}
+        <section className="grain-overlay" style={{
+          height:"100vh", scrollSnapAlign:"start",
+          background:"#FBFBFD",
+          display:"flex", flexDirection:"column",
+          position:"relative", overflow:"hidden",
+        }}>
+
+          {/* Nav */}
+          <nav style={{
+            position:"absolute", top:0, left:0, right:0, zIndex:10,
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"28px 48px",
+          }}>
+            <span style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:14, fontWeight:400, letterSpacing:".32em",
+              color:"#0A1628", textTransform:"uppercase",
+            }}>Zero CGP</span>
+
+            <div style={{ display:"flex", gap:4 }}>
+              {["Accueil","Comment ça fonctionne","Simulation"].map((label, i) => (
+                <button key={i} onClick={() => scrollTo(i)} style={{
+                  background:"none", border:"none", cursor:"pointer",
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:11, fontWeight:500, letterSpacing:".10em",
+                  color: activeTab===i ? "#0A1628" : "#8A9BB0",
+                  padding:"8px 16px", borderRadius:6,
+                  transition:"color .2s",
+                  textTransform:"uppercase",
+                }}>
+                  {label}
                 </button>
-              );
-            })}
-          </div>
-        </div>
-        <div style={{ flex:1, display:"flex", justifyContent:"flex-end", alignItems:"center" }}>
-          <button className="btn-connexion" onClick={function(){router.push("/auth/login");}}>CONNEXION</button>
-          <div className="nav-sep" />
-          <button className="btn-inscrire" onClick={function(){router.push("/auth/register");}}>S'INSCRIRE</button>
-        </div>
-      </nav>
+              ))}
+            </div>
 
-      <div className="snap-container" ref={containerRef} id="snapContainer">
+            <motion.button
+              whileHover={{ scale:1.03 }}
+              whileTap={{ scale:0.98 }}
+              onClick={() => router.push("/auth/login")}
+              style={{
+                background:"none", border:"1px solid rgba(10,22,40,0.18)",
+                fontFamily:"'Inter',sans-serif",
+                fontSize:11, fontWeight:500, letterSpacing:".12em",
+                color:"#0A1628", padding:"9px 22px", borderRadius:8,
+                cursor:"pointer", textTransform:"uppercase",
+              }}
+            >
+              Connexion
+            </motion.button>
+          </nav>
 
-        <section className="hero-section">
-          <canvas ref={canvasRef} className="bg-canvas" />
-          <p className="eyebrow">GESTION DE PATRIMOINE OPTIMISÉE</p>
-          <h1 className="hero-title">Zero<br /><em>CGP.</em></h1>
-          <p className="hero-sub">
-            Optimisez votre portefeuille avec précision.<br />
-            Zéro compromis sur vos rendements.
-          </p>
-          <button className="btn-cta" onClick={function(){router.push("/auth/register");}}>
-            COMMENCER →
-          </button>
-          <div className="scroll-hint" onClick={function(){scrollTo(1);}}>
-            <span>COMMENT ÇA FONCTIONNE</span>
-            <div className="scroll-arrow" />
+          {/* Courbe en arrière-plan — pleine largeur, bas de l'écran */}
+          <div style={{
+            position:"absolute", bottom:0, left:0, right:0,
+            height:"62%", zIndex:1,
+            opacity:0.9,
+          }}>
+            <HeroCurve />
           </div>
+
+          {/* Contenu Hero */}
+          <div style={{
+            flex:1, display:"flex", flexDirection:"column",
+            alignItems:"center", justifyContent:"center",
+            textAlign:"center", position:"relative", zIndex:2,
+            padding:"0 24px",
+            paddingTop:80,
+          }}>
+
+            {/* Badge */}
+            <motion.div
+              initial={{ opacity:0, y:-12 }}
+              animate={{ opacity:1, y:0 }}
+              transition={{ delay:0.3, duration:0.6 }}
+              style={{
+                display:"inline-flex", alignItems:"center", gap:8,
+                background:"rgba(10,22,40,0.04)",
+                border:"1px solid rgba(10,22,40,0.08)",
+                borderRadius:100, padding:"5px 16px",
+                marginBottom:28,
+              }}
+            >
+              <span style={{ width:6, height:6, borderRadius:"50%", background:"#16A34A", display:"inline-block" }}/>
+              <span style={{
+                fontFamily:"'Inter',sans-serif",
+                fontSize:10, fontWeight:500, letterSpacing:".14em",
+                color:"#3D4F63", textTransform:"uppercase",
+              }}>Alternative aux CGP traditionnels</span>
+            </motion.div>
+
+            {/* Titre principal — stagger après la courbe */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <motion.h1
+                variants={itemVariants}
+                style={{
+                  fontFamily:"'Cormorant Garant',serif",
+                  fontSize:"clamp(46px,6.5vw,88px)",
+                  fontWeight:300,
+                  letterSpacing:"-.03em",
+                  lineHeight:1.02,
+                  color:"#0A1628",
+                  margin:"0 0 10px",
+                  maxWidth:760,
+                }}
+              >
+                Investissez comme
+                <br/>
+                <span style={{ fontStyle:"italic", color:"#1E3A6E" }}>une institution.</span>
+              </motion.h1>
+
+              <motion.p
+                variants={itemVariants}
+                style={{
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:15, fontWeight:300, letterSpacing:".01em",
+                  color:"#5A6B80", lineHeight:1.7,
+                  maxWidth:480, margin:"0 auto 36px",
+                }}
+              >
+                L'algorithme de Markowitz, réservé aux family offices,
+                <br/>accessible gratuitement.
+              </motion.p>
+
+              {/* CTA */}
+              <motion.div variants={itemVariants} style={{ display:"flex", gap:12, justifyContent:"center", alignItems:"center" }}>
+                <motion.button
+                  className="btn-shine"
+                  whileHover={{ scale:1.04, boxShadow:"0 8px 32px rgba(10,22,40,0.18)" }}
+                  whileTap={{ scale:0.97 }}
+                  onClick={() => router.push("/auth/register")}
+                  style={{
+                    background:"#0A1628",
+                    color:"white",
+                    border:"none",
+                    fontFamily:"'Inter',sans-serif",
+                    fontSize:11, fontWeight:500, letterSpacing:".16em",
+                    padding:"15px 36px", borderRadius:8,
+                    cursor:"pointer", textTransform:"uppercase",
+                    boxShadow:"0 2px 16px rgba(10,22,40,0.12)",
+                  }}
+                >
+                  Commencer gratuitement
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale:1.02 }}
+                  onClick={() => scrollTo(1)}
+                  style={{
+                    background:"none", border:"none",
+                    fontFamily:"'Inter',sans-serif",
+                    fontSize:11, fontWeight:400, letterSpacing:".12em",
+                    color:"#8A9BB0", cursor:"pointer",
+                    textTransform:"uppercase",
+                    display:"flex", alignItems:"center", gap:8,
+                  }}
+                >
+                  En savoir plus
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M7 1L7 13M7 13L2 8M7 13L12 8" stroke="#8A9BB0" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </motion.button>
+              </motion.div>
+
+              {/* Métriques */}
+              <motion.div
+                variants={itemVariants}
+                style={{
+                  display:"flex", gap:40, justifyContent:"center",
+                  marginTop:48,
+                }}
+              >
+                {[
+                  { v:"490+", l:"Actifs analysés" },
+                  { v:"0 €",  l:"Frais de conseil" },
+                  { v:"≈8%",  l:"Rendement MSCI World 30A" },
+                ].map(({ v, l }) => (
+                  <div key={l} style={{ textAlign:"center" }}>
+                    <div style={{
+                      fontFamily:"'Cormorant Garant',serif",
+                      fontSize:28, fontWeight:400, letterSpacing:"-.02em",
+                      color:"#0A1628", lineHeight:1,
+                    }}>{v}</div>
+                    <div style={{
+                      fontFamily:"'Inter',sans-serif",
+                      fontSize:9, fontWeight:500, letterSpacing:".14em",
+                      color:"#8A9BB0", marginTop:5, textTransform:"uppercase",
+                    }}>{l}</div>
+                  </div>
+                ))}
+              </motion.div>
+            </motion.div>
+          </div>
+
+          {/* Scroll indicator */}
+          <motion.div
+            initial={{ opacity:0 }}
+            animate={{ opacity:1 }}
+            transition={{ delay:3.5, duration:1 }}
+            style={{
+              position:"absolute", bottom:28, left:"50%", transform:"translateX(-50%)",
+              zIndex:5, display:"flex", flexDirection:"column", alignItems:"center", gap:6,
+            }}
+          >
+            <span style={{ fontFamily:"'Inter',sans-serif", fontSize:8, letterSpacing:".16em", color:"#B0BEC5", textTransform:"uppercase" }}>Défiler</span>
+            <motion.div
+              animate={{ y:[0,6,0] }}
+              transition={{ repeat:Infinity, duration:1.6, ease:"easeInOut" }}
+              style={{ width:1, height:20, background:"linear-gradient(to bottom, #B0BEC5, transparent)" }}
+            />
+          </motion.div>
         </section>
 
-        <section className="how-section">
-          <div className="how-header">
-            <p className="how-eyebrow">LE PROCESSUS</p>
-            <h2 className="how-title">Comment fonctionne<br /><em>Zero CGP ?</em></h2>
-            <p className="how-mention">
-              Modèles mathématiques utilisés par les <strong>banques privées</strong>,<br />
-              <strong>family offices</strong> et <strong>conseillers en gestion de patrimoine</strong>
+        {/* ══ SECTION 2 — COMMENT ÇA FONCTIONNE ════════════════ */}
+        <section style={{
+          height:"100vh", scrollSnapAlign:"start",
+          background:"#0A1628",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center",
+          padding:"0 48px",
+        }}>
+          <motion.div
+            initial={{ opacity:0, y:30 }}
+            whileInView={{ opacity:1, y:0 }}
+            viewport={{ once:true }}
+            transition={{ duration:0.8, ease:[0.22,1,0.36,1] }}
+            style={{ textAlign:"center", maxWidth:720 }}
+          >
+            <div style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".22em", color:"rgba(255,255,255,0.25)", marginBottom:20, textTransform:"uppercase" }}>
+              Comment ça fonctionne
+            </div>
+            <h2 style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:"clamp(32px,4vw,52px)",
+              fontWeight:300, letterSpacing:"-.02em",
+              color:"white", lineHeight:1.1, marginBottom:16,
+            }}>
+              7 questions.<br/>
+              <span style={{ color:"rgba(255,255,255,0.4)" }}>Un portefeuille sur mesure.</span>
+            </h2>
+            <p style={{ fontFamily:"'Inter',sans-serif", fontSize:14, fontWeight:300, color:"rgba(255,255,255,0.4)", lineHeight:1.8 }}>
+              Notre algorithme filtre 490+ actifs, télécharge 5 ans de données<br/>
+              Yahoo Finance et calcule la frontière efficiente de Markowitz.
             </p>
+          </motion.div>
+
+          <div style={{ display:"flex", gap:1, marginTop:48, width:"100%", maxWidth:800 }}>
+            {[
+              { n:"01", t:"Votre profil", d:"Horizon, risque, ESG, géographie" },
+              { n:"02", t:"Filtrage", d:"490+ actifs → 12–40 pertinents" },
+              { n:"03", t:"Markowitz", d:"10 000 simulations Monte Carlo" },
+              { n:"04", t:"Résultats", d:"3 portefeuilles optimaux comparés" },
+            ].map(({ n, t, d }, i) => (
+              <motion.div
+                key={n}
+                initial={{ opacity:0, y:20 }}
+                whileInView={{ opacity:1, y:0 }}
+                viewport={{ once:true }}
+                transition={{ delay:i*0.12, duration:0.6 }}
+                style={{
+                  flex:1, padding:"24px 20px",
+                  background:"rgba(255,255,255,0.04)",
+                  borderLeft:"1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div style={{ fontFamily:"'Cormorant Garant',serif", fontSize:32, fontWeight:300, color:"rgba(255,255,255,0.12)", marginBottom:12 }}>{n}</div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:500, letterSpacing:".08em", color:"white", marginBottom:6, textTransform:"uppercase" }}>{t}</div>
+                <div style={{ fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300, color:"rgba(255,255,255,0.35)", lineHeight:1.6 }}>{d}</div>
+              </motion.div>
+            ))}
           </div>
-          <div className="steps-grid">
-            {steps.map(function(s) {
-              return (
-                <div key={s.n} className="step-card">
-                  <div className="step-num">ÉTAPE {s.n}</div>
-                  <div className="step-title">{s.title}</div>
-                  <div className="step-desc">{s.desc}</div>
+
+          <motion.button
+            initial={{ opacity:0 }}
+            whileInView={{ opacity:1 }}
+            viewport={{ once:true }}
+            transition={{ delay:0.6 }}
+            whileHover={{ scale:1.03 }}
+            onClick={() => router.push("/auth/register")}
+            style={{
+              marginTop:40, background:"white", color:"#0A1628",
+              border:"none", borderRadius:8,
+              fontFamily:"'Inter',sans-serif",
+              fontSize:11, fontWeight:500, letterSpacing:".14em",
+              padding:"14px 36px", cursor:"pointer", textTransform:"uppercase",
+            }}
+          >
+            Optimiser mon portefeuille →
+          </motion.button>
+        </section>
+
+        {/* ══ SECTION 3 — SIMULATION ════════════════════════════ */}
+        <section style={{
+          height:"100vh", scrollSnapAlign:"start",
+          background:"#F5F4F1",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center",
+          padding:"0 48px",
+        }}>
+          <motion.div
+            initial={{ opacity:0, y:24 }}
+            whileInView={{ opacity:1, y:0 }}
+            viewport={{ once:true }}
+            transition={{ duration:0.7 }}
+            style={{ width:"100%", maxWidth:860 }}
+          >
+            <div style={{ textAlign:"center", marginBottom:32 }}>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".22em", color:"#8A9BB0", marginBottom:12, textTransform:"uppercase" }}>Simulation</div>
+              <h2 style={{
+                fontFamily:"'Cormorant Garant',serif",
+                fontSize:"clamp(28px,3.5vw,46px)",
+                fontWeight:300, letterSpacing:"-.02em",
+                color:"#0A1628", marginBottom:6,
+              }}>
+                Combien perdez-vous chaque année ?
+              </h2>
+              <p style={{ fontFamily:"'Inter',sans-serif", fontSize:12, color:"#8A9BB0", fontWeight:300 }}>
+                Comparez les frais de votre CGP actuel vs une stratégie ETF passive.
+              </p>
+            </div>
+
+            {/* Sliders */}
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:24, marginBottom:28 }}>
+              {[
+                { label:"Capital", val:feur(capital), min:10000, max:1000000, step:10000, v:capital, set:(n:number)=>setCapital(n) },
+                { label:"Durée", val:`${years} ans`, min:5, max:40, step:1, v:years, set:(n:number)=>setYears(n) },
+                { label:"Frais CGP (%/an)", val:`${cgpFees.toFixed(1)}%`, min:0.5, max:4, step:0.1, v:cgpFees, set:(n:number)=>setCgpFees(n) },
+              ].map(({ label, val, min, max, step, v, set }) => (
+                <div key={label}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:8 }}>
+                    <span style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".12em", color:"#8A9BB0", textTransform:"uppercase" }}>{label}</span>
+                    <span style={{ fontFamily:"'Cormorant Garant',serif", fontSize:18, fontWeight:400, color:"#0A1628" }}>{val}</span>
+                  </div>
+                  <input type="range" min={min} max={max} step={step} value={v}
+                    onChange={(e) => set(Number(e.target.value))}
+                    style={{ width:"100%", height:2, background:"rgba(10,22,40,0.1)", outline:"none", WebkitAppearance:"none", cursor:"pointer", borderRadius:1 }}
+                  />
                 </div>
-              );
-            })}
-          </div>
-        </section>
+              ))}
+            </div>
 
-        <section className="sim-section">
-          <div className="sim-header">
-            <p className="sim-eyebrow">SIMULATION</p>
-            <h2 className="sim-title">Combien vous coûte<br /><em>votre banquier ?</em></h2>
-            <p className="sim-sub">
-              Le MSCI World affiche <strong style={{color:"#0A1628",fontWeight:500}}>+8%/an en moyenne</strong> sur 30 ans.
-              Après {cgpFees}% de frais CGP, il ne vous reste que {netCgp}% — soit des centaines de milliers d'euros perdus.
-            </p>
-          </div>
+            {/* Graphique */}
+            <div style={{ background:"white", borderRadius:12, padding:"24px", boxShadow:"0 2px 20px rgba(10,22,40,0.04)" }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={chartData}>
+                  <XAxis dataKey="an" tick={{ fontSize:10, fill:"#aaa" }} tickLine={false} axisLine={false} tickFormatter={(v:number)=>`An ${v}`} interval={Math.floor(years/4)}/>
+                  <YAxis tick={{ fontSize:10, fill:"#aaa" }} tickLine={false} axisLine={false} tickFormatter={(v:number)=>v>=1e6?`${(v/1e6).toFixed(1)}M€`:`${Math.round(v/1000)}k€`} width={56}/>
+                  <Tooltip content={<CustomTooltip/>}/>
+                  <Line type="monotone" dataKey="ETF MSCI World (Zero CGP)" stroke="#16A34A" strokeWidth={2.5} dot={false} activeDot={{ r:5, fill:"#16A34A" }}/>
+                  <Line type="monotone" dataKey="Banque / CGP" stroke="#DC2626" strokeWidth={2} dot={false} strokeDasharray="5 3" activeDot={{ r:4, fill:"#DC2626" }}/>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
 
-          <div className="sliders-row">
-            <div className="slider-item">
-              <label>CAPITAL INITIAL</label>
-              <div className="slider-val">{feur(capital)}</div>
-              <input type="range" min={10000} max={1000000} step={5000}
-                value={capital} onChange={function(e){setCapital(Number(e.target.value));}} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#9CA3AF"}}>
-                <span>10 k€</span><span>1 M€</span>
+            {/* Résultat */}
+            <div style={{
+              marginTop:16, display:"flex", alignItems:"center", justifyContent:"space-between",
+              background:"#0A1628", borderRadius:10, padding:"16px 24px",
+            }}>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300, color:"rgba(255,255,255,0.45)", letterSpacing:".04em" }}>
+                Manque à gagner avec votre CGP sur {years} ans
               </div>
-            </div>
-            <div className="slider-item">
-              <label>DURÉE</label>
-              <div className="slider-val">{years} <em>ans</em></div>
-              <input type="range" min={5} max={40} step={1}
-                value={years} onChange={function(e){setYears(Number(e.target.value));}} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#9CA3AF"}}>
-                <span>5 ans</span><span>40 ans</span>
+              <div style={{ fontFamily:"'Cormorant Garant',serif", fontSize:26, fontWeight:300, color:"#F87171" }}>
+                {feur(manque)}
               </div>
+              <motion.button
+                whileHover={{ scale:1.04 }}
+                onClick={() => router.push("/auth/register")}
+                style={{
+                  background:"white", color:"#0A1628", border:"none",
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:10, fontWeight:500, letterSpacing:".14em",
+                  padding:"10px 24px", borderRadius:8, cursor:"pointer",
+                  textTransform:"uppercase",
+                }}
+              >
+                Récupérer {feur(manque)} →
+              </motion.button>
             </div>
-            <div className="slider-item">
-              <label>FRAIS CGP / BANQUE</label>
-              <div className="slider-val">{cgpFees.toFixed(1)} <em>%/an</em></div>
-              <input type="range" min={0.5} max={4} step={0.1}
-                value={cgpFees} onChange={function(e){setCgpFees(Number(e.target.value));}} />
-              <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:9,color:"#9CA3AF"}}>
-                <span>0,5%</span><span>4%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="sim-cards">
-            <div className="sim-card" style={{background:"#EFF6FF"}}>
-              <div className="sim-card-label" style={{color:"#1E3A6E"}}>AVEC ZERO CGP (ETF 0,20%)</div>
-              <div className="sim-card-val" style={{color:"#0A1628"}}>{feur(etfFinal)}</div>
-              <div className="sim-card-sub" style={{color:"#3D6B9A"}}>
-                Rendement net : <strong>{netEtf}%/an</strong>
-              </div>
-            </div>
-            <div className="sim-card" style={{background:"#FEF2F2"}}>
-              <div className="sim-card-label" style={{color:"#991B1B"}}>AVEC BANQUE / CGP ({cgpFees}%)</div>
-              <div className="sim-card-val" style={{color:"#7F1D1D"}}>{feur(cgpFinal)}</div>
-              <div className="sim-card-sub" style={{color:"#B91C1C"}}>
-                Rendement net : <strong>{netCgp}%/an</strong>
-              </div>
-            </div>
-            <div className="sim-card" style={{background:"#0A1628"}}>
-              <div className="sim-card-label" style={{color:"rgba(255,255,255,0.45)"}}>MANQUE À GAGNER</div>
-              <div className="sim-card-val" style={{color:"#F87171"}}>{feur(manque)}</div>
-              <div className="sim-card-sub" style={{color:"rgba(255,255,255,0.45)"}}>
-                soit <strong style={{color:"#FCA5A5"}}>{pctPerdu}%</strong> de patrimoine en moins
-              </div>
-            </div>
-          </div>
-
-          <div style={{background:"white",borderRadius:16,padding:"28px 24px",maxWidth:900,margin:"0 auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <h3 style={{fontFamily:"'Cormorant Garant',serif",fontSize:20,fontWeight:400,color:"#0A1628"}}>
-                Trajectoire sur {years} ans
-              </h3>
-              <div style={{display:"flex",gap:20}}>
-                {[["#1E3A6E","ETF MSCI World"],["#FCA5A5","Banque / CGP"]].map(function(item) {
-                  return (
-                    <div key={item[1]} style={{display:"flex",alignItems:"center",gap:6}}>
-                      <div style={{width:20,height:2,background:item[0],borderRadius:1}}/>
-                      <span style={{fontSize:11,color:"#6B7280"}}>{item[1]}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={chartData} margin={{top:5,right:10,left:10,bottom:5}}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,22,40,.05)" />
-                <XAxis dataKey="an" tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false}
-                  tickFormatter={function(v) { return v === 0 ? "Départ" : "An " + v; }}
-                  interval={Math.floor(years / 5)} />
-                <YAxis tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false}
-                  tickFormatter={function(v) { return Math.round(v/1000) + "k€"; }} width={56} />
-                <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="ETF MSCI World (Zero CGP)"
-                  stroke="#1E3A6E" strokeWidth={2.5} dot={false}
-                  activeDot={{r:5,fill:"#1E3A6E",stroke:"white",strokeWidth:2}} />
-                <Line type="monotone" dataKey="Banque / CGP"
-                  stroke="#FCA5A5" strokeWidth={2} dot={false} strokeDasharray="6 3"
-                  activeDot={{r:5,fill:"#FCA5A5",stroke:"white",strokeWidth:2}} />
-              </LineChart>
-            </ResponsiveContainer>
-            <p style={{fontSize:10,color:"#6B7280",textAlign:"center",marginTop:12,letterSpacing:".04em"}}>
-              Basé sur le rendement historique du MSCI World (+8%/an sur 30 ans). Simulation à titre indicatif, hors fiscalité.
-            </p>
-          </div>
-
-          <div style={{textAlign:"center",marginTop:32}}>
-            <button className="btn-inscrire" style={{padding:"16px 52px",fontSize:11,letterSpacing:".14em"}}
-              onClick={function(){router.push("/auth/register");}}>
-              RÉCUPÉRER MES {feur(manque)} →
-            </button>
-          </div>
-        </section>
-
-        <section className="cta-section">
-          <p className="cta-eyebrow">PRÊT À OPTIMISER</p>
-          <h2 className="cta-title">Commencez<br /><em>gratuitement.</em></h2>
-          <p className="cta-sub">Aucune carte bancaire requise · Données sécurisées · Gratuit</p>
-          <button className="btn-cta-white" onClick={function(){router.push("/auth/register");}}>
-            COMMENCER MAINTENANT →
-          </button>
-          <div className="cta-footer">
-            <span className="cta-footer-logo">ZERO CGP</span>
-            <span className="cta-footer-copy">© 2025 TOUS DROITS RÉSERVÉS</span>
-          </div>
+          </motion.div>
         </section>
 
       </div>
