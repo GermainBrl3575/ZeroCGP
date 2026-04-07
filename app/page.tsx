@@ -716,6 +716,11 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       d:"3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
       detail:"Vous obtenez 3 stratégies claires (Prudent, Équilibré, Dynamique), chacune conçue pour capturer la performance du marché tout en préservant votre capital.",
     },
+    {
+      n:"05", num:"5", t:"Exécution libre",
+      d:"Vous recevez les quantités exactes d'actifs à acheter. PEA, CTO ou Assurance-vie.",
+      detail:"Un clic suffit pour répliquer le portefeuille chez votre courtier (Fortuneo, Boursorama, etc.). Zero CGP est votre GPS — c'est vous qui appuyez sur le bouton. Zéro frais de gestion, zéro intermédiaire.",
+    },
   ];
 
   const isFocused = focused !== null;
@@ -741,7 +746,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       }}/>
 
       <div style={{
-        width:"100%", maxWidth:860,
+        width:"100%", maxWidth:1000,
         display:"flex", flexDirection:"column",
         alignItems:"center", position:"relative", zIndex:1,
       }}>
@@ -904,8 +909,10 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 function StrategySection({ onCTA }: { onCTA: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView,   setInView  ] = useState(false);
-  const [bankKey,  setBankKey ] = useState<string>("bnp");
-  const [revealed, setRevealed] = useState<boolean[]>([false,false,false,false,false]);
+  const [bankKey,  setBankKey ] = useState("bnp");
+  const [years,    setYears   ] = useState(15);
+  const [capital,  setCap     ] = useState(150000);
+  const [revealed, setRevealed] = useState([false,false,false,false,false]);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -916,312 +923,379 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
     return () => obs.disconnect();
   }, []);
 
-  // Révéler les lignes une par une
   useEffect(() => {
     if (!inView) return;
-    [0,1,2,3,4].forEach(i => {
-      setTimeout(() => setRevealed(prev => {
-        const next = [...prev]; next[i] = true; return next;
-      }), 200 + i * 140);
-    });
+    [0,1,2,3,4].forEach(i =>
+      setTimeout(() => setRevealed(p => { const n=[...p]; n[i]=true; return n; }), 150 + i*120)
+    );
   }, [inView]);
 
   const bank    = BANKS[bankKey];
-  const total   = bank.gestion + bank.versement + bank.courtage + bank.retro;
-  // Perte sur 15 ans, 150k€ — différentiel de frais
-  const loss15  = Math.round(150000 * (Math.pow(1 + 0.08, 15) - Math.pow(1 + 0.08 - total/100, 15)));
-  const feurL   = (n: number) =>
-    new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(n);
+  const MSCI    = 0.08;
+  // Frais annuels cumulés sur durée
+  const annualFees    = bank.gestion + bank.retro;
+  // Frais ponctuels (versement sur capital initial, courtage estimé 2 transactions/an)
+  const upfrontFees   = capital * (bank.versement / 100);
+  const tradingFees   = capital * (bank.courtage / 100) * 2;
+  // Impact total sur la durée
+  const grossFinal    = capital * Math.pow(1 + MSCI, years);
+  const netFinal      = capital * Math.pow(1 + MSCI - annualFees/100, years) - upfrontFees - tradingFees;
+  const zeroFinal     = capital * Math.pow(1 + MSCI - 0.002, years);
+  const totalLoss     = zeroFinal - netFinal;
+  const capturePct    = ((annualFees/100) / MSCI * 100).toFixed(1);
+  const feurL = (n: number) =>
+    new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0}).format(Math.round(n));
 
-  const gestion  = useAnimatedNumber(bank.gestion);
-  const versement= useAnimatedNumber(bank.versement);
-  const courtage = useAnimatedNumber(bank.courtage);
-  const retro    = useAnimatedNumber(bank.retro);
-  const totalAni = useAnimatedNumber(total);
-  const loss15Ani= useAnimatedNumber(loss15, 0, 900);
-
-  const FEES_ROWS = [
-    { label:"Frais de gestion",         bank: gestion,   zero:"0", note:"Sur l'encours annuel" },
-    { label:"Frais sur versement",       bank: versement, zero:"0", note:"À chaque investissement" },
-    { label:"Frais de courtage",         bank: courtage,  zero:"0", note:"À chaque transaction" },
-    { label:"Rétrocessions (kickbacks)", bank: retro,     zero:"0", note:"Commissions cachées" },
-    { label:"Frais de structure (ETF)",  bank: null,      zero:"~0.20", note:"Seul coût résiduel", accent:true },
-  ];
+  const totalAnnual = useAnimatedNumber(annualFees + bank.courtage + bank.versement);
+  const lossAni     = useAnimatedNumber(totalLoss, 0, 900);
+  const captureAni  = useAnimatedNumber(parseFloat(capturePct), 1, 700);
+  const gestionAni  = useAnimatedNumber(bank.gestion);
+  const retroAni    = useAnimatedNumber(bank.retro);
+  const versAni     = useAnimatedNumber(bank.versement);
+  const courtAni    = useAnimatedNumber(bank.courtage);
 
   const fadeV = (delay = 0) => ({
-    hidden:  { opacity:0, y:14, filter:"blur(4px)" },
+    hidden:  { opacity:0, y:12, filter:"blur(3px)" },
     visible: { opacity:1, y:0,  filter:"blur(0px)",
-      transition:{ duration:0.75, delay, ease:[0.22,1,0.36,1] } },
+      transition:{ duration:0.7, delay, ease:[0.22,1,0.36,1] } },
   });
+
+  const SEP = "0.5px solid rgba(10,22,40,0.09)";
+  const LABEL_ST: { [key: string]: string | number } = {
+    fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+    letterSpacing:".15em", textTransform:"uppercase" as const,
+    color:"rgba(10,22,40,0.36)", padding:"6px 10px",
+  };
+  const VAL_BANK: { [key: string]: string | number } = {
+    fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
+    fontSize:13, fontWeight:300, textAlign:"right" as const,
+    color:"rgba(10,22,40,0.50)", padding:"6px 10px",
+  };
+  const VAL_ZERO: { [key: string]: string | number } = {
+    fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
+    fontSize:13, fontWeight:400, textAlign:"right" as const,
+    color:"#0A6634", padding:"6px 10px",
+  };
+  const NOTE_ST: { [key: string]: string | number } = {
+    fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
+    fontStyle:"italic", color:"rgba(10,22,40,0.32)",
+    padding:"6px 10px", lineHeight:1.5,
+  };
 
   return (
     <section ref={ref} style={{
-      height:"100vh", scrollSnapAlign:"start",
+      minHeight:"100vh", scrollSnapAlign:"start",
       background:"#F9F8F6",
       display:"flex", flexDirection:"column",
       alignItems:"center", justifyContent:"center",
-      padding:"0 52px", overflow:"hidden", position:"relative",
+      padding:"52px 52px 48px", overflow:"hidden", position:"relative",
     }}>
-      <div style={{ width:"100%", maxWidth:880, position:"relative", zIndex:1 }}>
+      <div style={{ width:"100%", maxWidth:820, position:"relative", zIndex:1 }}>
 
-        {/* ── Header ──────────────────────────────────────── */}
+        {/* ── Header ────────────────────────────────────────── */}
         <motion.div variants={fadeV(0)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ marginBottom:28, textAlign:"center" }}>
-          <div style={{
-            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
-            letterSpacing:".22em", color:"rgba(10,22,40,0.34)",
-            textTransform:"uppercase", marginBottom:10,
-          }}>La stratégie</div>
-          <h2 style={{
-            fontFamily:"'Cormorant Garant',serif",
-            fontSize:"clamp(30px,4vw,50px)", fontWeight:300,
-            letterSpacing:"-.02em", color:NAVY, margin:"0 0 6px",
-          }}>Preuve par l'algorithme.</h2>
+          style={{ marginBottom:32, display:"flex", alignItems:"flex-end", justifyContent:"space-between" }}>
+          <div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+              letterSpacing:".22em", color:"rgba(10,22,40,0.30)",
+              textTransform:"uppercase", marginBottom:8,
+            }}>La stratégie</div>
+            <h2 style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:"clamp(28px,3.6vw,46px)", fontWeight:300,
+              letterSpacing:"-.02em", color:NAVY, margin:0,
+            }}>Preuve par l'algorithme.</h2>
+          </div>
           <p style={{
-            fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:300,
-            color:"rgba(10,22,40,0.42)", lineHeight:1.7,
+            fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
+            color:"rgba(10,22,40,0.40)", lineHeight:1.6,
+            maxWidth:260, textAlign:"right",
           }}>Deux moteurs. Une frontière efficiente. Zéro compromis.</p>
         </motion.div>
 
-        {/* ── Deux cartes glassmorphism ────────────────────── */}
-        <motion.div variants={fadeV(0.08)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:24 }}>
-
+        {/* ── Deux moteurs — surface sombre translucide ──────── */}
+        <motion.div variants={fadeV(0.06)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:28 }}>
           {[
             {
-              tag:"Moteur Alpha", title:"Actions — Croissance pure",
-              desc:"LVMH, Apple, ASML, Novo Nordisk. Titres vifs sélectionnés pour capturer la croissance directe des entreprises les plus performantes. Approche concentrée, conviction maximale.",
-              svg:<ConstellationSVG />, rotate:false,
+              tag:"Moteur Alpha", icon:<ConstellationSVG/>,
+              title:"Actions — Croissance pure",
+              desc:"LVMH, Apple, ASML, Novo Nordisk. Titres vifs pour capturer la croissance directe. Approche concentrée, conviction maximale.",
             },
             {
-              tag:"Moteur Bêta", title:"ETF — Diversification institutionnelle",
-              desc:"Indices mondiaux (MSCI World, S&P 500, émergents). Diversification totale à frais quasi-nuls. L'approche des fonds souverains. Frais structurels\u00a0: ~0,20\u00a0%/an.",
-              svg:<SphereSVG />, rotate:true,
+              tag:"Moteur Bêta", icon:<SphereSVG/>,
+              title:"ETF — Diversification institutionnelle",
+              desc:"MSCI World, S&P 500, marchés émergents. Diversification totale à frais quasi-nuls. L'approche des fonds souverains.",
             },
-          ].map(({ tag, title, desc, svg, rotate }, i) => (
+          ].map(({ tag, icon, title, desc }, i) => (
             <motion.div
               key={tag}
-              whileHover={{
-                boxShadow:"0 0 0 1px rgba(10,22,40,0.12), 0 4px 32px rgba(10,22,40,0.08), inset 0 0 40px rgba(255,255,255,0.6)",
-                y:-2,
-              }}
-              transition={{ duration:0.3 }}
+              whileHover={{ y:-2, boxShadow:"0 4px 28px rgba(10,22,40,0.08)" }}
+              transition={{ duration:0.25 }}
               style={{
-                background:"rgba(255,255,255,0.55)",
-                backdropFilter:"blur(20px)",
-                WebkitBackdropFilter:"blur(20px)",
-                border:"0.5px solid rgba(10,22,40,0.10)",
-                borderRadius:12,
-                padding:"22px 24px",
-                boxShadow:"0 2px 16px rgba(10,22,40,0.04)",
+                background:"rgba(10,22,40,0.03)",
+                border:SEP,
+                borderRadius:10,
+                padding:"20px 22px",
               }}
             >
-              {/* SVG animé */}
-              <div style={{
-                marginBottom:14, height:60,
-                display:"flex", alignItems:"center",
-                animation: rotate ? "rotateSlow 20s linear infinite" : undefined,
-              }}>
-                {svg}
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
+                <div style={{ opacity:0.7, flexShrink:0 }}>{icon}</div>
+                <div>
+                  <div style={{
+                    fontFamily:"'Inter',sans-serif", fontSize:8, fontWeight:500,
+                    letterSpacing:".18em", color:"rgba(10,22,40,0.32)",
+                    textTransform:"uppercase", marginBottom:4,
+                  }}>{tag}</div>
+                  <h3 style={{
+                    fontFamily:"'Cormorant Garant',serif",
+                    fontSize:"clamp(16px,1.8vw,22px)", fontWeight:300, fontStyle:"italic",
+                    color:NAVY, letterSpacing:"-.01em", margin:0,
+                  }}>{title}</h3>
+                </div>
               </div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-                letterSpacing:".18em", color:"rgba(10,22,40,0.34)",
-                textTransform:"uppercase", marginBottom:7,
-              }}>{tag}</div>
-              <h3 style={{
-                fontFamily:"'Cormorant Garant',serif",
-                fontSize:"clamp(17px,2vw,24px)", fontWeight:300, fontStyle:"italic",
-                color:NAVY, letterSpacing:"-.02em", margin:"0 0 9px",
-              }}>{title}</h3>
               <p style={{
                 fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
-                letterSpacing:".04em", color:"rgba(10,22,40,0.54)", lineHeight:1.7,
+                letterSpacing:".03em", color:"rgba(10,22,40,0.50)", lineHeight:1.7,
+                margin:0,
               }}>{desc}</p>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* ── Sélecteur de banque ──────────────────────────── */}
-        <motion.div variants={fadeV(0.14)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ marginBottom:14, display:"flex", alignItems:"center", justifyContent:"space-between", gap:16 }}>
+        {/* ── Titre tableau + sélecteurs ────────────────────── */}
+        <motion.div variants={fadeV(0.10)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                   gap:16, marginBottom:12, flexWrap:"wrap" }}>
           <div style={{
             fontFamily:"'Cormorant Garant',serif",
-            fontSize:"clamp(15px,1.7vw,21px)", fontWeight:300, fontStyle:"italic",
+            fontSize:"clamp(16px,1.8vw,22px)", fontWeight:300, fontStyle:"italic",
             color:NAVY,
           }}>L'érosion silencieuse de votre capital</div>
 
-          <div style={{ position:"relative", flexShrink:0 }}>
-            <select
-              value={bankKey}
-              onChange={e=>setBankKey(e.target.value)}
-              style={{
-                appearance:"none", WebkitAppearance:"none",
-                background:"rgba(255,255,255,0.7)",
-                backdropFilter:"blur(12px)",
-                border:"0.5px solid rgba(10,22,40,0.18)",
-                borderRadius:7,
-                fontFamily:"'Inter',sans-serif",
-                fontSize:10, fontWeight:500, letterSpacing:".10em",
-                color:NAVY, textTransform:"uppercase",
-                padding:"8px 32px 8px 14px",
-                cursor:"pointer", outline:"none",
-              }}
-            >
-              <option value="" disabled>Votre établissement</option>
-              {Object.entries(BANKS).map(([k,v])=>(
-                <option key={k} value={k}>{v.label}</option>
+          <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+            {/* Sélecteur durée */}
+            <div style={{ display:"flex", gap:3 }}>
+              {[10,15,20].map(y=>(
+                <button key={y} onClick={()=>setYears(y)} style={{
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:8.5, fontWeight:500, letterSpacing:".10em",
+                  color: y===years?"#F9F8F6":"rgba(10,22,40,0.40)",
+                  background: y===years?"#0A1628":"none",
+                  border: y===years?"0.5px solid #0A1628":"0.5px solid rgba(10,22,40,0.18)",
+                  borderRadius:100, padding:"5px 11px", cursor:"pointer",
+                  textTransform:"uppercase", transition:"all .15s",
+                }}>{y}&nbsp;ans</button>
               ))}
-            </select>
-            <svg style={{ position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",pointerEvents:"none" }}
-              width="10" height="6" viewBox="0 0 10 6">
-              <path d="M1 1l4 4 4-4" stroke="rgba(10,22,40,0.4)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-            </svg>
+            </div>
+
+            {/* Dropdown banque — style Apple */}
+            <div style={{ position:"relative" }}>
+              <select
+                value={bankKey} onChange={e=>setBankKey(e.target.value)}
+                style={{
+                  appearance:"none", WebkitAppearance:"none",
+                  background:"white",
+                  border:"0.5px solid rgba(10,22,40,0.18)",
+                  borderRadius:8,
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:10, fontWeight:500, letterSpacing:".08em",
+                  color:NAVY, textTransform:"uppercase",
+                  padding:"8px 30px 8px 14px",
+                  cursor:"pointer", outline:"none",
+                  boxShadow:"0 1px 4px rgba(10,22,40,0.06)",
+                }}
+              >
+                {Object.entries(BANKS).map(([k,v])=>(
+                  <option key={k} value={k}>{v.label}</option>
+                ))}
+              </select>
+              <svg style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}
+                width="9" height="5" viewBox="0 0 9 5">
+                <path d="M1 1l3.5 3L8 1" stroke="rgba(10,22,40,0.4)" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+              </svg>
+            </div>
           </div>
         </motion.div>
 
-        {/* ── Tableau animé ────────────────────────────────── */}
-        <div style={{ marginBottom:12 }}>
-          {/* Header */}
+        {/* ── Tableau ──────────────────────────────────────── */}
+        <motion.div variants={fadeV(0.13)} initial="hidden" animate={inView?"visible":"hidden"}>
+          {/* En-têtes */}
           <div style={{
-            display:"grid", gridTemplateColumns:"1fr 100px 100px 1fr",
-            gap:0, borderBottom:"0.5px solid rgba(10,22,40,0.14)",
-            paddingBottom:7, marginBottom:4,
+            display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
+            borderBottom:"0.5px solid rgba(10,22,40,0.18)", paddingBottom:6, marginBottom:2,
           }}>
             {["Type de frais","Banque","Zero CGP","Note"].map((h,i)=>(
-              <div key={h} style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-                letterSpacing:".14em", textTransform:"uppercase",
-                color:"rgba(10,22,40,0.36)",
-                textAlign: i===1||i===2 ? "right" : "left",
-                padding:"0 8px",
-              }}>{h}</div>
+              <div key={h} style={{...LABEL_ST, textAlign: i===1||i===2?"right":"left"}}>{h}</div>
             ))}
           </div>
 
-          {FEES_ROWS.map(({ label, bank: bVal, zero, note, accent }, i) => (
-            <div key={label} style={{
-              display:"grid", gridTemplateColumns:"1fr 100px 100px 1fr",
-              gap:0, alignItems:"center",
+          {/* Groupe : Frais annuels */}
+          <div style={{ borderBottom:"0.5px solid rgba(10,22,40,0.06)", paddingBottom:2, marginBottom:4 }}>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
+              letterSpacing:".18em", textTransform:"uppercase",
+              color:"rgba(10,22,40,0.25)", padding:"8px 10px 4px",
+            }}>Frais annuels</div>
+            {[
+              { label:"Frais de gestion",  bank:gestionAni, note:"Supprimés — gestion passive" },
+              { label:"Rétrocessions",     bank:retroAni,   note:"Supprimés — frais cachés éliminés" },
+            ].map(({ label, bank: v, note }, i) => (
+              <div key={label} style={{
+                display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
+                position:"relative", overflow:"hidden",
+              }}>
+                <div style={{...LABEL_ST, fontWeight:300, color:"rgba(10,22,40,0.65)"}}>{label}</div>
+                <div style={VAL_BANK}><AnimNum value={v}/></div>
+                <div style={VAL_ZERO}>0&nbsp;%</div>
+                <div style={NOTE_ST}>{note}</div>
+                <div style={{
+                  position:"absolute", bottom:0, left:0,
+                  height:"0.5px", background:"rgba(10,22,40,0.07)",
+                  width: revealed[i]?"100%":"0%",
+                  transition:"width 0.55s cubic-bezier(0.22,1,0.36,1)",
+                  transitionDelay:`${i*0.08}s`,
+                }}/>
+              </div>
+            ))}
+          </div>
+
+          {/* Groupe : Frais ponctuels */}
+          <div style={{ borderBottom:"0.5px solid rgba(10,22,40,0.06)", paddingBottom:2, marginBottom:4 }}>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
+              letterSpacing:".18em", textTransform:"uppercase",
+              color:"rgba(10,22,40,0.25)", padding:"8px 10px 4px",
+            }}>Frais ponctuels</div>
+            {[
+              { label:"Frais sur versement", bank:versAni,  note:"Supprimés — courtage direct" },
+              { label:"Frais de courtage",   bank:courtAni, note:"Inhérents à votre courtier (~0.10%)" },
+            ].map(({ label, bank: v, note }, i) => (
+              <div key={label} style={{
+                display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
+                position:"relative", overflow:"hidden",
+              }}>
+                <div style={{...LABEL_ST, fontWeight:300, color:"rgba(10,22,40,0.65)"}}>{label}</div>
+                <div style={VAL_BANK}><AnimNum value={v}/></div>
+                <div style={VAL_ZERO}>0&nbsp;%</div>
+                <div style={NOTE_ST}>{note}</div>
+                <div style={{
+                  position:"absolute", bottom:0, left:0,
+                  height:"0.5px", background:"rgba(10,22,40,0.07)",
+                  width: revealed[i+2]?"100%":"0%",
+                  transition:"width 0.55s cubic-bezier(0.22,1,0.36,1)",
+                  transitionDelay:`${(i+2)*0.08}s`,
+                }}/>
+              </div>
+            ))}
+          </div>
+
+          {/* Groupe : Frais de structure */}
+          <div style={{ marginBottom:6 }}>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
+              letterSpacing:".18em", textTransform:"uppercase",
+              color:"rgba(10,22,40,0.25)", padding:"8px 10px 4px",
+            }}>Frais de structure</div>
+            <div style={{
+              display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
+              background:"rgba(45,90,67,0.04)", borderRadius:4,
               position:"relative", overflow:"hidden",
-              background: accent ? "rgba(45,90,67,0.04)" : "transparent",
-              borderRadius: accent ? 4 : 0,
-              marginBottom:2,
             }}>
-              {/* Ligne de reveal animée */}
+              <div style={{...LABEL_ST, fontWeight:300, color:"#2D5A43", fontStyle:"italic"}}>ETF (frais résiduels)</div>
+              <div style={{...VAL_BANK, color:"rgba(10,22,40,0.25)"}}>—</div>
+              <div style={{...VAL_ZERO, color:"#2D5A43"}}>~0.20&nbsp;%</div>
+              <div style={{...NOTE_ST, color:"#2D5A43", opacity:0.7}}>Seul coût résiduel</div>
               <div style={{
                 position:"absolute", bottom:0, left:0,
-                height:"0.5px",
-                background: accent ? "rgba(45,90,67,0.18)" : "rgba(10,22,40,0.08)",
-                width: revealed[i] ? "100%" : "0%",
-                transition:"width 0.6s cubic-bezier(0.22,1,0.36,1)",
-                transitionDelay:`${i*0.05}s`,
+                height:"0.5px", background:"rgba(45,90,67,0.15)",
+                width: revealed[4]?"100%":"0%",
+                transition:"width 0.55s cubic-bezier(0.22,1,0.36,1)",
+                transitionDelay:"0.40s",
               }}/>
-
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
-                letterSpacing:".03em",
-                color: accent ? "#2D5A43" : "rgba(10,22,40,0.65)",
-                fontStyle: accent ? "italic" : "normal",
-                padding:"9px 8px",
-              }}>{label}</div>
-
-              {/* Valeur banque — mono, animée */}
-              <div style={{
-                fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                fontSize:13, fontWeight:300, textAlign:"right",
-                color: bVal !== null ? "rgba(10,22,40,0.45)" : "rgba(10,22,40,0.25)",
-                padding:"9px 8px",
-                letterSpacing:".02em",
-              }}>
-                {bVal !== null ? <AnimNum value={bVal} /> : "—"}
-              </div>
-
-              {/* Valeur Zero CGP — vert, avec pulsation douce */}
-              <div style={{
-                fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                fontSize:13, fontWeight:400, textAlign:"right",
-                color: accent ? "#2D5A43" : "#0A6634",
-                padding:"9px 8px",
-                letterSpacing:".02em",
-              }}>
-                {zero}&nbsp;%
-              </div>
-
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
-                fontStyle:"italic", color:"rgba(10,22,40,0.34)",
-                letterSpacing:".02em", padding:"9px 8px",
-              }}>{note}</div>
             </div>
-          ))}
+          </div>
 
           {/* Total */}
           <div style={{
-            display:"grid", gridTemplateColumns:"1fr 100px 100px 1fr",
-            gap:0, borderTop:"0.5px solid rgba(10,22,40,0.14)",
-            paddingTop:8, marginTop:4,
+            display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
+            borderTop:"0.5px solid rgba(10,22,40,0.18)", paddingTop:8, marginTop:4,
           }}>
+            <div style={{...LABEL_ST}}>Total annuel</div>
             <div style={{
-              fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:500,
-              letterSpacing:".12em", textTransform:"uppercase",
-              color:"rgba(10,22,40,0.55)", padding:"0 8px",
-            }}>Total annuel</div>
+              fontFamily:"'Roboto Mono',monospace",
+              fontSize:14, fontWeight:500, textAlign:"right",
+              color:NAVY, padding:"6px 10px",
+            }}>{totalAnnual.toFixed(1)}&nbsp;%</div>
             <div style={{
-              fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
+              fontFamily:"'Roboto Mono',monospace",
               fontSize:14, fontWeight:400, textAlign:"right",
-              color:"rgba(10,22,40,0.70)", padding:"0 8px",
-            }}>{totalAni.toFixed(1)}&nbsp;%</div>
-            <div style={{
-              fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-              fontSize:14, fontWeight:400, textAlign:"right",
-              color:"#0A6634", padding:"0 8px",
+              color:"#0A6634", padding:"6px 10px",
             }}>~0.20&nbsp;%</div>
             <div/>
           </div>
-        </div>
+        </motion.div>
 
-        {/* ── Argument choc personnalisé ───────────────────── */}
-        <motion.div variants={fadeV(0.22)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            gap:16, background:NAVY, borderRadius:10,
-            padding:"14px 22px", marginBottom:18,
-          }}>
+        {/* ── Bandeau synthèse ─────────────────────────────── */}
+        <motion.div variants={fadeV(0.16)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ marginTop:12 }}>
           <div style={{
-            fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
-            letterSpacing:".03em", color:"rgba(255,255,255,0.45)", lineHeight:1.6,
+            background:NAVY, borderRadius:10,
+            padding:"16px 22px",
+            display:"grid", gridTemplateColumns:"1fr auto auto",
+            alignItems:"center", gap:20,
           }}>
-            En restant chez <span style={{
-              fontFamily:"'Cormorant Garant',serif", fontSize:15,
-              fontWeight:300, color:"rgba(255,255,255,0.72)", fontStyle:"italic",
-            }}>{bank.label}</span>, vous perdez potentiellement
+            {/* Texte gauche */}
+            <div>
+              <div style={{
+                fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
+                letterSpacing:".03em", color:"rgba(255,255,255,0.40)", lineHeight:1.6,
+              }}>
+                En restant chez{" "}
+                <span style={{
+                  fontFamily:"'Cormorant Garant',serif",
+                  fontSize:15, fontWeight:300, fontStyle:"italic",
+                  color:"rgba(255,255,255,0.70)",
+                }}>{bank.label}</span>,
+                {" "}votre banque capte{" "}
+                <span style={{
+                  fontFamily:"'Roboto Mono',monospace",
+                  fontSize:13, color:"#F87171",
+                }}>{captureAni.toFixed(1)}&nbsp;%</span>
+                {" "}de votre performance brute chaque année.
+              </div>
+            </div>
+
+            {/* Montant */}
+            <div style={{ textAlign:"right", flexShrink:0 }}>
+              <div style={{
+                fontFamily:"'Inter',sans-serif", fontSize:8, fontWeight:500,
+                letterSpacing:".14em", color:"rgba(255,255,255,0.28)",
+                textTransform:"uppercase", marginBottom:3,
+              }}>Perte sur {years} ans</div>
+              <div style={{
+                fontFamily:"'Cormorant Garant',serif",
+                fontSize:26, fontWeight:300, color:"#F87171",
+                lineHeight:1, letterSpacing:"-.02em",
+              }}>{feurL(lossAni)}</div>
+            </div>
+
+            {/* CTA */}
+            <motion.button
+              className="btn-cta"
+              whileHover={{ scale:1.04, boxShadow:"0 6px 24px rgba(10,22,40,0.30)" }}
+              whileTap={{ scale:0.97 }}
+              onClick={onCTA}
+              style={{
+                flexShrink:0, background:"white", color:NAVY, border:"none",
+                fontFamily:"'Inter',sans-serif",
+                fontSize:9, fontWeight:500, letterSpacing:".14em",
+                padding:"11px 20px", borderRadius:8, cursor:"pointer",
+                textTransform:"uppercase",
+              }}
+            >Accéder à l'optimiseur →</motion.button>
           </div>
-          <div style={{ flexShrink:0, textAlign:"right" }}>
-            <div style={{
-              fontFamily:"'Cormorant Garant',serif",
-              fontSize:28, fontWeight:300, color:"#F87171",
-              lineHeight:1, letterSpacing:"-.02em",
-            }}>{feurL(loss15Ani)}</div>
-            <div style={{
-              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:400,
-              letterSpacing:".10em", color:"rgba(255,255,255,0.28)",
-              textTransform:"uppercase", marginTop:3,
-            }}>d'ici 15 ans</div>
-          </div>
-          <motion.button
-            className="btn-cta"
-            whileHover={{ scale:1.04, boxShadow:"0 6px 24px rgba(10,22,40,0.30)" }}
-            whileTap={{ scale:0.97 }}
-            onClick={onCTA}
-            style={{
-              flexShrink:0, background:"white", color:NAVY, border:"none",
-              fontFamily:"'Inter',sans-serif",
-              fontSize:9, fontWeight:500, letterSpacing:".16em",
-              padding:"11px 22px", borderRadius:8, cursor:"pointer",
-              textTransform:"uppercase",
-            }}
-          >Accéder à l'optimiseur →</motion.button>
         </motion.div>
 
       </div>
@@ -1229,7 +1303,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
   );
 }
 
-// ── SVG Constellation ─────────────────────────────────────────
+
 function ConstellationSVG() {
   const nodes: [number, number][] = [
     [18,16],[52,6],[88,20],[36,38],[70,33],[108,12],[50,54],[86,48],[116,36]
