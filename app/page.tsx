@@ -1246,14 +1246,6 @@ function SphereSVG() {
   );
 }
 
-// CSS rotation lente pour SphereSVG
-e="rgba(10,22,40,0.10)" strokeWidth="0.5"
-        />
-      ))}
-      <circle cx="36" cy="33" r="3" fill={NAVY}/>
-    </svg>
-  );
-}
 
 
 export default function LandingPage() {
