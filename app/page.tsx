@@ -1784,6 +1784,8 @@ export default function LandingPage() {
 
   return (
     
+<>
+      <style>{GLOBAL_CSS}</style>
       {/* ══ NAV Apple Glass ══ */}
       <nav style={{
         position:"fixed", top:0, left:0, right:0, zIndex:9999,
@@ -1823,9 +1825,6 @@ export default function LandingPage() {
           transition:"color .3s, border-color .3s",
         }}>Connexion</button>
       </nav>
-
-<>
-      <style>{GLOBAL_CSS}</style>
       <div ref={containerRef} style={{height:"100vh",overflowY:"scroll",scrollSnapType:"y mandatory"}}>
 
         <HeroSection
