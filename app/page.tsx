@@ -97,6 +97,7 @@ function HeroSection({
   const [displayZ,  setDisplayZ]  = useState(0);
   const [displayB,  setDisplayB]  = useState(0);
   const [displayG,  setDisplayG]  = useState(0);
+  const [displayM,  setDisplayM]  = useState(0);  // mensuel = gain/years/12
   const [areaAlpha, setAreaAlpha] = useState(0);
   const [labelsVis, setLabelsVis] = useState(false);
 
@@ -290,6 +291,7 @@ function HeroSection({
       setDisplayZ(Math.round(zPts[0]+(zFinal-zPts[0])*progress));
       setDisplayB(Math.round(bPts[0]+(bFinal-bPts[0])*progress));
       setDisplayG(Math.round(gFinal*progress));
+      setDisplayM(Math.round((gFinal*progress)/(years*12)));
 
       drawCanvas(zPts,bPts,canvas,progress,aArea);
 
@@ -300,6 +302,7 @@ function HeroSection({
         setDisplayZ(Math.round(zFinal));
         setDisplayB(Math.round(bFinal));
         setDisplayG(Math.round(gFinal));
+        setDisplayM(Math.round(gFinal/(years*12)));
         setLabelsVis(true);
       }
     }
@@ -344,6 +347,7 @@ function HeroSection({
       setDisplayZ(Math.round(fZ[fZ.length-1]+(zFinal-fZ[fZ.length-1])*ease));
       setDisplayB(Math.round(fB[fB.length-1]+(bFinal-fB[fB.length-1])*ease));
       setDisplayG(Math.round(gFinal*ease));
+        setDisplayM(Math.round((gFinal*ease)/(years*12)));
       drawCanvas(zi,bi,canvas,1,1);
       if(t<1) rafRef.current=requestAnimationFrame(step);
       else{ prevZRef.current=[...newZ]; prevBRef.current=[...newB]; }
@@ -431,16 +435,6 @@ function HeroSection({
         zIndex:4,maxWidth:"54vw",
       }}>
         <motion.div variants={wrapV} initial="hidden" animate="visible">
-          <motion.div variants={itemV} style={{
-            fontFamily:"'Inter',sans-serif",
-            fontSize:9,fontWeight:500,letterSpacing:".22em",
-            color:"rgba(10,22,40,0.36)",textTransform:"uppercase",
-            marginBottom:14,display:"flex",alignItems:"center",gap:8,
-          }}>
-            <span style={{width:5,height:5,borderRadius:"50%",background:"#16A34A",flexShrink:0}}/>
-            Optimisation institutionnelle
-          </motion.div>
-
           <motion.h1 variants={itemV} style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(42px,5.6vw,78px)",
@@ -475,7 +469,7 @@ function HeroSection({
               backdropFilter:"blur(12px)",WebkitBackdropFilter:"blur(12px)",
               color:"white",border:"1px solid rgba(255,255,255,0.07)",
               fontFamily:"'Inter',sans-serif",
-              fontSize:9,fontWeight:500,letterSpacing:".20em",
+              fontSize:9,fontWeight:500,letterSpacing:".18em",
               padding:"14px 36px",borderRadius:8,textTransform:"uppercase",
             }}
           >Commencer gratuitement</motion.button>
@@ -601,6 +595,23 @@ function HeroSection({
             <path d="M5 1v8M5 9L2 6M5 9L8 6" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
+      </div>
+
+      {/* Disclaimer légal */}
+      <div style={{
+        position:"absolute", bottom:58, left:"52px",
+        zIndex:10, maxWidth:"55vw",
+      }}>
+        <p style={{
+          fontFamily:"'Inter',sans-serif",
+          fontSize:9, fontWeight:300, letterSpacing:".02em",
+          color:"rgba(10,22,40,0.35)", lineHeight:1.6,
+          margin:0,
+        }}>
+          Simulation basée sur un rendement historique moyen de 8&nbsp;% (MSCI World, 1990–2024).
+          Les performances passées ne préjugent pas des performances futures.
+          0&nbsp;€ de frais de conseil, hors frais structurels des supports (ETF&nbsp;: ~0,20&nbsp;%/an).
+        </p>
       </div>
 
     </section>
