@@ -478,7 +478,7 @@ function HeroSection({
         </motion.div>
       </div>
 
-      {/* Montants finaux — droite z:5 */}
+            {/* Montants finaux — droite z:5 — TOUT en Cormorant */}
       <motion.div
         initial={{opacity:0}}
         animate={{opacity:1}}
@@ -489,7 +489,7 @@ function HeroSection({
           zIndex:5,textAlign:"right",
         }}
       >
-        {/* Zero CGP — chiffre principal animé */}
+        {/* ZERO CGP */}
         <div style={{
           fontFamily:"'Inter',sans-serif",
           fontSize:9,fontWeight:500,letterSpacing:".16em",
@@ -500,10 +500,9 @@ function HeroSection({
           fontSize:"clamp(32px,4vw,54px)",
           fontWeight:300,color:NAVY,
           lineHeight:1,letterSpacing:"-.02em",marginBottom:18,
-          transition:"color .3s",
         }}>{feur(displayZ)}</div>
 
-        {/* Banque — chiffre secondaire animé */}
+        {/* Banque privée */}
         <div style={{
           fontFamily:"'Inter',sans-serif",
           fontSize:9,fontWeight:500,letterSpacing:".16em",
@@ -516,7 +515,7 @@ function HeroSection({
           lineHeight:1,letterSpacing:"-.02em",marginBottom:22,
         }}>{feur(displayB)}</div>
 
-        {/* Gain — élégant, Serif, lueur douce, sans boîte */}
+        {/* Économies — Cormorant + lueur + mensuel dynamique */}
         <motion.div
           initial={{opacity:0,y:8}}
           animate={labelsVis?{opacity:1,y:0}:{}}
@@ -525,18 +524,26 @@ function HeroSection({
           <div style={{
             fontFamily:"'Inter',sans-serif",
             fontSize:8.5,fontWeight:500,letterSpacing:".18em",
-            color:"rgba(74,222,128,0.65)",textTransform:"uppercase",marginBottom:5,
+            color:"rgba(74,222,128,0.60)",textTransform:"uppercase",marginBottom:5,
           }}>Économies réalisées</div>
           <div style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(22px,2.6vw,34px)",
-            fontWeight:300,
-            color:"#4ADE80",
+            fontWeight:300,color:"#4ADE80",
             lineHeight:1,letterSpacing:"-.01em",
             textShadow:"0 0 28px rgba(74,222,128,0.35), 0 0 8px rgba(74,222,128,0.18)",
           }}>{feur(displayG)}</div>
+          <div style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:13,fontWeight:300,fontStyle:"italic",
+            color:"rgba(74,222,128,0.50)",marginTop:7,lineHeight:1.6,
+          }}>
+            Soit&nbsp;{feur(displayM)}&nbsp;économisés&nbsp;par&nbsp;mois.
+          </div>
         </motion.div>
       </motion.div>
+
+
 
       {/* Barre contrôles minimale — bas */}
       <div style={{
