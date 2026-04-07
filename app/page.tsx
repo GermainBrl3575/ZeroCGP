@@ -185,6 +185,17 @@ const GLOBAL_CSS = `
   0%{ transform:translateX(-100%) skewX(-16deg); }
   40%,100%{ transform:translateX(220%) skewX(-16deg); }
 }
+.nav-sticky {
+  position:sticky; top:0; left:0; right:0; z-index:100;
+  background:rgba(249,248,246,0.92);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  transition:border-color .2s;
+  border-bottom:0.5px solid transparent;
+}
+.nav-sticky.scrolled {
+  border-bottom-color:rgba(10,22,40,0.08);
+}
 .btn-cta { position:relative; overflow:hidden; cursor:pointer; transition:opacity .25s, box-shadow .25s; }
 .btn-cta:hover { opacity:0.88; box-shadow:0 0 0 1px rgba(255,255,255,0.22) inset; }
 .btn-cta::after {
@@ -505,6 +516,16 @@ function HeroSection({
     return ()=>window.removeEventListener("resize",onResize);
   },[drawCanvas]);
 
+  // Nav sticky scroll detection
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const container = document.querySelector("[data-scroll-container]") as HTMLElement;
+    if (!container) return;
+    const handle = () => setScrolled(container.scrollTop > 10);
+    container.addEventListener("scroll", handle, { passive: true });
+    return () => container.removeEventListener("scroll", handle);
+  }, []);
+
   const wrapV={hidden:{},visible:{transition:{staggerChildren:0.14,delayChildren:0.2}}};
   const itemV={hidden:{opacity:0,y:14},visible:{opacity:1,y:0,transition:{duration:0.85,ease:[0.22,1,0.36,1]}}};
 
@@ -523,37 +544,36 @@ function HeroSection({
         zIndex:2, pointerEvents:"none",
       }}/>
 
-      {/* Nav */}
-      <nav style={{
-        position:"absolute",top:0,left:0,right:0,zIndex:10,
-        display:"flex",alignItems:"center",justifyContent:"space-between",
-        padding:"28px 52px",
+      {/* Nav sticky — z-index élevé, fond cream + blur */}
+      <nav className={`nav-sticky${scrolled ? " scrolled" : ""}`} style={{
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        padding:"20px 52px",
       }}>
         <span style={{
           fontFamily:"'Cormorant Garant',serif",
-          fontSize:12,fontWeight:400,letterSpacing:".38em",
-          color:NAVY,textTransform:"uppercase",
+          fontSize:12, fontWeight:400, letterSpacing:".38em",
+          color:NAVY, textTransform:"uppercase",
         }}>Zero CGP</span>
 
-        <div style={{display:"flex",gap:2}}>
+        <div style={{ display:"flex", gap:2 }}>
           {["Accueil","Comment ça fonctionne","La Stratégie"].map((label,i)=>(
             <button key={i} onClick={()=>onNav(i)} style={{
-              background:"none",border:"none",cursor:"pointer",
+              background:"none", border:"none", cursor:"pointer",
               fontFamily:"'Inter',sans-serif",
-              fontSize:9,fontWeight:500,letterSpacing:".13em",
-              color:activeTab===i?NAVY:"rgba(10,22,40,0.30)",
-              padding:"8px 16px",borderRadius:6,transition:"color .2s",
+              fontSize:9, fontWeight:500, letterSpacing:".13em",
+              color:activeTab===i ? NAVY : "rgba(10,22,40,0.30)",
+              padding:"8px 16px", borderRadius:6, transition:"color .2s",
               textTransform:"uppercase",
             }}>{label}</button>
           ))}
         </div>
 
         <button onClick={()=>window.location.href="/auth/login"} style={{
-          background:"none",border:"0.5px solid rgba(10,22,40,0.18)",
+          background:"none", border:"0.5px solid rgba(10,22,40,0.18)",
           fontFamily:"'Inter',sans-serif",
-          fontSize:9,fontWeight:500,letterSpacing:".13em",
-          color:NAVY,padding:"9px 22px",borderRadius:7,
-          cursor:"pointer",textTransform:"uppercase",
+          fontSize:9, fontWeight:500, letterSpacing:".13em",
+          color:NAVY, padding:"9px 22px", borderRadius:7,
+          cursor:"pointer", textTransform:"uppercase",
         }}>Connexion</button>
       </nav>
 
@@ -991,172 +1011,140 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 
 function StrategySection({ onCTA }: { onCTA: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [inView,   setInView  ] = useState(false);
-  const [bankKey,  setBankKey ] = useState("bnp");
-  const [envelope, setEnvelope] = useState<EnvelopeKey>("pea");
-  const [years,    setYears   ] = useState(15);
-  const [capital,  setCapital ] = useState(150000);
-  const [revealed, setRevealed] = useState([false,false,false,false,false,false]);
+  const [inView,    setInView   ] = useState(false);
+  const [bankKey,   setBankKey  ] = useState("bnp");
+  const [envelopes, setEnvelopes] = useState<Set<EnvelopeKey>>(new Set(["pea"]));
+  const [years,     setYears    ] = useState(15);
+  const [revealed,  setRevealed ] = useState<boolean[]>([]);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
-      { threshold: 0.08 }
+      { threshold: 0.06 }
     );
     if (ref.current) obs.observe(ref.current);
     return () => obs.disconnect();
   }, []);
 
-  // Réinitialiser l'animation à chaque changement
+  // Toggle enveloppe — au moins une doit rester sélectionnée
+  function toggleEnv(key: EnvelopeKey) {
+    setEnvelopes(prev => {
+      const next = new Set(prev);
+      if (next.has(key) && next.size > 1) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
+
   useEffect(() => {
     if (!inView) return;
-    setRevealed([false,false,false,false,false,false]);
+    setRevealed([]);
     const t = setTimeout(() => {
-      [0,1,2,3,4,5].forEach(i =>
-        setTimeout(() => setRevealed(p => { const n=[...p]; n[i]=true; return n; }), 60 + i*90)
+      Array.from({length: 7}).forEach((_,i) =>
+        setTimeout(() => setRevealed(p => { const n=[...p]; n[i]=true; return n; }), 50 + i*80)
       );
-    }, 30);
+    }, 20);
     return () => clearTimeout(t);
-  }, [inView, bankKey, envelope]);
+  }, [inView, bankKey, envelopes, years]);
 
   const bank = BANKS[bankKey];
-  const env  = ENVELOPES[envelope];
   const MSCI = 0.08;
 
-  // ── Frais côté GESTION ACTIVE (banque traditionnelle) ──────
-  // Ce que paie réellement un client en gestion active
-  const actif_garde    = bank.garde;           // droits de garde annuels
-  const actif_opcvm    = bank.opcvm;           // frais fonds actifs (le vrai scandale)
-  const actif_contrat  = envelope === "av" ? env.fraisContrat : 0;
-  const actif_vers     = envelope === "av" ? env.fraisVersement : 0;
-  const actif_courtage = bank.courtage;        // courtage par ordre
-  const actif_total_an = actif_garde + actif_opcvm + actif_contrat; // frais annuels
+  // Calcul pondéré selon les enveloppes sélectionnées
+  const envList  = Array.from(envelopes);
+  const envData  = envList.map(k => ENVELOPES[k]);
+  const avgContrat = envData.reduce((s,e) => s + e.fraisContrat, 0) / envList.length;
+  const avgVers    = envData.reduce((s,e) => s + e.fraisVersement, 0) / envList.length;
+  const hasAV      = envelopes.has("av");
 
-  // ── Frais côté GESTION PASSIVE (ETF chez courtier en ligne) ─
-  // Ce que paiera l'utilisateur de Zero CGP en s'exécutant lui-même
-  const passif_garde    = 0;      // 0% sur PEA/CTO courtier en ligne
-  const passif_contrat  = envelope === "av" ? 0.3 : 0;  // AV en ligne type Linxea ~0.3%/an
-  const passif_vers     = 0;      // 0% sur PEA (loi), 0% sur CTO, 0% AV en ligne
-  const passif_etf      = 0.20;   // Frais ETF (ex. Amundi MSCI World PEA : 0.12-0.25%)
-  const passif_courtage = envelope === "pea" ? 0.20 : 0.20; // ~0.20% chez courtier en ligne
-  const passif_total_an = passif_garde + passif_contrat + passif_etf; // frais annuels
+  // Frais gestion active
+  const actif_garde   = bank.garde;
+  const actif_opcvm   = bank.opcvm;
+  const actif_contrat = avgContrat;
+  const actif_vers    = avgVers;
+  const actif_court   = bank.courtage;
+  const actif_total   = actif_garde + actif_opcvm + actif_contrat;
 
-  // ── Calcul de la perte sur la durée ────────────────────────
-  const grossReturn    = MSCI;
-  const actifNetReturn = grossReturn - actif_total_an / 100;
-  const passifNetRet   = grossReturn - passif_total_an / 100;
+  // Frais gestion passive
+  const passif_contrat = hasAV ? 0.30 : 0;
+  const passif_etf     = 0.20;
+  const passif_court   = 0.20;
+  const passif_total   = passif_contrat + passif_etf;
 
-  const actifFinal   = capital * (1 - actif_vers/100) * Math.pow(1 + actifNetReturn, years)
-                       - capital * actif_vers/100; // frais versement ponctuel
-  const passifFinal  = capital * Math.pow(1 + passifNetRet, years);
-  const gain         = passifFinal - actifFinal;
-  const capturePct   = (actif_total_an / (MSCI * 100)) * 100; // actif% / rendement% = part capturée
+  // Gain sur la durée
+  const actifFinal  = 150000 * (1 - actif_vers/100) * Math.pow(1 + MSCI - actif_total/100, years);
+  const passifFinal = 150000 * Math.pow(1 + MSCI - passif_total/100, years);
+  const gain        = passifFinal - actifFinal;
+  const capturePct  = (actif_total / (MSCI * 100)) * 100;
 
   const feurL = (n: number) =>
     new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0})
     .format(Math.round(Math.max(0,n)));
 
   // Hooks animés
-  const a_garde_ani   = useAnimatedNumber(actif_garde);
-  const a_opcvm_ani   = useAnimatedNumber(actif_opcvm);
-  const a_contrat_ani = useAnimatedNumber(actif_contrat);
-  const a_vers_ani    = useAnimatedNumber(actif_vers);
-  const a_court_ani   = useAnimatedNumber(actif_courtage);
-  const a_total_ani   = useAnimatedNumber(actif_total_an);
-  const p_contrat_ani = useAnimatedNumber(passif_contrat);
-  const p_etf_ani     = useAnimatedNumber(passif_etf);
-  const p_court_ani   = useAnimatedNumber(passif_courtage);
-  const p_total_ani   = useAnimatedNumber(passif_total_an);
-  const gainAni       = useAnimatedNumber(gain, 0, 900);
-  const captureAni    = useAnimatedNumber(capturePct, 1, 700);
+  const a_garde_a  = useAnimatedNumber(actif_garde);
+  const a_opcvm_a  = useAnimatedNumber(actif_opcvm);
+  const a_cont_a   = useAnimatedNumber(actif_contrat);
+  const a_vers_a   = useAnimatedNumber(actif_vers);
+  const a_court_a  = useAnimatedNumber(actif_court);
+  const a_total_a  = useAnimatedNumber(actif_total);
+  const p_cont_a   = useAnimatedNumber(passif_contrat);
+  const p_etf_a    = useAnimatedNumber(passif_etf);
+  const p_court_a  = useAnimatedNumber(passif_court);
+  const p_total_a  = useAnimatedNumber(passif_total);
+  const gainAni    = useAnimatedNumber(gain, 0, 1000);
+  const captureAni = useAnimatedNumber(capturePct, 1, 700);
 
   const fadeV = (d = 0) => ({
-    hidden:  { opacity:0, y:10, filter:"blur(3px)" },
-    visible: { opacity:1, y:0,  filter:"blur(0px)",
-      transition:{ duration:0.65, delay:d, ease:[0.22,1,0.36,1] } },
+    hidden:  { opacity:0, y:12 },
+    visible: { opacity:1, y:0, transition:{ duration:0.7, delay:d, ease:[0.22,1,0.36,1] } },
   });
 
-  const SEP     = "0.5px solid rgba(10,22,40,0.08)";
-  const SEP_MED = "0.5px solid rgba(10,22,40,0.15)";
-  const TH = (align: "left"|"right" = "left") => ({
-    fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-    letterSpacing:".14em", textTransform:"uppercase" as const,
-    color:"rgba(10,22,40,0.32)", textAlign:align, padding:"5px 10px",
-  });
-  const TD = (color = "rgba(10,22,40,0.65)") => ({
-    fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
-    letterSpacing:".03em", color, padding:"8px 10px", lineHeight:1.4,
-  });
-  const MONO = (color = "rgba(10,22,40,0.48)") => ({
-    fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-    fontSize:12.5, fontWeight:300, textAlign:"right" as const,
-    color, padding:"8px 10px",
-  });
-  const GL = {  // Group label
-    fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
-    letterSpacing:".18em", textTransform:"uppercase" as const,
-    color:"rgba(10,22,40,0.22)", padding:"10px 10px 3px",
-  };
+  const DIVIDER = "0.5px solid rgba(10,22,40,0.10)";
 
-  // Lignes du tableau
+  // Lignes tableau
   const ROWS = [
-    // Frais annuels récurrents
     {
-      group: "Frais annuels récurrents",
+      group: "Frais annuels",
       rows: [
         {
-          label:"Droits de garde (conservation)",
-          actif: a_garde_ani,
-          passif: passif_garde,
-          passifStr: "0 %",
-          note: bank.type === "banque_trad"
-            ? "Supprimés — courtier en ligne (Fortuneo, BoursoBank)"
-            : "Déjà 0% — vous êtes bien placé",
-          highlight: actif_garde > 0,
+          label: "Droits de garde",
+          sub: bank.type === "banque_trad"
+            ? "Conservation des titres — facturé annuellement sur l'encours"
+            : "Aucun droit de garde sur PEA/CTO en ligne",
+          actif: a_garde_a, passifStr: "0 %",
+          isZero: bank.garde === 0, idx: 0,
         },
-        ...(envelope === "av" ? [{
-          label:"Frais de gestion du contrat",
-          actif: a_contrat_ani,
-          passif: passif_contrat,
-          passifStr: "~0.30 %",
-          note:"AV en ligne (Linxea, Lucya) : ~0.30% vs ~0.75% banque trad.",
-          highlight: actif_contrat > passif_contrat,
+        ...(hasAV ? [{
+          label: "Frais de gestion du contrat",
+          sub: "Assurance-vie : ~0.75%/an banque trad. vs ~0.30%/an en ligne",
+          actif: a_cont_a, passifStr: `${p_cont_a.toFixed(2)} %`,
+          isZero: false, idx: 1,
         }] : []),
         {
-          label:"Frais des supports (OPCVM vs ETF)",
-          actif: a_opcvm_ani,
-          passif: passif_etf,
-          passifStr: "~0.20 %",
-          note:"C'est ici que se creuse l'écart : fonds actifs 1.5-2.5% vs ETF 0.10-0.25%",
-          highlight: true,
-          key_row: true,
+          label: "Frais des supports investis",
+          sub: "OPCVM actifs : 1.5–2.5%/an · ETF + titres vifs : 0.10–0.20%/an",
+          actif: a_opcvm_a, passifStr: "~0.20 %",
+          isKey: true, isZero: false, idx: 2,
         },
       ],
     },
-    // Frais ponctuels
     {
       group: "Frais ponctuels",
       rows: [
         {
-          label:"Frais sur versement",
-          actif: a_vers_ani,
-          passif: passif_vers,
-          passifStr: "0 %",
-          note: envelope === "pea"
-            ? "0% légal sur PEA (loi Pacte 2019)"
-            : envelope === "cto"
-              ? "0% sur CTO"
-              : "0% sur AV en ligne — jusqu'à 4% chez banques trad.",
-          highlight: actif_vers > 0,
+          label: "Frais sur versement",
+          sub: envList.includes("av") && bank.type === "banque_trad"
+            ? "Assurance-vie bancaire : jusqu'à 3–4% sur chaque versement"
+            : "0% sur PEA/CTO (loi Pacte) · 0% sur AV en ligne",
+          actif: a_vers_a, passifStr: "0 %",
+          isZero: actif_vers === 0, idx: 3,
         },
         {
-          label:"Frais de courtage (par ordre)",
-          actif: a_court_ani,
-          passif: passif_courtage,
-          passifStr: "~0.20 %",
-          note:"Incompressible — choisissez un courtier en ligne compétitif",
-          highlight: false,
-          residual: true,
+          label: "Frais de courtage",
+          sub: "Incompressible — inhérent à tout achat de titre ou ETF",
+          actif: a_court_a, passifStr: `~${p_court_a.toFixed(2)} %`,
+          isResidual: true, isZero: false, idx: 4,
         },
       ],
     },
@@ -1167,128 +1155,144 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
       minHeight:"100vh", scrollSnapAlign:"start",
       background:"#F9F8F6",
       display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center",
-      padding:"52px 52px 48px", overflow:"hidden", position:"relative",
+      alignItems:"center",
+      padding:"0 52px 64px", overflow:"hidden",
     }}>
-      <div style={{ width:"100%", maxWidth:840, position:"relative", zIndex:1 }}>
+      <div style={{ width:"100%", maxWidth:780 }}>
 
-        {/* Header */}
+        {/* ── BLOC 1 : Stratégie d'investissement ────────────── */}
         <motion.div variants={fadeV(0)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ marginBottom:28, display:"flex", alignItems:"flex-end", justifyContent:"space-between", gap:16 }}>
-          <div>
-            <div style={{
-              fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
-              letterSpacing:".22em", color:"rgba(10,22,40,0.28)",
-              textTransform:"uppercase", marginBottom:8,
-            }}>La stratégie</div>
-            <h2 style={{
-              fontFamily:"'Cormorant Garant',serif",
-              fontSize:"clamp(26px,3.4vw,44px)", fontWeight:300,
-              letterSpacing:"-.02em", color:NAVY, margin:"0 0 6px",
-            }}>Preuve par l'algorithme.</h2>
-            <p style={{
-              fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
-              color:"rgba(10,22,40,0.42)", margin:0, maxWidth:520, lineHeight:1.65,
-            }}>
-              Zero CGP calcule votre portefeuille optimal en ETF passifs.
-              Vous l'exécutez vous-même chez le courtier de votre choix.
-              Seuls les frais incompressibles restent.
-            </p>
+          style={{ paddingTop:64, paddingBottom:40, borderBottom:DIVIDER }}>
+
+          {/* Label section */}
+          <div style={{
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", color:"rgba(10,22,40,0.30)",
+            textTransform:"uppercase", marginBottom:14,
+          }}>Stratégie d'investissement</div>
+
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(28px,3.6vw,44px)", fontWeight:300,
+            letterSpacing:"-.02em", color:NAVY,
+            margin:"0 0 10px",
+          }}>Deux moteurs. Une frontière efficiente.</h2>
+
+          <p style={{
+            fontFamily:"'Inter',sans-serif", fontSize:12.5, fontWeight:300,
+            color:"rgba(10,22,40,0.48)", lineHeight:1.75,
+            maxWidth:560, margin:"0 0 32px",
+          }}>
+            Zero CGP optimise votre allocation entre <em>titres vifs</em> (Moteur Alpha)
+            et <em>ETF</em> (Moteur Bêta) via l'algorithme de Markowitz. Vous recevez
+            les quantités exactes à acheter et les exécutez chez le courtier de votre choix.
+            Seul le courtage reste — les frais de gestion active disparaissent.
+          </p>
+
+          {/* Les deux moteurs */}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            {[
+              {
+                tag:"Moteur Alpha · Titres vifs",
+                icon:<ConstellationSVG/>,
+                title:"Croissance directe",
+                desc:"LVMH, Apple, ASML, Novo Nordisk. L'algorithme sélectionne les titres les plus pertinents pour votre profil. Conviction maximale, exposition ciblée.",
+              },
+              {
+                tag:"Moteur Bêta · ETF",
+                icon:<SphereSVG/>,
+                title:"Diversification institutionnelle",
+                desc:"MSCI World, S&P 500, marchés émergents. Couverture mondiale à frais quasi-nuls (~0.20%/an). L'approche des fonds souverains et des grandes fortunes.",
+              },
+            ].map(({ tag, icon, title, desc }) => (
+              <div key={tag} style={{
+                background:"rgba(10,22,40,0.025)",
+                border:DIVIDER,
+                borderRadius:10,
+                padding:"20px 22px",
+              }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                  <div style={{ opacity:0.55, flexShrink:0 }}>{icon}</div>
+                  <div>
+                    <div style={{
+                      fontFamily:"'Inter',sans-serif", fontSize:8, fontWeight:500,
+                      letterSpacing:".16em", textTransform:"uppercase",
+                      color:"rgba(10,22,40,0.28)", marginBottom:3,
+                    }}>{tag}</div>
+                    <h3 style={{
+                      fontFamily:"'Cormorant Garant',serif",
+                      fontSize:"clamp(15px,1.6vw,20px)", fontWeight:300,
+                      color:NAVY, margin:0,
+                    }}>{title}</h3>
+                  </div>
+                </div>
+                <p style={{
+                  fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
+                  color:"rgba(10,22,40,0.48)", lineHeight:1.70, margin:0,
+                }}>{desc}</p>
+              </div>
+            ))}
           </div>
         </motion.div>
 
-        {/* Deux moteurs */}
-        <motion.div variants={fadeV(0.05)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:26 }}>
-          {[
-            { tag:"Moteur Alpha", icon:<ConstellationSVG/>, title:"Actions — Croissance pure",
-              desc:"LVMH, Apple, ASML, Novo Nordisk. Titres vifs pour capturer la croissance directe." },
-            { tag:"Moteur Bêta", icon:<SphereSVG/>, title:"ETF — Diversification institutionnelle",
-              desc:"MSCI World, S&P 500, marchés émergents. Frais quasi-nuls. L'approche des fonds souverains." },
-          ].map(({ tag, icon, title, desc }) => (
-            <motion.div key={tag}
-              whileHover={{ y:-2, boxShadow:"0 4px 24px rgba(10,22,40,0.06)" }}
-              transition={{ duration:0.2 }}
-              style={{ background:"rgba(10,22,40,0.03)", border:SEP, borderRadius:10, padding:"16px 18px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                <div style={{ opacity:0.6, flexShrink:0 }}>{icon}</div>
-                <div>
-                  <div style={{
-                    fontFamily:"'Inter',sans-serif", fontSize:8, fontWeight:500,
-                    letterSpacing:".18em", color:"rgba(10,22,40,0.28)",
-                    textTransform:"uppercase", marginBottom:3,
-                  }}>{tag}</div>
-                  <h3 style={{
-                    fontFamily:"'Cormorant Garant',serif",
-                    fontSize:"clamp(14px,1.6vw,19px)", fontWeight:300, fontStyle:"italic",
-                    color:NAVY, margin:0,
-                  }}>{title}</h3>
-                </div>
-              </div>
-              <p style={{
-                fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
-                color:"rgba(10,22,40,0.46)", lineHeight:1.65, margin:0,
-              }}>{desc}</p>
-            </motion.div>
-          ))}
-        </motion.div>
+        {/* ── BLOC 2 : Comparateur de frais ──────────────────── */}
+        <motion.div variants={fadeV(0.08)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ paddingTop:44, paddingBottom:0 }}>
 
-        {/* Sélecteurs + titre tableau */}
-        <motion.div variants={fadeV(0.09)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ marginBottom:12 }}>
-
-          {/* Ligne 1 : titre + pills enveloppe */}
+          {/* Label section */}
           <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            gap:12, marginBottom:10, flexWrap:"wrap",
-          }}>
-            <div style={{
-              fontFamily:"'Cormorant Garant',serif",
-              fontSize:"clamp(15px,1.7vw,21px)", fontWeight:300, fontStyle:"italic", color:NAVY,
-            }}>Gestion active vs gestion passive</div>
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", color:"rgba(10,22,40,0.30)",
+            textTransform:"uppercase", marginBottom:14,
+          }}>Comparateur de frais</div>
 
-            {/* Pills enveloppe */}
-            <div style={{
-              display:"flex", gap:0,
-              border:SEP_MED, borderRadius:9, overflow:"hidden", background:"white",
-            }}>
-              {(["pea","cto","av"] as EnvelopeKey[]).map((k,idx) => {
-                const e = ENVELOPES[k];
-                const active = envelope === k;
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(24px,3vw,38px)", fontWeight:300,
+            letterSpacing:"-.02em", color:NAVY,
+            margin:"0 0 24px",
+          }}>Gestion active vs gestion passive.</h2>
+
+          {/* Sélecteurs */}
+          <div style={{
+            display:"flex", gap:10, alignItems:"center",
+            flexWrap:"wrap", marginBottom:24,
+          }}>
+            {/* Multi-select enveloppes */}
+            <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+              {(["pea","cto","av"] as EnvelopeKey[]).map(k => {
+                const active = envelopes.has(k);
                 return (
-                  <button key={k} onClick={()=>setEnvelope(k)} style={{
+                  <button key={k} onClick={()=>toggleEnv(k)} style={{
                     fontFamily:"'Inter',sans-serif",
                     fontSize:9, fontWeight:500, letterSpacing:".10em",
                     textTransform:"uppercase",
-                    color: active ? "white" : "rgba(10,22,40,0.44)",
-                    background: active ? NAVY : "transparent",
-                    border:"none",
-                    padding:"8px 16px", cursor:"pointer", transition:"all .18s",
-                    borderRight: idx < 2 ? SEP_MED : "none",
-                  }}>{e.label}</button>
+                    color: active ? "white" : "rgba(10,22,40,0.50)",
+                    background: active ? NAVY : "white",
+                    border: active ? `0.5px solid ${NAVY}` : DIVIDER,
+                    borderRadius:100, padding:"7px 16px",
+                    cursor:"pointer", transition:"all .18s",
+                    display:"flex", alignItems:"center", gap:5,
+                  }}>
+                    {active && (
+                      <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
+                        <path d="M1 3l2 2 4-4" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                    {ENVELOPES[k].label}
+                  </button>
                 );
               })}
+              {envelopes.size > 1 && (
+                <span style={{
+                  fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:300,
+                  color:"rgba(10,22,40,0.36)", fontStyle:"italic",
+                  display:"flex", alignItems:"center", paddingLeft:2,
+                }}>frais moyennés</span>
+              )}
             </div>
-          </div>
 
-          {/* Ligne 2 : info enveloppe + durée + banque */}
-          <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-            {/* Badge enveloppe */}
-            <div style={{
-              flex:1, minWidth:160,
-              background:"rgba(10,22,40,0.03)", border:SEP,
-              borderRadius:7, padding:"7px 12px",
-            }}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
-                letterSpacing:".12em", textTransform:"uppercase",
-                color:"rgba(10,22,40,0.32)", marginBottom:2,
-              }}>Fiscalité {env.label}</div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:10.5, fontWeight:300,
-                color:"rgba(10,22,40,0.52)", lineHeight:1.45,
-              }}>{env.fiscalite}</div>
-            </div>
+            <div style={{ flex:1, minWidth:0 }}/>
 
             {/* Durée */}
             <div style={{ display:"flex", gap:3 }}>
@@ -1296,115 +1300,126 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                 <button key={y} onClick={()=>setYears(y)} style={{
                   fontFamily:"'Inter',sans-serif",
                   fontSize:8.5, fontWeight:500, letterSpacing:".10em",
-                  color: y===years ? "#F9F8F6" : "rgba(10,22,40,0.40)",
-                  background: y===years ? "#0A1628" : "none",
-                  border: y===years ? "0.5px solid #0A1628" : SEP_MED,
+                  color: y===years ? "white" : "rgba(10,22,40,0.44)",
+                  background: y===years ? NAVY : "white",
+                  border: y===years ? `0.5px solid ${NAVY}` : DIVIDER,
                   borderRadius:100, padding:"6px 12px", cursor:"pointer",
                   textTransform:"uppercase", transition:"all .15s",
                 }}>{y} ans</button>
               ))}
             </div>
 
-            {/* Dropdown banque */}
+            {/* Banque */}
             <div style={{ position:"relative" }}>
               <select value={bankKey} onChange={e=>setBankKey(e.target.value)} style={{
                 appearance:"none", WebkitAppearance:"none",
-                background:"white", border:SEP_MED, borderRadius:8,
+                background:"white", border:DIVIDER, borderRadius:8,
                 fontFamily:"'Inter',sans-serif",
-                fontSize:10, fontWeight:500, letterSpacing:".08em",
+                fontSize:10, fontWeight:500, letterSpacing:".06em",
                 color:NAVY, textTransform:"uppercase",
-                padding:"8px 30px 8px 14px", cursor:"pointer", outline:"none",
-                boxShadow:"0 1px 6px rgba(10,22,40,0.04)",
+                padding:"8px 28px 8px 14px", cursor:"pointer", outline:"none",
               }}>
                 {Object.entries(BANKS).map(([k,v])=>(
                   <option key={k} value={k}>{v.label}</option>
                 ))}
               </select>
               <svg style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}
-                width="9" height="5" viewBox="0 0 9 5">
-                <path d="M1 1l3.5 3L8 1" stroke="rgba(10,22,40,0.36)" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+                width="8" height="5" viewBox="0 0 8 5">
+                <path d="M1 1l3 3 3-3" stroke="rgba(10,22,40,0.38)" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
               </svg>
             </div>
           </div>
-        </motion.div>
 
-        {/* Tableau */}
-        <motion.div variants={fadeV(0.12)} initial="hidden" animate={inView?"visible":"hidden"}>
-
-          {/* En-têtes — 3 colonnes : Frais | Gestion active | Gestion passive */}
+          {/* Tableau 3 colonnes */}
+          {/* En-têtes */}
           <div style={{
-            display:"grid", gridTemplateColumns:"1fr 96px 112px 1fr",
-            borderBottom:SEP_MED, paddingBottom:5, marginBottom:0,
+            display:"grid", gridTemplateColumns:"1fr 90px 100px",
+            borderBottom:"0.5px solid rgba(10,22,40,0.18)",
+            paddingBottom:6, marginBottom:0,
           }}>
-            <div style={TH()}>Type de frais</div>
-            <div style={TH("right")}>
-              <span style={{ color:"#DC2626" }}>Gestion active</span>
-            </div>
-            <div style={TH("right")}>
-              <span style={{ color:"#0A6634" }}>Gestion passive</span>
-            </div>
-            <div style={TH()}>Ce que ça change</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".14em", textTransform:"uppercase",
+              color:"rgba(10,22,40,0.30)", padding:"0 0 0 0",
+            }}>Type de frais</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".14em", textTransform:"uppercase",
+              color:"#9B1C1C", textAlign:"right",
+            }}>Gestion active</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".14em", textTransform:"uppercase",
+              color:"#14532D", textAlign:"right", paddingRight:2,
+            }}>Gestion passive</div>
           </div>
 
-          {/* Groupes de lignes */}
           {ROWS.map((group, gi) => {
-            let rowIdx = ROWS.slice(0,gi).reduce((s,g) => s + g.rows.length, 0);
+            let offset = ROWS.slice(0,gi).reduce((s,g)=>s+g.rows.length,0);
             return (
-              <div key={group.group} style={{ marginBottom:2 }}>
-                <div style={GL}>{group.group}</div>
+              <div key={group.group}>
+                {/* Group label */}
+                <div style={{
+                  fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
+                  letterSpacing:".18em", textTransform:"uppercase",
+                  color:"rgba(10,22,40,0.22)", padding:"10px 0 3px",
+                }}>{group.group}</div>
+
                 {group.rows.map((row, ri) => {
-                  const idx = rowIdx + ri;
-                  const isKeyRow = (row as {key_row?: boolean}).key_row;
-                  const isResidual = (row as {residual?: boolean}).residual;
+                  const idx = offset + ri;
+                  const isKey = (row as {isKey?:boolean}).isKey;
+                  const isRes = (row as {isResidual?:boolean}).isResidual;
                   return (
                     <div key={row.label} style={{
-                      display:"grid", gridTemplateColumns:"1fr 96px 112px 1fr",
+                      display:"grid", gridTemplateColumns:"1fr 90px 100px",
                       position:"relative", overflow:"hidden",
-                      background: isKeyRow
-                        ? "linear-gradient(90deg, rgba(220,38,38,0.04) 0%, rgba(10,22,40,0.02) 50%, rgba(10,102,52,0.04) 100%)"
-                        : isResidual
-                          ? "rgba(45,90,67,0.04)"
-                          : row.highlight
-                            ? "rgba(220,38,38,0.025)"
-                            : "transparent",
-                      borderRadius: isKeyRow ? 4 : 0,
+                      background: isKey
+                        ? "rgba(155,28,28,0.03)"
+                        : isRes ? "rgba(45,90,67,0.04)" : "transparent",
+                      padding:"2px 0",
                     }}>
-                      <div style={{
-                        ...TD(isResidual ? "#2D5A43" : isKeyRow ? NAVY : "rgba(10,22,40,0.68)"),
-                        fontWeight: isKeyRow ? 400 : 300,
-                        fontStyle: isResidual ? "italic" as const : "normal" as const,
-                      }}>{row.label}</div>
+                      {/* Label + sous-texte */}
+                      <div style={{ padding:"8px 0" }}>
+                        <div style={{
+                          fontFamily:"'Inter',sans-serif",
+                          fontSize:12, fontWeight: isKey ? 500 : 300,
+                          color: isKey ? NAVY : isRes ? "#2D5A43" : "rgba(10,22,40,0.72)",
+                          fontStyle: isRes ? "italic" as const : "normal" as const,
+                          marginBottom:2,
+                        }}>{row.label}</div>
+                        <div style={{
+                          fontFamily:"'Inter',sans-serif",
+                          fontSize:10, fontWeight:300,
+                          color:"rgba(10,22,40,0.34)", lineHeight:1.5,
+                        }}>{row.sub}</div>
+                      </div>
 
-                      {/* Gestion active — rouge */}
+                      {/* Gestion active */}
                       <div style={{
                         fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                        fontSize:12.5, fontWeight: isKeyRow ? 500 : 300,
-                        textAlign:"right", padding:"8px 10px",
-                        color: row.actif > 0 ? (isKeyRow ? "#B91C1C" : "#DC2626") : "rgba(10,22,40,0.28)",
+                        fontSize:13, fontWeight: isKey ? 500 : 300,
+                        textAlign:"right", padding:"12px 0 8px",
+                        color: row.actif > 0 ? (isKey ? "#9B1C1C" : "#C53030") : "rgba(10,22,40,0.25)",
+                        alignSelf:"start",
                       }}>
                         <AnimNum value={row.actif}/>
                       </div>
 
-                      {/* Gestion passive — vert */}
+                      {/* Gestion passive */}
                       <div style={{
                         fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                        fontSize:12.5, fontWeight: isKeyRow ? 500 : 300,
-                        textAlign:"right", padding:"8px 10px",
-                        color: isResidual ? "#2D5A43" : "#0A6634",
+                        fontSize:13, fontWeight: isKey ? 500 : 300,
+                        textAlign:"right", padding:"12px 2px 8px 0",
+                        color: isRes ? "#2D5A43" : "#14532D",
+                        alignSelf:"start",
                       }}>
                         {row.passifStr}
                       </div>
 
-                      <div style={{
-                        fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
-                        fontStyle:"italic", color: isKeyRow ? "rgba(10,22,40,0.45)" : "rgba(10,22,40,0.30)",
-                        padding:"8px 10px", lineHeight:1.5,
-                      }}>{row.note}</div>
-
-                      {/* Ligne d'animation */}
+                      {/* Ligne séparatrice animée */}
                       <div style={{
                         position:"absolute", bottom:0, left:0, height:"0.5px",
-                        background: isKeyRow ? "rgba(10,22,40,0.10)" : "rgba(10,22,40,0.06)",
+                        background: isKey ? "rgba(155,28,28,0.12)" : "rgba(10,22,40,0.07)",
                         width: revealed[idx] ? "100%" : "0%",
                         transition:"width 0.5s cubic-bezier(0.22,1,0.36,1)",
                         transitionDelay:`${idx*0.06}s`,
@@ -1416,112 +1431,93 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
             );
           })}
 
-          {/* Totaux */}
+          {/* Total */}
           <div style={{
-            display:"grid", gridTemplateColumns:"1fr 96px 112px 1fr",
-            borderTop:SEP_MED, paddingTop:8, marginTop:4,
-            background:"rgba(10,22,40,0.02)", borderRadius:4,
+            display:"grid", gridTemplateColumns:"1fr 90px 100px",
+            borderTop:"1.5px solid rgba(10,22,40,0.82)",
+            paddingTop:10, marginTop:4,
           }}>
             <div style={{
               fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:500,
               letterSpacing:".10em", textTransform:"uppercase",
-              color:"rgba(10,22,40,0.55)", padding:"8px 10px",
+              color:"rgba(10,22,40,0.60)", padding:"6px 0",
             }}>Impact annualisé</div>
             <div style={{
               fontFamily:"'Roboto Mono',monospace",
-              fontSize:14, fontWeight:600, textAlign:"right",
-              color:"#B91C1C", padding:"8px 10px",
-            }}>{a_total_ani.toFixed(2)}&nbsp;%</div>
+              fontSize:15, fontWeight:700, textAlign:"right",
+              color:"#9B1C1C", padding:"4px 0",
+            }}>{a_total_a.toFixed(2)}&nbsp;%</div>
             <div style={{
               fontFamily:"'Roboto Mono',monospace",
-              fontSize:14, fontWeight:500, textAlign:"right",
-              color:"#0A6634", padding:"8px 10px",
-            }}>{p_total_ani.toFixed(2)}&nbsp;%</div>
-            <div style={{
-              fontFamily:"'Inter',sans-serif", fontSize:9.5, fontWeight:300,
-              fontStyle:"italic", color:"rgba(10,22,40,0.32)", padding:"8px 10px",
-            }}>dont courtage ~{p_court_ani.toFixed(2)}&nbsp;% (incompressible)</div>
+              fontSize:15, fontWeight:600, textAlign:"right",
+              color:"#14532D", padding:"4px 2px 4px 0",
+            }}>{p_total_a.toFixed(2)}&nbsp;%</div>
           </div>
 
-          {/* Note pédagogique */}
+          {/* Sous-texte incompressible */}
           <div style={{
-            marginTop:10, padding:"10px 14px",
-            border:SEP, borderRadius:8,
-            background:"rgba(10,22,40,0.015)",
+            fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
+            fontStyle:"italic", color:"rgba(10,22,40,0.30)",
+            paddingTop:4, paddingBottom:32,
           }}>
-            <p style={{
-              fontFamily:"'Inter',sans-serif", fontSize:10.5, fontWeight:300,
-              color:"rgba(10,22,40,0.48)", lineHeight:1.7, margin:0,
-            }}>
-              <span style={{ fontWeight:500, color:"rgba(10,22,40,0.65)" }}>Comment ça marche : </span>
-              Zero CGP optimise votre allocation en ETF passifs avec l'algorithme de Markowitz.
-              Vous recevez les quantités exactes à acheter et les exécutez vous-même
-              sur votre <span style={{ fontStyle:"italic" }}>{env.label}</span> chez le courtier de votre choix.
-              Seul le courtage reste — les frais de gestion active disparaissent.
-            </p>
+            dont ~{p_court_a.toFixed(2)}&nbsp;% de courtage incompressible (inhérent à tout achat de titre)
           </div>
+
         </motion.div>
 
-        {/* Bandeau synthèse */}
-        <motion.div variants={fadeV(0.15)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ marginTop:10 }}>
-          <div style={{
-            background:NAVY, borderRadius:10, padding:"16px 20px",
-            display:"grid", gridTemplateColumns:"1fr auto auto",
-            alignItems:"center", gap:16,
+        {/* ── BLOC 3 : Gain — fond crème, centré, sans navy ────── */}
+        <motion.div variants={fadeV(0.14)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{
+            borderTop:DIVIDER, paddingTop:44, paddingBottom:56,
+            display:"flex", flexDirection:"column", alignItems:"center",
+            textAlign:"center",
           }}>
-            <div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
-                color:"rgba(255,255,255,0.38)", lineHeight:1.7,
-              }}>
-                En restant en gestion active chez{" "}
-                <span style={{
-                  fontFamily:"'Cormorant Garant',serif",
-                  fontSize:15, fontWeight:300, fontStyle:"italic",
-                  color:"rgba(255,255,255,0.68)",
-                }}>{bank.label}</span>,
-                votre gestionnaire capture{" "}
-                <span style={{
-                  fontFamily:"'Roboto Mono',monospace",
-                  fontSize:12, color:"#FCA5A5",
-                }}>{captureAni.toFixed(1)}&nbsp;%</span>
-                {" "}de votre rendement brut chaque année.
-                En gestion passive, vous gardez tout sauf{" "}
-                <span style={{
-                  fontFamily:"'Roboto Mono',monospace",
-                  fontSize:12, color:"rgba(255,255,255,0.55)",
-                }}>{p_total_ani.toFixed(2)}&nbsp;%</span>.
-              </div>
-            </div>
-
-            <div style={{ textAlign:"right", flexShrink:0 }}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8, fontWeight:500,
-                letterSpacing:".14em", color:"rgba(255,255,255,0.26)",
-                textTransform:"uppercase", marginBottom:3,
-              }}>Gain sur {years} ans</div>
-              <div style={{
-                fontFamily:"'Cormorant Garant',serif",
-                fontSize:26, fontWeight:300, color:"#86EFAC",
-                lineHeight:1, letterSpacing:"-.02em",
-              }}>{feurL(gainAni)}</div>
-            </div>
-
-            <motion.button
-              className="btn-cta"
-              whileHover={{ scale:1.04, boxShadow:"0 6px 24px rgba(10,22,40,0.30)" }}
-              whileTap={{ scale:0.97 }}
-              onClick={onCTA}
-              style={{
-                flexShrink:0, background:"white", color:NAVY, border:"none",
-                fontFamily:"'Inter',sans-serif",
-                fontSize:9, fontWeight:500, letterSpacing:".14em",
-                padding:"11px 18px", borderRadius:8, cursor:"pointer",
-                textTransform:"uppercase",
-              }}
-            >Créer mon portefeuille →</motion.button>
+          <div style={{
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", textTransform:"uppercase",
+            color:"rgba(10,22,40,0.30)", marginBottom:12,
+          }}>
+            {bank.label} · {years} ans · {Array.from(envelopes).map(k=>ENVELOPES[k].label).join(" + ")}
           </div>
+
+          <p style={{
+            fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
+            color:"rgba(10,22,40,0.44)", lineHeight:1.7,
+            maxWidth:460, margin:"0 0 18px",
+          }}>
+            En passant à la gestion passive, votre gestionnaire ne capture plus{" "}
+            <span style={{
+              fontFamily:"'Roboto Mono',monospace",
+              fontSize:11, color:"rgba(155,28,28,0.75)",
+            }}>{captureAni.toFixed(1)}&nbsp;%</span>{" "}
+            de votre rendement. Sur {years} ans (base 150&nbsp;000&nbsp;€), la différence est de :
+          </p>
+
+          <div style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(44px,6vw,72px)", fontWeight:300,
+            letterSpacing:"-.03em", lineHeight:1,
+            color:"#1A4731",
+            marginBottom:28,
+          }}>{feurL(gainAni)}</div>
+
+          <motion.button
+            className="btn-cta"
+            whileHover={{ scale:1.03, boxShadow:"0 8px 30px rgba(10,22,40,0.14)" }}
+            whileTap={{ scale:0.97 }}
+            onClick={onCTA}
+            style={{
+              background:"rgba(10,22,40,0.92)",
+              backdropFilter:"blur(12px)",
+              WebkitBackdropFilter:"blur(12px)",
+              color:"white",
+              border:"1px solid rgba(255,255,255,0.08)",
+              fontFamily:"'Inter',sans-serif",
+              fontSize:9, fontWeight:500, letterSpacing:".18em",
+              padding:"14px 38px", borderRadius:8,
+              cursor:"pointer", textTransform:"uppercase",
+            }}
+          >Créer mon portefeuille →</motion.button>
         </motion.div>
 
       </div>
