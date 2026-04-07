@@ -9,6 +9,47 @@ const NAVY_MID = "#1E3A6E";
 const MSCI_GROSS = 0.08;
 const ETF_FEES   = 0.002;
 
+// ── Données bancaires (niveau module pour SSR Next.js) ───────
+const BANKS: Record<string, {
+  label:string; gestion:number; versement:number; courtage:number; retro:number;
+}> = {
+  bnp:        { label:"BNP Paribas",      gestion:1.8, versement:2.5, courtage:0.5, retro:0.9 },
+  sg:         { label:"Société Générale",  gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
+  lcl:        { label:"LCL",              gestion:1.9, versement:2.5, courtage:0.5, retro:1.0 },
+  rothschild: { label:"Rothschild & Co",   gestion:1.5, versement:1.0, courtage:0.3, retro:1.2 },
+  fortuneo:   { label:"Fortuneo",         gestion:0.6, versement:0.0, courtage:0.1, retro:0.0 },
+  bourso:     { label:"Boursorama",       gestion:0.5, versement:0.0, courtage:0.1, retro:0.0 },
+  cacib:      { label:"Crédit Agricole",  gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
+};
+
+// ── Hook compteur animé ───────────────────────────────────────
+function useAnimatedNumber(target: number, decimals = 1, duration = 600) {
+  const [val, setVal] = useState(target);
+  const prevRef = useRef(target);
+  useEffect(() => {
+    const from  = prevRef.current;
+    prevRef.current = target;
+    const start = performance.now();
+    let raf: number;
+    function step(now: number) {
+      const t    = Math.min((now - start) / duration, 1);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setVal(parseFloat((from + (target - from) * ease).toFixed(decimals)));
+      if (t < 1) raf = requestAnimationFrame(step);
+      else setVal(target);
+    }
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, decimals, duration]);
+  return val;
+}
+
+function AnimNum({ value, decimals = 1 }: { value: number; decimals?: number }) {
+  const v = useAnimatedNumber(value, decimals);
+  return <>{v.toFixed(decimals)}&nbsp;%</>;
+}
+
+
 function buildTrajectory(capital: number, years: number, annualFees: number) {
   const netRate = MSCI_GROSS - annualFees;
   return Array.from({ length: years + 1 }, (_, y) => ({
