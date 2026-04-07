@@ -80,12 +80,13 @@ input[type=range]::-webkit-slider-thumb {
 function HeroSection({
   capital, years,
   onCapitalChange, onYearsChange,
-  onCTA, onScroll, activeTab, onNav,
+  onCTA, onScroll, activeTab, onNav, onGainUpdate,
 }: {
   capital:number; years:number;
   onCapitalChange:(n:number)=>void; onYearsChange:(n:number)=>void;
   onCTA:()=>void; onScroll:()=>void;
   activeTab:number; onNav:(i:number)=>void;
+  onGainUpdate?:(g:number)=>void;
 }) {
   const cvsRef    = useRef<HTMLCanvasElement>(null);
   const rafRef    = useRef<number|null>(null);
@@ -303,6 +304,7 @@ function HeroSection({
         setDisplayB(Math.round(bFinal));
         setDisplayG(Math.round(gFinal));
         setDisplayM(Math.round(gFinal/(years*12)));
+        onGainUpdate?.(Math.round(gFinal));
         setLabelsVis(true);
       }
     }
@@ -619,13 +621,230 @@ function HeroSection({
 }
 
 // ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// SECTION 2 — Comment ça fonctionne
+// Transition crème→navy, fade-up stagger, blocs institutionnels
+// ══════════════════════════════════════════════════════════════
+function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
+  const ref     = useRef<HTMLDivElement>(null);
+  const [scrollPct, setScrollPct] = useState(0); // 0=crème, 1=navy
+  const [inView,    setInView   ] = useState(false);
+
+  useEffect(() => {
+    // Observer pour le fade-up
+    const obs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) { setInView(true); obs.disconnect(); }
+    }, { threshold: 0.15 });
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
+  useEffect(() => {
+    // Transition de fond basée sur la position de scroll du snap container
+    const container = ref.current?.closest("[style*='scroll-snap']") as HTMLElement | null;
+    if (!container) return;
+    function handleScroll() {
+      const el = ref.current;
+      if (!el || !container) return;
+      const sTop     = container.scrollTop;
+      const secTop   = el.offsetTop;
+      const winH     = container.clientHeight;
+      // pct : 0 quand la section commence à entrer, 1 quand elle est centrée
+      const raw      = (sTop - (secTop - winH)) / winH;
+      setScrollPct(Math.max(0, Math.min(1, raw)));
+    }
+    container.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => container.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Interpoler la couleur de fond crème → navy
+  function lerpColor(t: number): string {
+    const r = Math.round(249 + (10  - 249) * t);
+    const g = Math.round(248 + (22  - 248) * t);
+    const b = Math.round(246 + (40  - 246) * t);
+    return `rgb(${r},${g},${b})`;
+  }
+  const bg  = lerpColor(scrollPct);
+  const isD = scrollPct > 0.5; // dark = navy dominant
+
+  const textMain  = isD ? "rgba(255,255,255,0.92)" : "rgba(10,22,40,0.92)";
+  const textMuted = isD ? "rgba(255,255,255,0.35)" : "rgba(10,22,40,0.35)";
+  const textLabel = isD ? "rgba(255,255,255,0.22)" : "rgba(10,22,40,0.22)";
+  const divider   = isD ? "rgba(255,255,255,0.08)" : "rgba(10,22,40,0.08)";
+  const btnBg     = isD ? "white"                   : "rgba(10,22,40,0.92)";
+  const btnColor  = isD ? NAVY                      : "white";
+
+  const feurLocal = (n: number) =>
+    new Intl.NumberFormat("fr-FR", {
+      style: "currency", currency: "EUR", maximumFractionDigits: 0,
+    }).format(Math.round(n));
+
+  // Variants stagger
+  const wrapV = {
+    hidden:   {},
+    visible:  { transition: { staggerChildren: 0.18, delayChildren: 0.1 } },
+  };
+  const fadeV = {
+    hidden:   { opacity: 0, y: 20 },
+    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+  };
+
+  const STEPS = [
+    {
+      n: "01", t: "Votre profil",
+      d: "Horizon de placement, tolérance au risque, préférences ESG et zones géographiques.",
+      extra: null,
+    },
+    {
+      n: "02", t: "Filtrage",
+      d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents pour votre profil.",
+      extra: null,
+    },
+    {
+      n: "03", t: "Markowitz",
+      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente et des corrélations réelles.",
+      extra: null,
+    },
+    {
+      n: "04", t: "Résultats",
+      d: "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
+      extra: gain > 0 ? `Optimisé pour capturer vos ${feurLocal(gain)} de gain.` : null,
+    },
+  ];
+
+  return (
+    <section
+      ref={ref}
+      style={{
+        height: "100vh", scrollSnapAlign: "start",
+        background: bg,
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "0 52px",
+        transition: "background .05s linear",
+      }}
+    >
+      <motion.div
+        variants={wrapV}
+        initial="hidden"
+        animate={inView ? "visible" : "hidden"}
+        style={{ width: "100%", maxWidth: 820, display: "flex", flexDirection: "column", alignItems: "center" }}
+      >
+        {/* Eyebrow */}
+        <motion.div variants={fadeV} style={{
+          fontFamily: "'Inter',sans-serif",
+          fontSize: 9, fontWeight: 500, letterSpacing: ".24em",
+          color: textLabel, textTransform: "uppercase",
+          marginBottom: 18, textAlign: "center",
+        }}>
+          Comment ça fonctionne
+        </motion.div>
+
+        {/* Titre */}
+        <motion.h2 variants={fadeV} style={{
+          fontFamily: "'Cormorant Garant',serif",
+          fontSize: "clamp(32px,4.2vw,54px)",
+          fontWeight: 300, fontStyle: "italic",
+          color: textMain, lineHeight: 1.06, marginBottom: 12,
+          textAlign: "center", letterSpacing: "-.02em",
+        }}>
+          7 questions.
+        </motion.h2>
+        <motion.h2 variants={fadeV} style={{
+          fontFamily: "'Cormorant Garant',serif",
+          fontSize: "clamp(32px,4.2vw,54px)",
+          fontWeight: 300,
+          color: textMuted, lineHeight: 1.06, marginBottom: 44,
+          textAlign: "center", letterSpacing: "-.02em",
+        }}>
+          Un portefeuille sur mesure.
+        </motion.h2>
+
+        {/* 4 blocs */}
+        <motion.div variants={fadeV} style={{
+          display: "flex", width: "100%",
+          borderTop: `0.5px solid ${divider}`,
+        }}>
+          {STEPS.map(({ n, t, d, extra }) => (
+            <div key={n} style={{
+              flex: 1, padding: "28px 24px",
+              borderRight: `0.5px solid ${divider}`,
+            }}>
+              {/* Numéro */}
+              <div style={{
+                fontFamily: "'Cormorant Garant',serif",
+                fontSize: 38, fontWeight: 300,
+                color: isD ? "rgba(255,255,255,0.08)" : "rgba(10,22,40,0.07)",
+                lineHeight: 1, marginBottom: 16,
+              }}>{n}</div>
+
+              {/* Titre bloc */}
+              <div style={{
+                fontFamily: "'Inter',sans-serif",
+                fontSize: 10, fontWeight: 500, letterSpacing: ".12em",
+                color: isD ? "rgba(255,255,255,0.72)" : "rgba(10,22,40,0.72)",
+                textTransform: "uppercase", marginBottom: 9,
+              }}>{t}</div>
+
+              {/* Description */}
+              <div style={{
+                fontFamily: "'Inter',sans-serif",
+                fontSize: 11.5, fontWeight: 300,
+                color: textMuted, lineHeight: 1.7,
+              }}>{d}</div>
+
+              {/* Rappel gain (bloc 04) */}
+              {extra && (
+                <div style={{
+                  marginTop: 14,
+                  fontFamily: "'Cormorant Garant',serif",
+                  fontSize: 12.5, fontWeight: 300, fontStyle: "italic",
+                  color: "#4ADE80",
+                  opacity: 0.85,
+                  lineHeight: 1.5,
+                }}>{extra}</div>
+              )}
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Bouton — même style que Hero */}
+        <motion.div variants={fadeV} style={{ marginTop: 36 }}>
+          <motion.button
+            className="btn-cta"
+            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(10,22,40,0.18)" }}
+            whileTap={{ scale: 0.97 }}
+            onClick={onCTA}
+            style={{
+              background: btnBg,
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+              color: btnColor,
+              border: isD ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(255,255,255,0.12)",
+              fontFamily: "'Inter',sans-serif",
+              fontSize: 9, fontWeight: 500, letterSpacing: ".18em",
+              padding: "14px 38px", borderRadius: 8,
+              cursor: "pointer", textTransform: "uppercase",
+            }}
+          >
+            Optimiser mon portefeuille →
+          </motion.button>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
+
 export default function LandingPage() {
   const router       = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activeTab,setActiveTab]=useState(0);
-  const [capital,  setCapital  ]=useState(150000);
-  const [years,    setYears    ]=useState(15);
-  const [cgpFees,  setCgpFees  ]=useState(2.5);
+  const [activeTab,  setActiveTab  ]=useState(0);
+  const [capital,    setCapital    ]=useState(150000);
+  const [years,      setYears      ]=useState(15);
+  const [cgpFees,    setCgpFees    ]=useState(2.5);
+  const [displayGain,setDisplayGain]=useState(0);
 
   useEffect(()=>{
     const c=containerRef.current;
@@ -660,35 +879,12 @@ export default function LandingPage() {
           onCTA={()=>router.push("/auth/register")}
           onScroll={()=>scrollTo(1)}
           activeTab={activeTab} onNav={scrollTo}
+          onGainUpdate={setDisplayGain}
         />
 
-        {/* Section 2 — Comment ça fonctionne */}
-        <section style={{height:"100vh",scrollSnapAlign:"start",background:NAVY,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 52px"}}>
-          <motion.div initial={{opacity:0,y:30}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.9,ease:[0.22,1,0.36,1]}} style={{textAlign:"center",maxWidth:680}}>
-            <div style={{fontFamily:"'Inter',sans-serif",fontSize:8.5,fontWeight:500,letterSpacing:".24em",color:"rgba(255,255,255,0.2)",marginBottom:18,textTransform:"uppercase"}}>Comment ça fonctionne</div>
-            <h2 style={{fontFamily:"'Cormorant Garant',serif",fontSize:"clamp(34px,4.5vw,58px)",fontWeight:300,fontStyle:"italic",color:"white",lineHeight:1.05,marginBottom:14}}>
-              7 questions.<br/>
-              <span style={{color:"rgba(255,255,255,0.35)",fontStyle:"normal"}}>Un portefeuille sur mesure.</span>
-            </h2>
-            <p style={{fontFamily:"'Inter',sans-serif",fontSize:13,fontWeight:300,color:"rgba(255,255,255,0.35)",lineHeight:1.82}}>
-              Notre algorithme filtre 490+ actifs, charge 5 ans de données Yahoo Finance<br/>et calcule la frontière efficiente de Markowitz en 10 000 simulations.
-            </p>
-          </motion.div>
-          <div style={{display:"flex",marginTop:48,width:"100%",maxWidth:820}}>
-            {[{n:"01",t:"Votre profil",d:"Horizon, risque, ESG, géographie"},{n:"02",t:"Filtrage",d:"490+ actifs → 12–40 pertinents"},{n:"03",t:"Markowitz",d:"10 000 simulations Monte Carlo"},{n:"04",t:"Résultats",d:"3 portefeuilles optimaux"}].map(({n,t,d},i)=>(
-              <motion.div key={n} initial={{opacity:0,y:20}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{delay:i*0.09,duration:0.6}} style={{flex:1,padding:"22px 20px",borderLeft:"0.5px solid rgba(255,255,255,0.06)"}}>
-                <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:34,fontWeight:300,color:"rgba(255,255,255,0.08)",marginBottom:14}}>{n}</div>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:10,fontWeight:500,letterSpacing:".10em",color:"rgba(255,255,255,0.70)",marginBottom:7,textTransform:"uppercase"}}>{t}</div>
-                <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:300,color:"rgba(255,255,255,0.28)",lineHeight:1.65}}>{d}</div>
-              </motion.div>
-            ))}
-          </div>
-          <motion.button initial={{opacity:0}} whileInView={{opacity:1}} viewport={{once:true}} transition={{delay:0.4}} whileHover={{scale:1.03}} onClick={()=>router.push("/auth/register")} style={{marginTop:40,background:"white",color:NAVY,border:"none",borderRadius:8,fontFamily:"'Inter',sans-serif",fontSize:9,fontWeight:500,letterSpacing:".16em",padding:"14px 38px",cursor:"pointer",textTransform:"uppercase"}}>
-            Optimiser mon portefeuille →
-          </motion.button>
-        </section>
+        <HowSection gain={displayGain} onCTA={() => router.push("/auth/register")} />
 
-        {/* Section 3 — Simulation */}
+                {/* Section 3 — Simulation */}
         <section style={{height:"100vh",scrollSnapAlign:"start",background:"#F5F4F1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 52px"}}>
           <motion.div initial={{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.8}} style={{width:"100%",maxWidth:860}}>
             <div style={{textAlign:"center",marginBottom:28}}>
