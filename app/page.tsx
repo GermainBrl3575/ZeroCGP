@@ -633,8 +633,8 @@ function HeroSection({
 // ══════════════════════════════════════════════════════════════
 function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  const [hovered, setHovered] = useState<number|null>(null);
+  const [inView,  setInView ] = useState(false);
+  const [focused, setFocused] = useState<number|null>(null);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -650,59 +650,59 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       style: "currency", currency: "EUR", maximumFractionDigits: 0,
     }).format(Math.round(n));
 
-  // Descriptions précises — crédibilité institutionnelle
   const STEPS = [
     {
-      n: "01", t: "Votre profil",
+      n: "01", num: "1", t: "Votre profil",
       d: "Horizon, tolérance au risque, filtres ESG et zones géographiques. Votre ADN d'investisseur.",
+      detail: "Ce diagnostic précis nous permet d'adapter la prise de risque à votre situation patrimoniale réelle, pour un portefeuille qui vous ressemble vraiment.",
     },
     {
-      n: "02", t: "Filtrage",
+      n: "02", num: "2", t: "Filtrage",
       d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents selon votre univers.",
+      detail: "Nous scannons l'univers mondial pour ne retenir que les actifs les plus liquides et performants, éliminant les produits bancaires chargés de frais inutiles.",
     },
     {
-      n: "03", t: "Markowitz",
-      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente et des corrélations réelles.",
+      n: "03", num: "3", t: "Markowitz",
+      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente.",
+      detail: "L'algorithme de Markowitz ne fait pas de suppositions. Il utilise 10 000 scénarios pour trouver l'allocation exacte qui maximise votre rendement pour le risque choisi.",
     },
     {
-      n: "04", t: "Résultats",
+      n: "04", num: "4", t: "Résultats",
       d: "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
-      gain: true,
+      detail: null, // géré à part pour inclure le gain dynamique
     },
   ];
 
   const wrapV = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.16, delayChildren: 0.05 } },
+    hidden:   {},
+    visible:  { transition: { staggerChildren: 0.16, delayChildren: 0.05 } },
   };
   const fadeUp = {
     hidden:  { opacity: 0, y: 18 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
   };
 
+  const isFocused    = focused !== null;
+  const TRANS        = "all 0.38s cubic-bezier(0.22, 1, 0.36, 1)";
+
   return (
     <section
       ref={sectionRef}
       style={{
-        height: "100vh",
-        scrollSnapAlign: "start",
+        height: "100vh", scrollSnapAlign: "start",
         background: NAVY,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "0 52px",
-        position: "relative",
-        overflow: "hidden",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "0 52px", position: "relative", overflow: "hidden",
       }}
     >
-      {/* Radial glow centre */}
+      {/* Radial glow */}
       <div style={{
-        position: "absolute", top: "40%", left: "50%",
-        transform: "translate(-50%,-50%)",
-        width: "60vw", height: "40vh",
-        background: "radial-gradient(ellipse, rgba(30,58,110,0.50) 0%, transparent 70%)",
-        pointerEvents: "none", zIndex: 0,
+        position:"absolute", top:"40%", left:"50%",
+        transform:"translate(-50%,-50%)",
+        width:"60vw", height:"40vh",
+        background:"radial-gradient(ellipse, rgba(30,58,110,0.50) 0%, transparent 70%)",
+        pointerEvents:"none", zIndex:0,
       }}/>
 
       <motion.div
@@ -710,107 +710,174 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         initial="hidden"
         animate={inView ? "visible" : "hidden"}
         style={{
-          width: "100%", maxWidth: 860,
-          display: "flex", flexDirection: "column",
-          alignItems: "center", position: "relative", zIndex: 1,
+          width:"100%", maxWidth:860,
+          display:"flex", flexDirection:"column",
+          alignItems:"center", position:"relative", zIndex:1,
         }}
       >
-        {/* Eyebrow */}
+        {/* Eyebrow + Titres — s'atténuent quand un bloc est en focus */}
         <motion.div variants={fadeUp} style={{
-          fontFamily: "'Inter',sans-serif",
-          fontSize: 9, fontWeight: 500, letterSpacing: ".22em",
-          textTransform: "uppercase", color: "rgba(255,255,255,0.28)",
-          marginBottom: 18,
-        }}>Comment ça fonctionne</motion.div>
-
-        {/* Titre 1 */}
-        <motion.h2 variants={fadeUp} style={{
-          fontFamily: "'Cormorant Garant',serif",
-          fontSize: "clamp(32px,4.2vw,54px)", fontWeight: 300, fontStyle: "italic",
-          letterSpacing: "-.02em", lineHeight: 1.06,
-          color: "rgba(255,255,255,0.95)", textAlign: "center", margin: "0 0 6px",
-        }}>7 questions.</motion.h2>
-
-        {/* Titre 2 */}
-        <motion.h2 variants={fadeUp} style={{
-          fontFamily: "'Cormorant Garant',serif",
-          fontSize: "clamp(32px,4.2vw,54px)", fontWeight: 300,
-          letterSpacing: "-.02em", lineHeight: 1.06,
-          color: "rgba(255,255,255,0.40)", textAlign: "center", margin: "0 0 44px",
-        }}>Un portefeuille sur mesure.</motion.h2>
+          textAlign:"center", marginBottom:44,
+          transition: TRANS,
+          opacity:    isFocused ? 0.12 : 1,
+          filter:     isFocused ? "blur(2px)" : "none",
+        }}>
+          <div style={{
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", textTransform:"uppercase",
+            color:"rgba(255,255,255,0.28)", marginBottom:16,
+          }}>Comment ça fonctionne</div>
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300, fontStyle:"italic",
+            letterSpacing:"-.02em", lineHeight:1.06,
+            color:"rgba(255,255,255,0.95)", margin:"0 0 6px",
+          }}>7 questions.</h2>
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300,
+            letterSpacing:"-.02em", lineHeight:1.06,
+            color:"rgba(255,255,255,0.38)", margin:0,
+          }}>Un portefeuille sur mesure.</h2>
+        </motion.div>
 
         {/* Séparateur haut */}
-        <div style={{ width:"100%", borderTop:"0.5px solid rgba(255,255,255,0.10)", marginBottom:0 }}/>
+        <div style={{
+          width:"100%",
+          borderTop:"0.5px solid rgba(255,255,255,0.10)",
+          transition: TRANS,
+          opacity: isFocused ? 0.15 : 1,
+        }}/>
 
         {/* Blocs */}
         <div style={{ display:"flex", width:"100%" }}>
-          {STEPS.map(({ n, t, d, gain: showGain }, i) => (
-            <motion.div
-              key={n}
-              variants={fadeUp}
-              onHoverStart={() => setHovered(i)}
-              onHoverEnd={() => setHovered(null)}
-              style={{
-                flex: 1, padding: "28px 22px 32px",
-                borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
-                transition: "background .25s",
-                background: hovered === i ? "rgba(255,255,255,0.03)" : "transparent",
-                cursor: "default",
-              }}
-            >
-              {/* Numéro géant — très subtil (5-7%), s'illumine au hover */}
-              <div style={{
-                fontFamily: "'Cormorant Garant',serif",
-                fontSize: 40, fontWeight: 300, lineHeight: 1, marginBottom: 18,
-                letterSpacing: "-.01em",
-                color: hovered === i
-                  ? "rgba(255,255,255,0.14)"
-                  : "rgba(255,255,255,0.06)",
-                transition: "color .25s",
-              }}>{n}</div>
+          {STEPS.map(({ n, num, t, d, detail }, i) => {
+            const isThis = focused === i;
+            const isDimmed = isFocused && !isThis;
+            const detail04 = i === 3
+              ? `Vous obtenez 3 stratégies claires (Prudent, Équilibré, Dynamique), chacune conçue pour capturer la performance du marché tout en préservant votre capital.`
+              : null;
+            const effectiveDetail = detail || detail04;
 
-              {/* Titre du bloc — blanc plein, uppercase */}
-              <div style={{
-                fontFamily: "'Inter',sans-serif",
-                fontSize: 10, fontWeight: 500, letterSpacing: ".12em",
-                textTransform: "uppercase",
-                color: hovered === i
-                  ? "rgba(255,255,255,1.0)"
-                  : "rgba(255,255,255,0.88)",
-                marginBottom: 11,
-                transition: "color .25s",
-              }}>{t}</div>
-
-              {/* Corps — blanc argenté #F1F5F9, bien lisible */}
-              <div style={{
-                fontFamily: "'Inter',sans-serif",
-                fontSize: 12, fontWeight: 300, letterSpacing: ".04em",
-                color: "#F1F5F9",
-                lineHeight: 1.72, opacity: 0.72,
-              }}>{d}</div>
-
-              {/* Rappel gain bloc 04 — vert émeraude lumineux */}
-              {showGain && gain > 0 && (
+            return (
+              <div
+                key={n}
+                onMouseEnter={() => setFocused(i)}
+                onMouseLeave={() => setFocused(null)}
+                style={{
+                  flex: 1,
+                  padding: "26px 20px 30px",
+                  borderRight: i < 3
+                    ? "0.5px solid rgba(255,255,255,0.08)"
+                    : "none",
+                  position: "relative",
+                  overflow: "hidden",
+                  cursor: "default",
+                  transition: TRANS,
+                  // Focus : agrandit + reste net
+                  transform:  isThis  ? "scale(1.04)" : "scale(1)",
+                  opacity:    isDimmed ? 0.12 : 1,
+                  filter:     isDimmed ? "blur(2.5px)" : "none",
+                  background: isThis
+                    ? "rgba(255,255,255,0.04)"
+                    : "transparent",
+                  zIndex: isThis ? 2 : 1,
+                }}
+              >
+                {/* Grand chiffre en fond — opacité 5%, apparaît au focus */}
                 <div style={{
-                  marginTop: 12,
+                  position: "absolute",
+                  right: -12, bottom: -18,
                   fontFamily: "'Cormorant Garant',serif",
-                  fontSize: 13, fontWeight: 300, fontStyle: "italic",
-                  color: "#5CB88A",   // émeraude lumineux sur fond sombre
-                  lineHeight: 1.55,
-                  WebkitFontSmoothing: "antialiased",
-                }}>
-                  Optimisé pour capturer vos {feurLocal(gain)} de gain.
-                </div>
-              )}
-            </motion.div>
-          ))}
+                  fontSize: 140, fontWeight: 300,
+                  color: "white",
+                  lineHeight: 1,
+                  userSelect: "none",
+                  pointerEvents: "none",
+                  transition: TRANS,
+                  opacity: isThis ? 0.05 : 0,
+                  transform: isThis ? "translateY(0)" : "translateY(10px)",
+                }}>{num}</div>
+
+                {/* Numéro petit */}
+                <div style={{
+                  fontFamily: "'Cormorant Garant',serif",
+                  fontSize: 40, fontWeight: 300, lineHeight: 1,
+                  marginBottom: 16, letterSpacing: "-.01em",
+                  transition: TRANS,
+                  color: isThis
+                    ? "rgba(255,255,255,0.22)"
+                    : "rgba(255,255,255,0.07)",
+                }}>{n}</div>
+
+                {/* Titre bloc */}
+                <div style={{
+                  fontFamily: "'Inter',sans-serif",
+                  fontSize: 10, fontWeight: 500, letterSpacing: ".12em",
+                  textTransform: "uppercase",
+                  color: isThis
+                    ? "rgba(255,255,255,1.0)"
+                    : "rgba(255,255,255,0.88)",
+                  marginBottom: 10,
+                  transition: TRANS,
+                }}>{t}</div>
+
+                {/* Description principale */}
+                <div style={{
+                  fontFamily: "'Inter',sans-serif",
+                  fontSize: 12, fontWeight: 300, letterSpacing: ".04em",
+                  color: "#F1F5F9", lineHeight: 1.72,
+                  opacity: 0.72, marginBottom: 0,
+                }}>{d}</div>
+
+                {/* Texte détaillé — fade-in au hover */}
+                <div style={{
+                  fontFamily: "'Inter',sans-serif",
+                  fontSize: 11.5, fontWeight: 300, letterSpacing: ".03em",
+                  color: "rgba(241,245,249,0.72)",
+                  lineHeight: 1.72, marginTop: 12,
+                  transition: TRANS,
+                  opacity:    isThis ? 1 : 0,
+                  transform:  isThis ? "translateY(0)" : "translateY(6px)",
+                  maxHeight:  isThis ? "120px" : "0",
+                  overflow:   "hidden",
+                }}>{effectiveDetail}</div>
+
+                {/* Rappel gain bloc 04 */}
+                {i === 3 && gain > 0 && (
+                  <div style={{
+                    marginTop: 10,
+                    fontFamily: "'Cormorant Garant',serif",
+                    fontSize: 13, fontWeight: 300, fontStyle: "italic",
+                    color: "#5CB88A",
+                    lineHeight: 1.55,
+                    WebkitFontSmoothing: "antialiased",
+                    transition: TRANS,
+                    opacity: isThis ? 1 : 0.6,
+                  }}>
+                    Optimisé pour capturer vos {feurLocal(gain)} de gain.
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Séparateur bas */}
-        <div style={{ width:"100%", borderTop:"0.5px solid rgba(255,255,255,0.10)", marginBottom:36 }}/>
+        <div style={{
+          width:"100%",
+          borderTop:"0.5px solid rgba(255,255,255,0.10)",
+          marginBottom:34,
+          transition: TRANS,
+          opacity: isFocused ? 0.15 : 1,
+        }}/>
 
-        {/* Bouton */}
-        <motion.div variants={fadeUp}>
+        {/* Bouton — s'atténue quand focus actif */}
+        <motion.div variants={fadeUp} style={{
+          transition: TRANS,
+          opacity: isFocused ? 0.12 : 1,
+          filter:  isFocused ? "blur(2px)" : "none",
+        }}>
           <motion.button
             className="btn-cta"
             whileHover={{
@@ -835,9 +902,6 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 }
 
 
-// ══════════════════════════════════════════════════════════════
-// SECTION 3 — LA STRATÉGIE : Preuve par l'algorithme
-// ══════════════════════════════════════════════════════════════
 function StrategySection({ onCTA }: { onCTA: () => void }) {
   const ref    = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
