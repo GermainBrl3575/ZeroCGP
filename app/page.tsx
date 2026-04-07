@@ -207,8 +207,10 @@ const GLOBAL_CSS = `
   to   { transform: rotate(360deg); }
 }
 @keyframes shine {
-  0%{ transform:translateX(-100%) skewX(-16deg); }
-  40%,100%{ transform:translateX(220%) skewX(-16deg); }
+  0%      { transform:translateX(-120%) skewX(-16deg); opacity:0; }
+  2%      { opacity:1; }
+  20%     { transform:translateX(240%) skewX(-16deg); opacity:0; }
+  20.1%,100% { transform:translateX(-120%) skewX(-16deg); opacity:0; }
 }
 .nav-sticky {
   position:sticky; top:0; left:0; right:0; z-index:100;
@@ -222,9 +224,10 @@ const GLOBAL_CSS = `
   border-bottom-color:rgba(10,22,40,0.08);
 }
 @keyframes shimmer-gain {
-  0%,100%{ transform:translateX(-100%) skewX(-15deg); opacity:0; }
-  8%{ opacity:1; }
-  40%{ transform:translateX(220%) skewX(-15deg); opacity:0; }
+  0%      { transform:translateX(-120%) skewX(-15deg); opacity:0; }
+  2%      { opacity:1; }
+  20%     { transform:translateX(240%) skewX(-15deg); opacity:0; }
+  20.1%,100% { transform:translateX(-120%) skewX(-15deg); opacity:0; }
 }
 .gain-shimmer { position:relative; overflow:hidden; display:inline-block; }
 .gain-shimmer::after {
