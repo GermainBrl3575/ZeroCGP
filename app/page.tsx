@@ -1739,7 +1739,6 @@ export default function LandingPage() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const sectionRefs  = useRef<(HTMLElement|null)[]>([null, null, null]);
-  const sectionRefs  = useRef<(HTMLElement|null)[]>([null, null, null]);
   const [activeTab,  setActiveTab  ]=useState(0);
   const [capital,    setCapital    ]=useState(150000);
   const [years,      setYears      ]=useState(15);
