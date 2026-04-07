@@ -1,4 +1,6 @@
 "use client";
+import dynamic from "next/dynamic";
+const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -240,7 +242,7 @@ const CALC_STEPS = [
   "Calcul de la frontière efficiente","Maximisation du ratio de Sharpe",
   "Calcul VaR 95% et CVaR","Validation des contraintes","Génération du rapport final",
 ];
-const CALC_DURATION = 12000;
+const CALC_DURATION = 5500;
 
 type Weight = { symbol:string; name:string; type:string; weight:number; amount:number };
 type FrontierPt = { vol:number; ret:number };
@@ -373,43 +375,29 @@ function OptimizerInner() {
 
   function startCalc() {
     setStep(100);
-    const stepDur = CALC_DURATION/CALC_STEPS.length;
-    let si = 0;
-    const iv = setInterval(()=>{
-      si+=1;setCalcStepIdx(si-1);setCalcPct(Math.min(Math.round((si/CALC_STEPS.length)*100),100));
-      if(si>=CALC_STEPS.length){
+    const cap = parseFloat(capital)||50000;
+    // API lancée IMMÉDIATEMENT en parallèle avec l'animation
+    const apiPromise: Promise<OptResult[]> = (async () => {
+      try {
+        const r = await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({capital:cap,answers:{"1":answers[1]??"","2":answers[2]??"","3":answers[3]??"","4":answers[4]??"","5":multiSel.join(","),"6":answers[6]??"","7":answers[7]??""}}
+        )});
+        if(r.ok){const d=await r.json();if(Array.isArray(d.results)&&d.results.length>0)return d.results.map((x:Record<string,unknown>)=>normalizeResult(x,cap));}
+      } catch {}
+      return buildMockResults(cap);
+    })();
+    // Animation : 8 étapes sur CALC_DURATION, 9e étape attend l'API
+    const stepDur = CALC_DURATION/(CALC_STEPS.length-1);
+    let si=0;
+    const iv=setInterval(()=>{
+      si+=1;setCalcStepIdx(si-1);
+      setCalcPct(Math.round((si/CALC_STEPS.length)*88));
+      if(si>=CALC_STEPS.length-1){
         clearInterval(iv);
-        setTimeout(async()=>{
-          const cap = parseFloat(capital)||50000;
-          let finalResults: OptResult[] = [];
-          try{
-            const r = await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-              capital:cap,
-              answers:{
-                "1":answers[1]??"",
-                "2":answers[2]??"",
-                "3":answers[3]??"",
-                "4":answers[4]??"",
-                "5":multiSel.join(","),
-                "6":answers[6]??"",
-                "7":answers[7]??"",
-              }
-            })});
-            if(r.ok){
-              const d = await r.json();
-              if(Array.isArray(d.results)&&d.results.length>0){
-                finalResults = d.results.map((x: Record<string,unknown>)=>normalizeResult(x,cap));
-                console.log("✅ API OK:", finalResults.length, "portefeuilles");
-              } else {
-                console.warn("⚠️ Fallback mock");
-                finalResults = buildMockResults(cap);
-              }
-            } else { finalResults = buildMockResults(cap); }
-          } catch { finalResults = buildMockResults(cap); }
-          setResults(finalResults);
-          setSel(finalResults.find(r=>r.rec)?.method??finalResults[0]?.method??"maxsharpe");
-          setStep(200);
-        },800);
+        apiPromise.then(finalResults=>{
+          setCalcStepIdx(CALC_STEPS.length-1);setCalcPct(95);
+          setTimeout(()=>{setResults(finalResults);setSel(finalResults.find(r=>r.rec)?.method??finalResults[0]?.method??"maxsharpe");setCalcPct(100);setTimeout(()=>setStep(200),400);},600);
+        });
       }
     },stepDur);
   }
@@ -487,26 +475,12 @@ function OptimizerInner() {
     </div></>);
   }
 
-  // ── Calcul ──
-  if(step===100)return(<><style>{css}</style><div className="op" style={{display:"flex",flexDirection:"column",justifyContent:"center",minHeight:"70vh"}}>
-    <div style={{maxWidth:460}}>
-      <div className="op-ey">CALCUL EN COURS</div>
-      <h2 style={{fontFamily:"'Cormorant Garant',serif",fontSize:34,fontWeight:300,color:NAVY,marginBottom:40,letterSpacing:"-.02em",lineHeight:1.1}}>Optimisation<br/>du portefeuille...</h2>
-      <div style={{display:"flex",flexDirection:"column",gap:14,marginBottom:32}}>
-        {CALC_STEPS.map((cs,i)=>{
-          const done=i<=calcStepIdx,cur=i===calcStepIdx+1;
-          return(<div key={cs} style={{display:"flex",alignItems:"center",gap:14}}>
-            <div style={{width:22,height:22,borderRadius:"50%",flexShrink:0,background:done?NAVY:"rgba(10,22,40,.07)",display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.5s",border:cur?`1px solid ${NAVY_MID}`:"none"}}>
-              {done&&<span style={{color:"white",fontSize:11,fontWeight:600}}>✓</span>}
-            </div>
-            <span style={{fontSize:13,color:done?NAVY:cur?NAVY_MID:"#8A9BB0",transition:"color 0.4s",fontWeight:cur?500:400}}>{cs}</span>
-          </div>);
-        })}
-      </div>
-      <div className="prog-wrap"><div className="prog" style={{width:`${calcPct}%`}}/></div>
-      <div style={{color:"#8A9BB0",fontSize:11,marginTop:8,letterSpacing:".06em"}}>{calcPct}% complété</div>
+  // ── Calcul — Animation Markowitz ──
+  if(step===100)return(<><style>{css}</style>
+    <div style={{background:"#F9F8F6",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <MarkowitzAnim calcPct={calcPct} currentStep={CALC_STEPS[Math.max(0,calcStepIdx)]}/>
     </div>
-  </div></>);
+  </>);
 
   // ── Résultats ──
   if(step===200){
