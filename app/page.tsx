@@ -1751,64 +1751,7 @@ export default function LandingPage() {
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return (
-    {/* ══ NAV Apple Glass — fixed, z:9999, adaptive dark/light ══ */}
-    <nav style={{
-      position:"fixed", top:0, left:0, right:0,
-      zIndex:9999,
-      display:"flex", alignItems:"center", justifyContent:"space-between",
-      padding:"16px 52px",
-      background: darkNav
-        ? "rgba(5,11,20,0.72)"
-        : "rgba(255,255,255,0.70)",
-      backdropFilter:"blur(15px)",
-      WebkitBackdropFilter:"blur(15px)",
-      borderBottom: scrolled
-        ? darkNav
-          ? "0.5px solid rgba(255,255,255,0.08)"
-          : "0.5px solid rgba(10,22,40,0.08)"
-        : "0.5px solid transparent",
-      transition:"background .35s ease, border-color .25s ease",
-    }}>
-      {/* Logo */}
-      <span style={{
-        fontFamily:"'Cormorant Garant',serif",
-        fontSize:12, fontWeight:400, letterSpacing:".38em",
-        color: darkNav ? "rgba(229,231,235,0.88)" : NAVY,
-        textTransform:"uppercase",
-        transition:"color .3s",
-      }}>Zero CGP</span>
-
-      {/* Liens centre */}
-      <div style={{ display:"flex", gap:2 }}>
-        {["Accueil","Comment ça fonctionne","La Stratégie"].map((label,i) => (
-          <button key={i} onClick={()=>scrollTo(i)} style={{
-            background:"none", border:"none", cursor:"pointer",
-            fontFamily:"'Inter',sans-serif",
-            fontSize:9, fontWeight:500, letterSpacing:".13em",
-            color: activeTab===i
-              ? (darkNav ? "rgba(229,231,235,0.92)" : NAVY)
-              : (darkNav ? "rgba(229,231,235,0.30)" : "rgba(10,22,40,0.30)"),
-            padding:"8px 14px", borderRadius:6,
-            textTransform:"uppercase",
-            transition:"color .3s",
-          }}>{label}</button>
-        ))}
-      </div>
-
-      {/* Connexion */}
-      <button onClick={()=>window.location.href="/auth/login"} style={{
-        background:"none",
-        border: darkNav
-          ? "0.5px solid rgba(229,231,235,0.22)"
-          : "0.5px solid rgba(10,22,40,0.18)",
-        fontFamily:"'Inter',sans-serif",
-        fontSize:9, fontWeight:500, letterSpacing:".13em",
-        color: darkNav ? "rgba(229,231,235,0.85)" : NAVY,
-        padding:"8px 20px", borderRadius:7,
-        cursor:"pointer", textTransform:"uppercase",
-        transition:"color .3s, border-color .3s",
-      }}>Connexion</button>
-    </nav>
+    return () => el.removeEventListener("scroll", onScroll);
 ) => el.removeEventListener("scroll", onScroll);
   }, []);
 
