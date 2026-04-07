@@ -900,10 +900,6 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 }
 
 
-function AnimNum({ value, decimals = 1 }: { value: number; decimals?: number }) {
-  const v = useAnimatedNumber(value, decimals);
-  return <>{v.toFixed(decimals)}&nbsp;%</>;
-}
 
 function StrategySection({ onCTA }: { onCTA: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
