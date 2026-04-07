@@ -408,7 +408,7 @@ function HeroSection({
         }}>Zero CGP</span>
 
         <div style={{display:"flex",gap:2}}>
-          {["Accueil","Comment ça fonctionne","Simulation"].map((label,i)=>(
+          {["Accueil","Comment ça fonctionne","La Stratégie"].map((label,i)=>(
             <button key={i} onClick={()=>onNav(i)} style={{
               background:"none",border:"none",cursor:"pointer",
               fontFamily:"'Inter',sans-serif",
@@ -835,6 +835,265 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 }
 
 
+// ══════════════════════════════════════════════════════════════
+// SECTION 3 — LA STRATÉGIE : Preuve par l'algorithme
+// ══════════════════════════════════════════════════════════════
+function StrategySection({ onCTA }: { onCTA: () => void }) {
+  const ref    = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { threshold: 0.1 }
+    );
+    if (ref.current) obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
+
+  const fadeUp = (delay = 0) => ({
+    hidden:   { opacity: 0, y: 16 },
+    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, delay, ease: [0.22, 1, 0.36, 1] } },
+  });
+
+  const FEES = [
+    { label: "Frais de gestion bancaire",  bank: "1.5 %", zero: "0 %",   note: "Prélevés sur l'encours annuel" },
+    { label: "Frais sur versement",        bank: "2.0 %", zero: "0 %",   note: "À chaque investissement" },
+    { label: "Frais de courtage",          bank: "0.5 %", zero: "0 %",   note: "À chaque transaction" },
+    { label: "Rétrocessions (kickbacks)",  bank: "0.8 %", zero: "0 %",   note: "Commissions cachées" },
+    { label: "Frais de structure (ETF)",   bank: "—",     zero: "~0.20 %", note: "Seul coût résiduel", accent: true },
+  ];
+
+  return (
+    <section
+      ref={ref}
+      style={{
+        height: "100vh", scrollSnapAlign: "start",
+        background: "#F9F8F6",
+        display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center",
+        padding: "0 52px", overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      {/* Grain */}
+      <div className="hero-grain" style={{ position:"absolute",inset:0,zIndex:0,pointerEvents:"none" }}/>
+
+      <div style={{ width:"100%", maxWidth:860, position:"relative", zIndex:1 }}>
+
+        {/* ── Eyebrow + Titre ──────────────────────────────── */}
+        <motion.div variants={fadeUp(0)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ textAlign:"center", marginBottom:40 }}>
+          <div style={{
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", color:"rgba(10,22,40,0.34)",
+            textTransform:"uppercase", marginBottom:12,
+          }}>La stratégie</div>
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(28px,3.8vw,46px)", fontWeight:300,
+            letterSpacing:"-.02em", lineHeight:1.06,
+            color:NAVY, margin:"0 0 8px",
+          }}>Preuve par l'algorithme.</h2>
+          <p style={{
+            fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:300,
+            color:"rgba(10,22,40,0.44)", lineHeight:1.7,
+          }}>Deux moteurs. Une frontière efficiente. Zéro compromis.</p>
+        </motion.div>
+
+        {/* ── Deux moteurs ─────────────────────────────────── */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1px 1fr", gap:0, marginBottom:36 }}>
+
+          {/* Moteur Alpha — Actions */}
+          <motion.div variants={fadeUp(0.1)} initial="hidden" animate={inView?"visible":"hidden"}
+            style={{ padding:"0 32px 0 0" }}>
+            <div style={{ marginBottom:20, height:72 }}>
+              <ConstellationSVG />
+            </div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".18em", color:"rgba(10,22,40,0.36)",
+              textTransform:"uppercase", marginBottom:8,
+            }}>Moteur Alpha</div>
+            <h3 style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:"clamp(20px,2.4vw,30px)", fontWeight:300, fontStyle:"italic",
+              color:NAVY, letterSpacing:"-.02em", margin:"0 0 10px",
+            }}>Actions — Croissance pure</h3>
+            <p style={{
+              fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
+              letterSpacing:".04em", color:"rgba(10,22,40,0.55)", lineHeight:1.72,
+            }}>
+              L'algorithme sélectionne des titres vifs — LVMH, Apple, ASML, Novo Nordisk —
+              pour capturer la croissance directe des entreprises les plus performantes.
+              Approche <em>concentrée</em>, conviction maximale.
+            </p>
+          </motion.div>
+
+          {/* Séparateur vertical */}
+          <div style={{ background:"rgba(10,22,40,0.08)", margin:"0 24px" }}/>
+
+          {/* Moteur Bêta — ETF */}
+          <motion.div variants={fadeUp(0.2)} initial="hidden" animate={inView?"visible":"hidden"}
+            style={{ padding:"0 0 0 32px" }}>
+            <div style={{ marginBottom:20, height:72 }}>
+              <SphereSVG />
+            </div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".18em", color:"rgba(10,22,40,0.36)",
+              textTransform:"uppercase", marginBottom:8,
+            }}>Moteur Bêta</div>
+            <h3 style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:"clamp(20px,2.4vw,30px)", fontWeight:300, fontStyle:"italic",
+              color:NAVY, letterSpacing:"-.02em", margin:"0 0 10px",
+            }}>ETF — Diversification institutionnelle</h3>
+            <p style={{
+              fontFamily:"'Inter',sans-serif", fontSize:11.5, fontWeight:300,
+              letterSpacing:".04em", color:"rgba(10,22,40,0.55)", lineHeight:1.72,
+            }}>
+              Les indices mondiaux (MSCI World, S&amp;P 500, marchés émergents) offrent
+              une diversification totale à frais quasi-nuls. L'approche des fonds souverains.
+              Frais structurels&nbsp;: ~0,20&nbsp;%/an.
+            </p>
+          </motion.div>
+        </div>
+
+        {/* ── Tableau des frais ────────────────────────────── */}
+        <motion.div variants={fadeUp(0.25)} initial="hidden" animate={inView?"visible":"hidden"}>
+          <div style={{
+            display:"flex", alignItems:"baseline", justifyContent:"space-between",
+            marginBottom:14,
+          }}>
+            <div style={{
+              fontFamily:"'Cormorant Garant',serif",
+              fontSize:"clamp(16px,1.8vw,22px)", fontWeight:300, fontStyle:"italic",
+              color:NAVY, letterSpacing:"-.01em",
+            }}>L'érosion silencieuse de votre capital</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+              letterSpacing:".12em", color:"rgba(10,22,40,0.30)",
+              textTransform:"uppercase",
+            }}>Frais annuels comparés</div>
+          </div>
+
+          <table style={{ width:"100%", borderCollapse:"collapse" }}>
+            <thead>
+              <tr style={{ borderBottom:"0.5px solid rgba(10,22,40,0.12)" }}>
+                <th style={{ ...thStyle, textAlign:"left" }}>Type de frais</th>
+                <th style={{ ...thStyle, textAlign:"right", color:"rgba(10,22,40,0.40)" }}>Banque privée</th>
+                <th style={{ ...thStyle, textAlign:"right", color:NAVY }}>Zero CGP</th>
+                <th style={{ ...thStyle, textAlign:"left", fontWeight:400 }}>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              {FEES.map(({ label, bank, zero, note, accent }) => (
+                <tr key={label} style={{
+                  borderBottom: "0.5px solid rgba(10,22,40,0.06)",
+                  background: accent ? "rgba(45,90,67,0.04)" : "transparent",
+                }}>
+                  <td style={{ ...tdStyle, color: accent ? "#2D5A43" : "rgba(10,22,40,0.72)", fontStyle: accent ? "italic" : "normal" }}>{label}</td>
+                  <td style={{ ...tdStyle, textAlign:"right", fontFamily:"'Cormorant Garant',serif", fontSize:16, color:"rgba(10,22,40,0.38)" }}>{bank}</td>
+                  <td style={{ ...tdStyle, textAlign:"right", fontFamily:"'Cormorant Garant',serif", fontSize:16, fontWeight:400, color: accent ? "#2D5A43" : "#0A6634" }}>{zero}</td>
+                  <td style={{ ...tdStyle, color:"rgba(10,22,40,0.36)", fontStyle:"italic", fontSize:10 }}>{note}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </motion.div>
+
+        {/* ── CTA ──────────────────────────────────────────── */}
+        <motion.div variants={fadeUp(0.35)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ display:"flex", justifyContent:"center", marginTop:28 }}>
+          <motion.button
+            className="btn-cta"
+            whileHover={{ scale:1.04, boxShadow:"0 8px 30px rgba(10,22,40,0.14)" }}
+            whileTap={{ scale:0.97 }}
+            onClick={onCTA}
+            style={{
+              background:"rgba(10,22,40,0.92)",
+              backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)",
+              color:"white", border:"1px solid rgba(255,255,255,0.07)",
+              fontFamily:"'Inter',sans-serif",
+              fontSize:9, fontWeight:500, letterSpacing:".18em",
+              padding:"14px 38px", borderRadius:8,
+              cursor:"pointer", textTransform:"uppercase",
+            }}
+          >Accéder à l'optimiseur →</motion.button>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+// ── Styles tableau ────────────────────────────────────────────
+const thStyle: { [key: string]: string | number } = {
+  fontFamily: "'Inter',sans-serif",
+  fontSize: 8.5, fontWeight: 500,
+  letterSpacing: ".14em", textTransform: "uppercase",
+  color: "rgba(10,22,40,0.40)",
+  padding: "8px 12px",
+};
+const tdStyle: { [key: string]: string | number } = {
+  fontFamily: "'Inter',sans-serif",
+  fontSize: 11.5, fontWeight: 300,
+  letterSpacing: ".03em", color: "rgba(10,22,40,0.65)",
+  padding: "9px 12px", lineHeight: 1.5,
+};
+
+// ── SVG Constellation (Moteur Alpha) ──────────────────────────
+function ConstellationSVG() {
+  const nodes: [number, number][] = [
+    [20,18],[55,8],[90,22],[38,40],[72,35],[110,14],[52,56],[88,50],[118,38]
+  ];
+  const edges: [number,number][] = [[0,1],[1,2],[0,3],[1,3],[1,4],[2,4],[2,5],[3,6],[4,6],[4,7],[5,7],[5,8],[7,8]];
+  return (
+    <svg viewBox="0 0 138 66" width={138} height={66}>
+      {edges.map(([a,b],i)=>(
+        <line key={i}
+          x1={nodes[a][0]} y1={nodes[a][1]}
+          x2={nodes[b][0]} y2={nodes[b][1]}
+          stroke="rgba(10,22,40,0.14)" strokeWidth="0.5"
+        />
+      ))}
+      {nodes.map(([x,y],i)=>(
+        <circle key={i} cx={x} cy={y} r={i===4?3.5:2}
+          fill={i===4?NAVY:"rgba(10,22,40,0.35)"}
+        />
+      ))}
+    </svg>
+  );
+}
+
+// ── SVG Sphère (Moteur Bêta) ──────────────────────────────────
+function SphereSVG() {
+  return (
+    <svg viewBox="0 0 72 66" width={72} height={66}>
+      <defs>
+        <clipPath id="sc"><ellipse cx="36" cy="33" rx="26" ry="26"/></clipPath>
+      </defs>
+      <ellipse cx="36" cy="33" rx="26" ry="26" fill="none" stroke="rgba(10,22,40,0.15)" strokeWidth="0.5"/>
+      {/* Méridiens */}
+      {[-16,-6,0,6,16].map((offset,i)=>(
+        <ellipse key={i} cx="36" cy="33" rx={Math.abs(offset)||2} ry="26"
+          fill="none" stroke="rgba(10,22,40,0.12)" strokeWidth="0.5"
+          clipPath="url(#sc)"
+        />
+      ))}
+      {/* Parallèles */}
+      {[-12,-4,4,12].map((offset,i)=>(
+        <ellipse key={i} cx="36" cy={33+offset}
+          rx={Math.sqrt(Math.max(0,26*26-offset*offset))} ry="5"
+          fill="none" stroke="rgba(10,22,40,0.10)" strokeWidth="0.5"
+        />
+      ))}
+      <circle cx="36" cy="33" r="3" fill={NAVY}/>
+    </svg>
+  );
+}
+
+
 export default function LandingPage() {
   const router       = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -882,49 +1141,8 @@ export default function LandingPage() {
 
         <HowSection gain={displayGain} onCTA={() => router.push("/auth/register")} />
 
-                {/* Section 3 — Simulation */}
-        <section style={{height:"100vh",scrollSnapAlign:"start",background:"#F5F4F1",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"0 52px"}}>
-          <motion.div initial={{opacity:0,y:24}} whileInView={{opacity:1,y:0}} viewport={{once:true}} transition={{duration:0.8}} style={{width:"100%",maxWidth:860}}>
-            <div style={{textAlign:"center",marginBottom:28}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:8.5,fontWeight:500,letterSpacing:".22em",color:"#8A9BB0",marginBottom:10,textTransform:"uppercase"}}>Simulation</div>
-              <h2 style={{fontFamily:"'Cormorant Garant',serif",fontSize:"clamp(28px,3.8vw,48px)",fontWeight:300,letterSpacing:"-.02em",color:NAVY,marginBottom:6}}>Combien perdez-vous chaque année ?</h2>
-              <p style={{fontFamily:"'Inter',sans-serif",fontSize:12,color:"#8A9BB0",fontWeight:300}}>Frais de gestion actuels vs stratégie ETF passive.</p>
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:28,marginBottom:24}}>
-              {[
-                {label:"Capital",val:feur(capital),min:10000,max:1000000,step:10000,v:capital,set:(n:number)=>setCapital(n)},
-                {label:"Durée",val:`${years} ans`,min:5,max:40,step:1,v:years,set:(n:number)=>setYears(n)},
-                {label:"Frais (%/an)",val:`${cgpFees.toFixed(1)}%`,min:0.5,max:4,step:0.1,v:cgpFees,set:(n:number)=>setCgpFees(n)},
-              ].map(({label,val,min,max,step,v,set})=>(
-                <div key={label}>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:10}}>
-                    <span style={{fontFamily:"'Inter',sans-serif",fontSize:8.5,fontWeight:500,letterSpacing:".12em",color:"#8A9BB0",textTransform:"uppercase"}}>{label}</span>
-                    <span style={{fontFamily:"'Cormorant Garant',serif",fontSize:19,fontWeight:400,color:NAVY}}>{val}</span>
-                  </div>
-                  <input type="range" min={min} max={max} step={step} value={v} onChange={e=>set(Number(e.target.value))} style={{width:"100%"}}/>
-                </div>
-              ))}
-            </div>
-            <div style={{background:"white",borderRadius:12,padding:"22px",boxShadow:"0 1px 16px rgba(10,22,40,0.04)"}}>
-              <ResponsiveContainer width="100%" height={210}>
-                <LineChart data={chartData}>
-                  <XAxis dataKey="an" tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false} tickFormatter={(v:number)=>`An ${v}`} interval={Math.floor(years/4)}/>
-                  <YAxis tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false} tickFormatter={(v:number)=>v>=1e6?`${(v/1e6).toFixed(1)}M€`:`${Math.round(v/1000)}k€`} width={54}/>
-                  <Tooltip content={<CustomTooltip/>}/>
-                  <Line type="monotone" dataKey="ETF MSCI World (Zero CGP)" stroke="#16A34A" strokeWidth={2.5} dot={false} activeDot={{r:4}}/>
-                  <Line type="monotone" dataKey="Banque / CGP" stroke="#DC2626" strokeWidth={2} dot={false} strokeDasharray="5 3" activeDot={{r:4}}/>
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-            <div style={{marginTop:14,display:"flex",alignItems:"center",justifyContent:"space-between",background:NAVY,borderRadius:10,padding:"15px 24px"}}>
-              <div style={{fontFamily:"'Inter',sans-serif",fontSize:11,fontWeight:300,color:"rgba(255,255,255,0.38)",letterSpacing:".04em"}}>Manque à gagner sur {years} ans</div>
-              <div style={{fontFamily:"'Cormorant Garant',serif",fontSize:28,fontWeight:300,color:"#F87171"}}>{feur(manque)}</div>
-              <motion.button whileHover={{scale:1.04}} onClick={()=>router.push("/auth/register")} style={{background:"white",color:NAVY,border:"none",fontFamily:"'Inter',sans-serif",fontSize:9,fontWeight:500,letterSpacing:".14em",padding:"10px 24px",borderRadius:8,cursor:"pointer",textTransform:"uppercase"}}>
-                Récupérer {feur(manque)} →
-              </motion.button>
-            </div>
-          </motion.div>
-        </section>
+                {/* ═══════════════ SECTION 3 — LA STRATÉGIE ═══════════════ */}
+        <StrategySection onCTA={() => router.push("/auth/register")} />
 
       </div>
     </>
