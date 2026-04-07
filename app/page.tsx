@@ -196,6 +196,22 @@ const GLOBAL_CSS = `
 .nav-sticky.scrolled {
   border-bottom-color:rgba(10,22,40,0.08);
 }
+@keyframes shimmer-gain {
+  0%,100%{ transform:translateX(-100%) skewX(-15deg); opacity:0; }
+  8%{ opacity:1; }
+  40%{ transform:translateX(220%) skewX(-15deg); opacity:0; }
+}
+.gain-shimmer { position:relative; overflow:hidden; display:inline-block; }
+.gain-shimmer::after {
+  content:"";
+  position:absolute; top:0; left:0;
+  width:40%; height:100%;
+  background:linear-gradient(90deg,transparent,rgba(74,222,128,0.18),transparent);
+  transform:translateX(-100%) skewX(-15deg);
+  animation:shimmer-gain 5s ease-in-out infinite;
+}
+.table-row-hover { transition:background .22s ease; }
+.table-row-hover:hover { background:rgba(30,41,59,0.55) !important; }
 @keyframes pulse-glow {
   0%,100%{ opacity:0.35; }
   50%{ opacity:0.65; }
@@ -1018,20 +1034,19 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 
 function StrategySection({ onCTA }: { onCTA: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [inView,    setInView   ] = useState(false);
-  const [bankKey,   setBankKey  ] = useState("bnp");
-  const [envelopes, setEnvelopes] = useState<Set<EnvelopeKey>>(new Set(["pea"]));
-  const [years,     setYears    ] = useState(15);
+  const [inView,      setInView     ] = useState(false);
+  const [bankKey,     setBankKey    ] = useState("bnp");
+  const [envelopes,   setEnvelopes  ] = useState<Set<EnvelopeKey>>(new Set(["pea"]));
+  const [years,       setYears      ] = useState(15);
   const [barsStarted, setBarsStarted] = useState(false);
-  const [revealed,  setRevealed ] = useState<boolean[]>([]);
+  const [revealed,    setRevealed   ] = useState<boolean[]>([]);
 
-  // Observer
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
           setInView(true);
-          setTimeout(() => setBarsStarted(true), 400);
+          setTimeout(() => setBarsStarted(true), 500);
           obs.disconnect();
         }
       },
@@ -1049,7 +1064,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
       return next;
     });
     setBarsStarted(false);
-    setTimeout(() => setBarsStarted(true), 80);
+    setTimeout(() => setBarsStarted(true), 100);
   }
 
   useEffect(() => {
@@ -1057,79 +1072,84 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
     setRevealed([]);
     const t = setTimeout(() => {
       Array.from({length: 8}).forEach((_,i) =>
-        setTimeout(() => setRevealed(p => { const n=[...p]; n[i]=true; return n; }), 50 + i*70)
+        setTimeout(() => setRevealed(p => { const n=[...p]; n[i]=true; return n; }), 40 + i*70)
       );
     }, 20);
     return () => clearTimeout(t);
   }, [inView, bankKey, envelopes, years]);
 
-  const bank   = BANKS[bankKey];
-  const MSCI   = 0.08;
+  const bank    = BANKS[bankKey];
+  const MSCI    = 0.08;
   const envList = Array.from(envelopes);
   const envData = envList.map(k => ENVELOPES[k]);
   const avgContrat = envData.reduce((s,e) => s + e.fraisContrat, 0) / envList.length;
   const avgVers    = envData.reduce((s,e) => s + e.fraisVersement, 0) / envList.length;
   const hasAV      = envelopes.has("av");
 
+  // ── Frais gestion ACTIVE ──────────────────────────────────
   const actif_garde   = bank.garde;
   const actif_opcvm   = bank.opcvm;
   const actif_contrat = avgContrat;
   const actif_vers    = avgVers;
   const actif_court   = bank.courtage;
   const actif_total   = actif_garde + actif_opcvm + actif_contrat;
-  const passif_contrat = hasAV ? 0.30 : 0;
-  const passif_etf     = 0.20;
-  const passif_court   = 0.20;
-  const passif_total   = passif_contrat + passif_etf;
 
-  const CAPITAL = 150000;
+  // ── Frais gestion PASSIVE (dépendent du courtier) ─────────
+  // En gestion passive, on ne paie que : ETF + courtage + garde si banque trad
+  const passif_garde   = bank.type === "banque_trad" ? bank.garde : 0; // garde même sur ETF chez banque trad
+  const passif_etf     = 0.20;          // TER moyen ETF MSCI World
+  const passif_contrat = hasAV ? 0.30 : 0;
+  const passif_court   = bank.courtage; // même courtier, même tarif
+  const passif_total   = passif_garde + passif_etf + passif_contrat;
+
+  const CAPITAL    = 150000;
   const actifFinal  = CAPITAL * (1 - actif_vers/100) * Math.pow(1 + MSCI - actif_total/100, years);
   const passifFinal = CAPITAL * Math.pow(1 + MSCI - passif_total/100, years);
   const gain        = passifFinal - actifFinal;
   const capturePct  = (actif_total / (MSCI * 100)) * 100;
-
-  // Pourcentages des barres — normalisés sur passifFinal
-  const barMax    = passifFinal;
-  const barActif  = Math.min((actifFinal / barMax) * 100, 100);
-  const barPassif = 100;
+  const barActif    = Math.min((actifFinal / passifFinal) * 100, 100);
 
   const feurL = (n: number) =>
     new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0})
     .format(Math.round(Math.max(0,n)));
 
+  // Hooks animés
   const a_garde_a  = useAnimatedNumber(actif_garde);
   const a_opcvm_a  = useAnimatedNumber(actif_opcvm);
   const a_cont_a   = useAnimatedNumber(actif_contrat);
   const a_vers_a   = useAnimatedNumber(actif_vers);
   const a_court_a  = useAnimatedNumber(actif_court);
   const a_total_a  = useAnimatedNumber(actif_total);
-  const p_cont_a   = useAnimatedNumber(passif_contrat);
+  const p_garde_a  = useAnimatedNumber(passif_garde);
   const p_etf_a    = useAnimatedNumber(passif_etf);
+  const p_cont_a   = useAnimatedNumber(passif_contrat);
   const p_court_a  = useAnimatedNumber(passif_court);
   const p_total_a  = useAnimatedNumber(passif_total);
-  const gainAni    = useAnimatedNumber(gain, 0, 1200);
-  const captureAni = useAnimatedNumber(capturePct, 1, 800);
-  const actifFinalAni  = useAnimatedNumber(actifFinal, 0, 2800);
-  const passifFinalAni = useAnimatedNumber(passifFinal, 0, 2800);
+  const gainAni        = useAnimatedNumber(gain, 0, 1200);
+  const captureAni     = useAnimatedNumber(capturePct, 1, 800);
+  const actifFinalAni  = useAnimatedNumber(actifFinal, 0, 3000);
+  const passifFinalAni = useAnimatedNumber(passifFinal, 0, 3000);
 
-  // Fade-up + blur reveal
   const fadeV = (d = 0) => ({
-    hidden:  { opacity:0, y:16, filter:"blur(6px)" },
+    hidden:  { opacity:0, y:14, filter:"blur(5px)" },
     visible: { opacity:1, y:0,  filter:"blur(0px)",
       transition:{ duration:0.75, delay:d, ease:[0.22,1,0.36,1] } },
   });
 
-  // Palette nuit
+  // ── Palette haute horlogerie ──────────────────────────────
   const BG      = "#050B14";
-  const TEXT_W  = "rgba(229,231,235,0.92)";   // #E5E7EB blanc argenté
-  const TEXT_M  = "rgba(229,231,235,0.38)";
-  const TEXT_S  = "rgba(229,231,235,0.20)";
+  const TEXT_W  = "rgba(229,231,235,0.90)";
+  const TEXT_M  = "rgba(229,231,235,0.40)";
+  const TEXT_S  = "rgba(229,231,235,0.22)";
   const DIV     = "0.5px solid rgba(255,255,255,0.07)";
-  const DIV_MED = "0.5px solid rgba(255,255,255,0.14)";
-  const ROUGE   = "#7F1D1D";  // rouge sombre désaturé
-  const ROUGE_L = "#FCA5A5";
-  const VERT    = "#1A4731";  // vert sombre
-  const VERT_L  = "#6EE7B7";  // vert lumineux pour barres + gain
+  const DIV_MED = "0.5px solid rgba(255,255,255,0.12)";
+
+  // Couleurs adoucies — haute horlogerie
+  const ROUGE   = "rgba(248,113,113,0.80)";   // rouge corail doux
+  const ROUGE_B = "rgba(127,29,29,0.55)";      // rouge foncé barre
+  const VERT    = "rgba(74,222,128,0.80)";     // vert émeraude sourd
+  const VERT_B  = "rgba(20,83,45,0.60)";       // vert foncé barre
+  const VERT_G  = "rgba(74,222,128,0.16)";     // lueur gain
 
   const ROWS = [
     {
@@ -1139,18 +1159,22 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           label:"Droits de garde",
           sub: bank.type === "banque_trad"
             ? "Conservation des titres — prélevé annuellement sur l'encours"
-            : "0% sur PEA/CTO chez les courtiers en ligne",
-          actif:a_garde_a, passifStr:"0 %", isZero:bank.garde===0, idx:0,
+            : "Aucun droit de garde sur PEA/CTO chez les courtiers en ligne",
+          actif: a_garde_a, passifVal: p_garde_a,
+          passifNote: bank.type==="banque_trad" ? "Maintenu même sur ETF" : "0 %",
+          isZeroPassif: passif_garde === 0, idx:0,
         },
         ...(hasAV ? [{
           label:"Frais de gestion du contrat",
-          sub:"Assurance-vie : ~0.75%/an banque trad. · ~0.30%/an en ligne",
-          actif:a_cont_a, passifStr:`${p_cont_a.toFixed(2)} %`, isZero:false, idx:1,
+          sub:"Assurance-vie : ~0.75%/an banque trad. · ~0.30%/an en ligne (Linxea, Lucya)",
+          actif: a_cont_a, passifVal: p_cont_a,
+          passifNote: "~0.30 % (AV en ligne)", isZeroPassif: false, idx:1,
         }] : []),
         {
           label:"Frais des supports investis",
-          sub:"OPCVM actifs : 1.5–2.5%/an · Titres vifs + ETF : 0.10–0.20%/an",
-          actif:a_opcvm_a, passifStr:"~0.20 %", isKey:true, isZero:false, idx:2,
+          sub:"OPCVM actifs : 1.5–2.5%/an · Titres vifs + ETF via Zero CGP : 0.10–0.20%/an",
+          actif: a_opcvm_a, passifVal: p_etf_a,
+          passifNote: "~0.20 %", isKey:true, isZeroPassif:false, idx:2,
         },
       ],
     },
@@ -1161,14 +1185,16 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           label:"Frais sur versement",
           sub: envList.includes("av") && bank.type==="banque_trad"
             ? "Assurance-vie bancaire : jusqu'à 3–4% sur chaque versement"
-            : "0% sur PEA/CTO (loi Pacte 2019) · 0% sur AV en ligne",
-          actif:a_vers_a, passifStr:"0 %", isZero:actif_vers===0, idx:3,
+            : "0% sur PEA/CTO (loi Pacte) · 0% sur AV en ligne",
+          actif: a_vers_a, passifVal: { toFixed: () => "0", valueOf: () => 0 } as unknown as { toFixed:(n:number)=>string },
+          passifNote:"0 %", isZeroPassif:true, idx:3,
         },
         {
           label:"Frais de courtage",
-          sub:"Inhérent à tout achat de titre — incompressible quel que soit le courtier",
-          actif:a_court_a, passifStr:`~${p_court_a.toFixed(2)} %`,
-          isResidual:true, isZero:false, idx:4,
+          sub:"Même courtier, même tarif — inhérent à tout achat de titre ou ETF",
+          actif: a_court_a, passifVal: p_court_a,
+          passifNote:`${passif_court.toFixed(2)} %`,
+          isResidual:true, isZeroPassif:false, idx:4,
         },
       ],
     },
@@ -1180,14 +1206,14 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
       background:BG,
       display:"flex", flexDirection:"column",
       alignItems:"center",
-      padding:"0 52px 72px", overflow:"hidden", position:"relative",
+      padding:"0 52px 80px", overflow:"hidden", position:"relative",
     }}>
-      {/* Radial glow centre-haut */}
+      {/* Glow ambiant — très subtil */}
       <div style={{
         position:"absolute", top:0, left:"50%",
         transform:"translateX(-50%)",
-        width:"80vw", height:"50vh",
-        background:"radial-gradient(ellipse at 50% 0%, rgba(110,231,183,0.04) 0%, transparent 65%)",
+        width:"70vw", height:"45vh",
+        background:"radial-gradient(ellipse at 50% 0%, rgba(74,222,128,0.035) 0%, transparent 65%)",
         pointerEvents:"none", zIndex:0,
       }}/>
 
@@ -1195,7 +1221,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
 
         {/* ── BLOC 1 : Stratégie d'investissement ─────────────── */}
         <motion.div variants={fadeV(0)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ paddingTop:64, paddingBottom:44 }}>
+          style={{ paddingTop:64, paddingBottom:52 }}>
 
           <div style={{
             fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
@@ -1206,24 +1232,21 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           <h2 style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(28px,3.6vw,44px)", fontWeight:300,
-            letterSpacing:"-.02em", color:TEXT_W,
-            margin:"0 0 12px",
+            letterSpacing:"-.02em", color:TEXT_W, margin:"0 0 14px",
           }}>Deux moteurs. Une frontière efficiente.</h2>
 
           <p style={{
             fontFamily:"'Inter',sans-serif", fontSize:12.5, fontWeight:300,
-            color:TEXT_M, lineHeight:1.78, maxWidth:560, margin:"0 0 32px",
+            color:TEXT_M, lineHeight:1.78, maxWidth:560, margin:"0 0 36px",
           }}>
             Zero CGP optimise votre allocation entre{" "}
-            <em style={{color:"rgba(229,231,235,0.65)"}}>titres vifs</em>{" "}
-            (Moteur Alpha) et{" "}
-            <em style={{color:"rgba(229,231,235,0.65)"}}>ETF</em>{" "}
+            <em style={{color:"rgba(229,231,235,0.62)"}}>titres vifs</em>{" "}
+            (Moteur Alpha) et <em style={{color:"rgba(229,231,235,0.62)"}}>ETF</em>{" "}
             (Moteur Bêta) via l'algorithme de Markowitz. Vous recevez les quantités
             exactes à acheter et les exécutez chez le courtier de votre choix.
             Seul le courtage reste — les frais de gestion active disparaissent.
           </p>
 
-          {/* Cartes glassmorphism */}
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
             {[
               {
@@ -1241,17 +1264,15 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                 background:"rgba(255,255,255,0.04)",
                 backdropFilter:"blur(20px)",
                 WebkitBackdropFilter:"blur(20px)",
-                border:DIV,
-                borderRadius:12,
-                padding:"22px 22px",
+                border:DIV, borderRadius:12, padding:"22px",
                 position:"relative", overflow:"hidden",
+                transition:"border-color .3s",
               }}>
-                {/* Pulse interne */}
                 <div style={{
                   position:"absolute", top:-20, right:-20,
                   width:80, height:80,
-                  background:"radial-gradient(circle, rgba(110,231,183,0.08) 0%, transparent 70%)",
-                  animation:"pulse-glow 3s ease-in-out infinite",
+                  background:`radial-gradient(circle, ${VERT_G} 0%, transparent 70%)`,
+                  animation:"pulse-glow 4s ease-in-out infinite",
                   pointerEvents:"none",
                 }}/>
                 <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:14 }}>
@@ -1278,25 +1299,25 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           </div>
         </motion.div>
 
-        {/* ── BLOC 2 : Comparateur + Duel barres ──────────────── */}
-        <motion.div variants={fadeV(0.07)} initial="hidden" animate={inView?"visible":"hidden"}
-          style={{ paddingTop:0, borderTop:DIV }}>
+        {/* ── BLOC 2 : Comparateur ─────────────────────────────── */}
+        <motion.div variants={fadeV(0.08)} initial="hidden" animate={inView?"visible":"hidden"}
+          style={{ borderTop:DIV }}>
 
           <div style={{
             fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
             letterSpacing:".22em", textTransform:"uppercase",
-            color:TEXT_S, margin:"36px 0 14px",
+            color:TEXT_S, margin:"40px 0 14px",
           }}>Comparateur de frais</div>
 
           <h2 style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(24px,3vw,38px)", fontWeight:300,
-            letterSpacing:"-.02em", color:TEXT_W,
-            margin:"0 0 24px",
+            letterSpacing:"-.02em", color:TEXT_W, margin:"0 0 28px",
           }}>Gestion active vs gestion passive.</h2>
 
           {/* Sélecteurs */}
-          <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", marginBottom:28 }}>
+          <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", marginBottom:32 }}>
+            {/* Enveloppes */}
             <div style={{ display:"flex", gap:5, flexWrap:"wrap" }}>
               {(["pea","cto","av"] as EnvelopeKey[]).map(k => {
                 const active = envelopes.has(k);
@@ -1305,17 +1326,19 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                     fontFamily:"'Inter',sans-serif",
                     fontSize:9, fontWeight:500, letterSpacing:".10em",
                     textTransform:"uppercase",
-                    color: active ? "#050B14" : TEXT_M,
-                    background: active ? VERT_L : "rgba(255,255,255,0.04)",
-                    border: active ? "none" : DIV,
+                    color: active ? TEXT_W : TEXT_M,
+                    background: active ? "rgba(74,222,128,0.12)" : "transparent",
+                    border: active ? `0.5px solid rgba(74,222,128,0.35)` : DIV,
                     borderRadius:100, padding:"7px 16px",
-                    cursor:"pointer", transition:"all .18s",
+                    cursor:"pointer", transition:"all .20s",
                     display:"flex", alignItems:"center", gap:5,
                   }}>
                     {active && (
-                      <svg width="8" height="6" viewBox="0 0 8 6" fill="none">
-                        <path d="M1 3l2 2 4-4" stroke="#050B14" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
+                      <span style={{
+                        width:5, height:5, borderRadius:"50%",
+                        background:VERT, flexShrink:0,
+                        boxShadow:`0 0 6px ${VERT}`,
+                      }}/>
                     )}
                     {ENVELOPES[k].label}
                   </button>
@@ -1329,30 +1352,37 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                 }}>frais moyennés</span>
               )}
             </div>
+
             <div style={{flex:1}}/>
+
+            {/* Durée */}
             <div style={{ display:"flex", gap:3 }}>
               {[10,15,20].map(y=>(
                 <button key={y} onClick={()=>setYears(y)} style={{
                   fontFamily:"'Inter',sans-serif",
                   fontSize:8.5, fontWeight:500, letterSpacing:".10em",
-                  color: y===years ? "#050B14" : TEXT_M,
-                  background: y===years ? "rgba(229,231,235,0.90)" : "rgba(255,255,255,0.04)",
-                  border: y===years ? "none" : DIV,
+                  color: y===years ? TEXT_W : TEXT_M,
+                  background: "transparent",
+                  border: y===years ? "0.5px solid rgba(229,231,235,0.28)" : DIV,
                   borderRadius:100, padding:"6px 12px", cursor:"pointer",
-                  textTransform:"uppercase", transition:"all .15s",
+                  textTransform:"uppercase", transition:"all .18s",
+                  boxShadow: y===years ? "inset 0 0 12px rgba(229,231,235,0.04)" : "none",
                 }}>{y} ans</button>
               ))}
             </div>
+
+            {/* Banque */}
             <div style={{ position:"relative" }}>
               <select value={bankKey} onChange={e=>setBankKey(e.target.value)} style={{
                 appearance:"none", WebkitAppearance:"none",
-                background:"rgba(255,255,255,0.06)",
+                background:"rgba(255,255,255,0.04)",
                 backdropFilter:"blur(12px)",
-                border:DIV, borderRadius:8,
+                border:DIV_MED, borderRadius:8,
                 fontFamily:"'Inter',sans-serif",
                 fontSize:10, fontWeight:500, letterSpacing:".06em",
                 color:TEXT_W, textTransform:"uppercase",
                 padding:"8px 28px 8px 14px", cursor:"pointer", outline:"none",
+                transition:"border-color .2s",
               }}>
                 {Object.entries(BANKS).map(([k,v])=>(
                   <option key={k} value={k} style={{background:"#050B14"}}>{v.label}</option>
@@ -1360,56 +1390,52 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
               </select>
               <svg style={{position:"absolute",right:9,top:"50%",transform:"translateY(-50%)",pointerEvents:"none"}}
                 width="8" height="5" viewBox="0 0 8 5">
-                <path d="M1 1l3 3 3-3" stroke="rgba(229,231,235,0.4)" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
+                <path d="M1 1l3 3 3-3" stroke="rgba(229,231,235,0.35)" strokeWidth="1.1" fill="none" strokeLinecap="round"/>
               </svg>
             </div>
           </div>
 
-          {/* ── DUEL DES BARRES ───────────────────────────────── */}
+          {/* ── Barres de performance ────────────────────────── */}
           <div style={{
-            background:"rgba(255,255,255,0.03)",
-            border:DIV, borderRadius:12,
-            padding:"24px 24px 20px",
-            marginBottom:28,
+            background:"rgba(255,255,255,0.025)",
+            border:DIV, borderRadius:12, padding:"24px 24px 20px",
+            marginBottom:32,
           }}>
             {/* Gestion active */}
-            <div style={{ marginBottom:18 }}>
-              <div style={{
-                display:"flex", justifyContent:"space-between",
-                alignItems:"baseline", marginBottom:8,
-              }}>
+            <div style={{ marginBottom:22 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:9 }}>
                 <div style={{
                   fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
-                  letterSpacing:".14em", textTransform:"uppercase", color:ROUGE_L,
+                  letterSpacing:".14em", textTransform:"uppercase",
+                  color:ROUGE,
                 }}>Gestion active — {bank.label}</div>
                 <div style={{
                   fontFamily:"'Cormorant Garant',serif",
-                  fontSize:22, fontWeight:300, color:ROUGE_L, letterSpacing:"-.01em",
+                  fontSize:21, fontWeight:300, color:ROUGE, letterSpacing:"-.01em",
                 }}>{feurL(actifFinalAni)}</div>
               </div>
               <div style={{
-                height:8, background:"rgba(255,255,255,0.06)",
-                borderRadius:4, overflow:"hidden",
+                height:6, background:"rgba(255,255,255,0.05)",
+                borderRadius:3, overflow:"hidden",
               }}>
                 <div style={{
                   height:"100%",
-                  background:`linear-gradient(90deg, ${ROUGE} 0%, #B91C1C 100%)`,
-                  borderRadius:4,
+                  background:`linear-gradient(90deg, ${ROUGE_B} 0%, rgba(248,113,113,0.55) 100%)`,
+                  borderRadius:3,
                   width: barsStarted ? `${barActif.toFixed(1)}%` : "0%",
                   transition:"width 3s cubic-bezier(0.25, 1, 0.5, 1)",
-                  boxShadow:`0 0 12px rgba(185,28,28,0.4)`,
                 }}/>
               </div>
               <div style={{
                 fontFamily:"'Inter',sans-serif", fontSize:9.5, fontWeight:300,
-                color:TEXT_S, marginTop:5,
+                color:TEXT_S, marginTop:6, letterSpacing:".02em",
               }}>
-                Frais prélevés : <span style={{
-                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:ROUGE_L,
-                }}>{a_total_a.toFixed(2)}&nbsp;%/an</span>
-                {" "}· capture{" "}
                 <span style={{
-                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:ROUGE_L,
+                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:ROUGE,
+                }}>{a_total_a.toFixed(2)}&nbsp;%/an</span>
+                {" "}prélevés · votre gestionnaire capte{" "}
+                <span style={{
+                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:ROUGE,
                 }}>{captureAni.toFixed(1)}&nbsp;%</span>
                 {" "}de votre rendement brut
               </div>
@@ -1417,162 +1443,173 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
 
             {/* Gestion passive */}
             <div>
-              <div style={{
-                display:"flex", justifyContent:"space-between",
-                alignItems:"baseline", marginBottom:8,
-              }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:9 }}>
                 <div style={{
                   fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
-                  letterSpacing:".14em", textTransform:"uppercase", color:VERT_L,
-                }}>Gestion passive (titres vifs + ETF)</div>
+                  letterSpacing:".14em", textTransform:"uppercase",
+                  color:VERT,
+                }}>Gestion passive — titres vifs + ETF</div>
                 <div style={{
                   fontFamily:"'Cormorant Garant',serif",
-                  fontSize:22, fontWeight:300, color:VERT_L, letterSpacing:"-.01em",
+                  fontSize:21, fontWeight:300, color:VERT, letterSpacing:"-.01em",
                 }}>{feurL(passifFinalAni)}</div>
               </div>
               <div style={{
-                height:8, background:"rgba(255,255,255,0.06)",
-                borderRadius:4, overflow:"hidden",
+                height:6, background:"rgba(255,255,255,0.05)",
+                borderRadius:3, overflow:"hidden",
               }}>
                 <div style={{
                   height:"100%",
-                  background:`linear-gradient(90deg, ${VERT} 0%, ${VERT_L} 100%)`,
-                  borderRadius:4,
+                  background:`linear-gradient(90deg, ${VERT_B} 0%, rgba(74,222,128,0.50) 100%)`,
+                  borderRadius:3,
                   width: barsStarted ? "100%" : "0%",
                   transition:"width 3s cubic-bezier(0.25, 1, 0.5, 1)",
-                  boxShadow:`0 0 16px rgba(110,231,183,0.25)`,
                 }}/>
               </div>
               <div style={{
                 fontFamily:"'Inter',sans-serif", fontSize:9.5, fontWeight:300,
-                color:TEXT_S, marginTop:5,
+                color:TEXT_S, marginTop:6, letterSpacing:".02em",
               }}>
-                Frais résiduels : <span style={{
-                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:VERT_L,
-                }}>{p_total_a.toFixed(2)}&nbsp;%/an</span>
-                {" "}· dont{" "}
                 <span style={{
-                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:VERT_L,
+                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:VERT,
+                }}>{p_total_a.toFixed(2)}&nbsp;%/an</span>
+                {" "}de frais résiduels · dont{" "}
+                <span style={{
+                  fontFamily:"'Roboto Mono',monospace", fontSize:10, color:VERT,
                 }}>{p_court_a.toFixed(2)}&nbsp;%</span>
                 {" "}de courtage incompressible
               </div>
             </div>
           </div>
 
-          {/* ── Tableau de frais ─────────────────────────────── */}
-          <div style={{ borderTop:DIV_MED, paddingTop:20 }}>
-            {/* En-têtes */}
+          {/* ── Tableau 3 colonnes ──────────────────────────── */}
+          {/* En-têtes — alignement correct */}
+          <div style={{
+            display:"grid", gridTemplateColumns:"1fr 90px 106px",
+            borderBottom:DIV_MED, paddingBottom:8,
+          }}>
             <div style={{
-              display:"grid", gridTemplateColumns:"1fr 82px 96px",
-              paddingBottom:8, borderBottom:DIV,
-            }}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-                letterSpacing:".14em", textTransform:"uppercase", color:TEXT_S,
-              }}>Type de frais</div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-                letterSpacing:".14em", textTransform:"uppercase",
-                color:"rgba(252,165,165,0.6)", textAlign:"right",
-              }}>Gestion active</div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
-                letterSpacing:".14em", textTransform:"uppercase",
-                color:"rgba(110,231,183,0.6)", textAlign:"right", paddingRight:2,
-              }}>Gestion passive</div>
-            </div>
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".14em", textTransform:"uppercase", color:TEXT_S,
+            }}>Type de frais</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".12em", textTransform:"uppercase",
+              color:ROUGE, textAlign:"right",
+            }}>Actif</div>
+            <div style={{
+              fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500,
+              letterSpacing:".12em", textTransform:"uppercase",
+              color:VERT, textAlign:"right", paddingRight:2,
+            }}>Passif</div>
+          </div>
 
-            {ROWS.map((group, gi) => {
-              let offset = ROWS.slice(0,gi).reduce((s,g)=>s+g.rows.length,0);
-              return (
-                <div key={group.group}>
-                  <div style={{
-                    fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
-                    letterSpacing:".18em", textTransform:"uppercase",
-                    color:TEXT_S, padding:"10px 0 2px",
-                  }}>{group.group}</div>
-                  {group.rows.map((row,ri) => {
-                    const idx = offset+ri;
-                    const isKey = (row as {isKey?:boolean}).isKey;
-                    const isRes = (row as {isResidual?:boolean}).isResidual;
-                    return (
-                      <div key={row.label} style={{
-                        display:"grid", gridTemplateColumns:"1fr 82px 96px",
+          {ROWS.map((group, gi) => {
+            let offset = ROWS.slice(0,gi).reduce((s,g)=>s+g.rows.length,0);
+            return (
+              <div key={group.group}>
+                <div style={{
+                  fontFamily:"'Inter',sans-serif", fontSize:7.5, fontWeight:500,
+                  letterSpacing:".18em", textTransform:"uppercase",
+                  color:TEXT_S, padding:"10px 0 2px",
+                }}>{group.group}</div>
+                {group.rows.map((row,ri) => {
+                  const idx = offset+ri;
+                  const isKey = (row as {isKey?:boolean}).isKey;
+                  const isRes = (row as {isResidual?:boolean}).isResidual;
+                  const isZP  = (row as {isZeroPassif?:boolean}).isZeroPassif;
+                  const passifNote = (row as {passifNote?:string}).passifNote ?? "0 %";
+                  const passifV    = (row as {passifVal?:{toFixed:(n:number)=>string}}).passifVal;
+                  const passifStr  = passifV && typeof passifV.toFixed === "function"
+                    ? `${passifV.toFixed(2)} %`
+                    : passifNote;
+                  return (
+                    <div key={row.label}
+                      className="table-row-hover"
+                      style={{
+                        display:"grid", gridTemplateColumns:"1fr 90px 106px",
                         position:"relative", overflow:"hidden",
-                        background: isKey ? "rgba(252,165,165,0.04)" : "transparent",
-                        padding:"1px 0",
+                        borderRadius:4, cursor:"default",
+                        background: isKey ? "rgba(248,113,113,0.03)" : "transparent",
                       }}>
-                        <div style={{ padding:"8px 0 6px" }}>
-                          <div style={{
-                            fontFamily:"'Inter',sans-serif",
-                            fontSize:12, fontWeight: isKey ? 500 : 300,
-                            color: isKey ? TEXT_W : isRes ? "rgba(110,231,183,0.7)" : TEXT_M,
-                            fontStyle: isRes ? "italic" as const : "normal" as const,
-                            marginBottom:2,
-                          }}>{row.label}</div>
-                          <div style={{
-                            fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
-                            color:TEXT_S, lineHeight:1.45,
-                          }}>{row.sub}</div>
-                        </div>
+                      {/* Label + sous-texte */}
+                      <div style={{ padding:"9px 8px 7px 0" }}>
                         <div style={{
-                          fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                          fontSize:12.5, fontWeight: isKey ? 500 : 300,
-                          textAlign:"right", padding:"12px 0 6px",
-                          color: row.actif > 0 ? (isKey ? ROUGE_L : "rgba(252,165,165,0.7)") : TEXT_S,
-                          alignSelf:"start",
-                        }}>
-                          <AnimNum value={row.actif}/>
-                        </div>
+                          fontFamily:"'Inter',sans-serif",
+                          fontSize:12, fontWeight: isKey ? 500 : 300,
+                          color: isKey ? TEXT_W : isRes ? "rgba(74,222,128,0.65)" : TEXT_M,
+                          fontStyle: isRes ? "italic" as const : "normal" as const,
+                          marginBottom:2,
+                        }}>{row.label}</div>
                         <div style={{
-                          fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
-                          fontSize:12.5, fontWeight: isKey ? 500 : 300,
-                          textAlign:"right", padding:"12px 2px 6px 0",
-                          color: isRes ? "rgba(110,231,183,0.65)" : "rgba(110,231,183,0.85)",
-                          alignSelf:"start",
-                        }}>
-                          {row.passifStr}
-                        </div>
-                        <div style={{
-                          position:"absolute", bottom:0, left:0, height:"0.5px",
-                          background:"rgba(255,255,255,0.06)",
-                          width: revealed[idx] ? "100%" : "0%",
-                          transition:"width 0.5s cubic-bezier(0.22,1,0.36,1)",
-                          transitionDelay:`${idx*0.06}s`,
-                        }}/>
+                          fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
+                          color:TEXT_S, lineHeight:1.45,
+                        }}>{row.sub}</div>
                       </div>
-                    );
-                  })}
-                </div>
-              );
-            })}
+                      {/* Actif */}
+                      <div style={{
+                        fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
+                        fontSize:12.5, fontWeight: isKey ? 500 : 300,
+                        textAlign:"right", padding:"13px 0 7px",
+                        color: row.actif > 0
+                          ? (isKey ? ROUGE : "rgba(248,113,113,0.65)")
+                          : TEXT_S,
+                        alignSelf:"start",
+                      }}>
+                        <AnimNum value={row.actif}/>
+                      </div>
+                      {/* Passif */}
+                      <div style={{
+                        fontFamily:"'Roboto Mono','JetBrains Mono',monospace",
+                        fontSize:12.5, fontWeight: isKey ? 500 : 300,
+                        textAlign:"right", padding:"13px 2px 7px 0",
+                        color: isZP ? TEXT_S
+                          : isRes ? "rgba(74,222,128,0.60)"
+                          : "rgba(74,222,128,0.80)",
+                        alignSelf:"start",
+                      }}>
+                        {passifStr}
+                      </div>
+                      {/* Séparateur animé */}
+                      <div style={{
+                        position:"absolute", bottom:0, left:0, height:"0.5px",
+                        background:"rgba(255,255,255,0.06)",
+                        width: revealed[idx] ? "100%" : "0%",
+                        transition:"width 0.45s cubic-bezier(0.22,1,0.36,1)",
+                        transitionDelay:`${idx*0.06}s`,
+                      }}/>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
 
-            {/* Total */}
+          {/* Total */}
+          <div style={{
+            display:"grid", gridTemplateColumns:"1fr 90px 106px",
+            borderTop:"1.5px solid rgba(229,231,235,0.18)",
+            paddingTop:10, marginTop:4,
+          }}>
             <div style={{
-              display:"grid", gridTemplateColumns:"1fr 82px 96px",
-              borderTop:"1.5px solid rgba(229,231,235,0.20)",
-              paddingTop:10, marginTop:4,
-            }}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:500,
-                letterSpacing:".10em", textTransform:"uppercase",
-                color:TEXT_M, padding:"6px 0",
-              }}>Impact annualisé</div>
-              <div style={{
-                fontFamily:"'Roboto Mono',monospace",
-                fontSize:14, fontWeight:700, textAlign:"right",
-                color:ROUGE_L, padding:"4px 0",
-              }}>{a_total_a.toFixed(2)}&nbsp;%</div>
-              <div style={{
-                fontFamily:"'Roboto Mono',monospace",
-                fontSize:14, fontWeight:600, textAlign:"right",
-                color:VERT_L, padding:"4px 2px 4px 0",
-              }}>{p_total_a.toFixed(2)}&nbsp;%</div>
-            </div>
+              fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:500,
+              letterSpacing:".10em", textTransform:"uppercase",
+              color:TEXT_M, padding:"6px 0",
+            }}>Impact annualisé</div>
+            <div style={{
+              fontFamily:"'Roboto Mono',monospace",
+              fontSize:14, fontWeight:700, textAlign:"right",
+              color:ROUGE, padding:"4px 0",
+            }}>{a_total_a.toFixed(2)}&nbsp;%</div>
+            <div style={{
+              fontFamily:"'Roboto Mono',monospace",
+              fontSize:14, fontWeight:600, textAlign:"right",
+              color:VERT, padding:"4px 2px 4px 0",
+            }}>{p_total_a.toFixed(2)}&nbsp;%</div>
           </div>
         </motion.div>
 
-        {/* ── BLOC 3 : Grand chiffre — centré, sur fond nuit ─── */}
+        {/* ── BLOC 3 : Grand chiffre ────────────────────────────── */}
         <motion.div variants={fadeV(0.14)} initial="hidden" animate={inView?"visible":"hidden"}
           style={{
             paddingTop:56, paddingBottom:64,
@@ -1580,6 +1617,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
             alignItems:"center", textAlign:"center",
             borderTop:DIV, marginTop:12,
           }}>
+
           <div style={{
             fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
             letterSpacing:".22em", textTransform:"uppercase",
@@ -1590,48 +1628,46 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
 
           <p style={{
             fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:300,
-            color:TEXT_M, lineHeight:1.75, maxWidth:480, margin:"0 0 20px",
+            color:TEXT_M, lineHeight:1.78, maxWidth:480, margin:"0 0 28px",
           }}>
             En abandonnant la gestion active, vous cessez d'offrir{" "}
             <span style={{
               fontFamily:"'Roboto Mono',monospace",
-              fontSize:11, color:"rgba(252,165,165,0.75)",
+              fontSize:11, color:"rgba(248,113,113,0.70)",
             }}>{captureAni.toFixed(1)}&nbsp;%</span>
             {" "}de votre rendement annuel à votre gestionnaire.
-            Sur {years} ans, à partir de 150&nbsp;000&nbsp;€, l'écart de performance devient :
+            Sur {years} ans, à partir de 150&nbsp;000&nbsp;€, l'écart devient :
           </p>
 
-          {/* Grand chiffre — 120px */}
-          <div style={{
+          {/* Grand chiffre avec shimmer */}
+          <div className="gain-shimmer" style={{
             fontFamily:"'Cormorant Garant',serif",
-            fontSize:"clamp(64px,10vw,120px)",
-            fontWeight:300, lineHeight:1,
-            letterSpacing:"-.03em",
-            color:VERT_L,
-            textShadow:`0 0 60px rgba(110,231,183,0.22), 0 0 20px rgba(110,231,183,0.12)`,
+            fontSize:"clamp(60px,9vw,112px)",
+            fontWeight:300, lineHeight:1, letterSpacing:"-.03em",
+            color:"rgba(74,222,128,0.88)",
+            textShadow:`0 0 40px rgba(74,222,128,0.14), 0 0 12px rgba(74,222,128,0.08)`,
             marginBottom:10,
           }}>{feurL(gainAni)}</div>
 
           <div style={{
             fontFamily:"'Inter',sans-serif", fontSize:10, fontWeight:300,
-            color:TEXT_S, marginBottom:36,
-            letterSpacing:".04em",
+            color:TEXT_S, marginBottom:38, letterSpacing:".04em",
           }}>de gain supplémentaire sur {years} ans</div>
 
           <motion.button
             className="btn-cta"
             whileHover={{
               scale:1.04,
-              boxShadow:`0 0 32px rgba(110,231,183,0.18), 0 8px 30px rgba(5,11,20,0.5)`,
+              boxShadow:`0 0 24px rgba(74,222,128,0.12), 0 8px 28px rgba(5,11,20,0.5)`,
             }}
             whileTap={{ scale:0.97 }}
             onClick={onCTA}
             style={{
-              background:"rgba(255,255,255,0.08)",
+              background:"rgba(255,255,255,0.07)",
               backdropFilter:"blur(12px)",
               WebkitBackdropFilter:"blur(12px)",
-              color:"rgba(229,231,235,0.95)",
-              border:"0.5px solid rgba(229,231,235,0.20)",
+              color:"rgba(229,231,235,0.90)",
+              border:"0.5px solid rgba(229,231,235,0.18)",
               fontFamily:"'Inter',sans-serif",
               fontSize:9, fontWeight:500, letterSpacing:".18em",
               padding:"14px 38px", borderRadius:8,
