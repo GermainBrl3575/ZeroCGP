@@ -569,7 +569,6 @@ function HeroSection({
   },[drawCanvas]);
 
   // Nav sticky scroll detection
-  const [scrolled, setScrolled] = useState(false);
   useEffect(() => {
     const container = document.querySelector("[data-scroll-container]") as HTMLElement;
     if (!container) return;
@@ -1735,37 +1734,7 @@ function SphereSVG({ dark = false }: { dark?: boolean }) {
 
 export default function LandingPage() {
   const router       = useRouter();
-  const [darkNav,    setDarkNav   ] = useState(false);
-  const [scrolled,   setScrolled  ] = useState(false);
 
-  // Détection section sombre pour adapter la nav
-  useEffect(() => {
-        const el = containerRef.current;
-    if (!el) return;
-    // Détection fiable : on regarde quel élément section est visible au centre
-    // en utilisant elementFromPoint sur le conteneur scroll
-    const DARK_BG = new Set(["#050b14","#0a1628","rgb(5,11,20)","rgb(10,22,40)"]);
-    const handle = () => {
-      setScrolled(el.scrollTop > 15);
-      // Trouver la section dont le top est la plus proche du scroll
-      const sections = el.querySelectorAll("section[data-theme]");
-      let isDark = false;
-      const midY = el.scrollTop + el.clientHeight * 0.15; // 15% depuis le haut = zone nav
-      sections.forEach((sec: Element) => {
-        const htmlSec = sec as HTMLElement;
-        const top  = htmlSec.offsetTop;
-        const bot  = top + htmlSec.offsetHeight;
-        if (midY >= top && midY < bot) {
-          isDark = htmlSec.dataset.theme === "dark";
-        }
-      });
-      setDarkNav(isDark);
-    };
-    el.addEventListener("scroll", handle, { passive: true });
-    // Appel immédiat pour l'état initial
-    setTimeout(handle, 50);
-    return () => el.removeEventListener("scroll", handle);
-  }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab,  setActiveTab  ]=useState(0);
@@ -1796,6 +1765,10 @@ export default function LandingPage() {
     "Banque / CGP":cgpTraj[i].value,
   }));
 
+
+  // Nav adapte automatiquement sa couleur selon la section active
+  const darkNav  = activeTab > 0;  // sections 1 (HowSection) et 2 (StrategySection) sont sombres
+  const scrolled = false;         // simplification : la nav est toujours sans bordure
   return (
     
 <>
