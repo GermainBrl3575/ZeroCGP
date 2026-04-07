@@ -1767,44 +1767,28 @@ export default function LandingPage() {
     "Banque / CGP":cgpTraj[i].value,
   }));
 
-  // ── Nav adaptive : IntersectionObserver sur les sections ──
-  // Sections sombres = index 1 (HowSection) et 2 (StrategySection)
-  // On track quelle section est visible à >40% dans le viewport
+  // darkNav = section sombre visible (index 1 ou 2)
+
+
+  // ── Détection nav : scroll listener avec plafond max section ──
+  // StrategySection fait ~3× la hauteur — on plafonne l'index à 2
+  const [navTab, setNavTab] = useState(0);
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
-    const obs = new IntersectionObserver(
-      (entries) => {
-        let maxRatio = -1;
-        let visibleIdx = -1;
-        entries.forEach(entry => {
-          const idx = parseInt((entry.target as HTMLElement).dataset.sectionIdx ?? "-1");
-          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-            maxRatio = entry.intersectionRatio;
-            visibleIdx = idx;
-          }
-        });
-        if (visibleIdx >= 0) {
-          setActiveTab(visibleIdx);
-        }
-      },
-      {
-        root: el,
-        threshold: [0.25, 0.5, 0.75], // déclenche à 25%, 50%, 75% de visibilité
-      }
-    );
-
-    // Observer les sections enfants directes du container
-    const sections = el.querySelectorAll("section[data-section-idx]");
-    sections.forEach(s => obs.observe(s));
-
-    return () => obs.disconnect();
+    const handle = () => {
+      const h   = el.clientHeight || 1;
+      // Math.floor + min(2) : même si on scrolle très bas dans Strategy, reste 2
+      const tab = Math.min(Math.floor(el.scrollTop / h), 2);
+      setNavTab(tab);
+    };
+    el.addEventListener("scroll", handle, { passive: true });
+    handle(); // état initial
+    return () => el.removeEventListener("scroll", handle);
   }, []);
 
-  // darkNav = section sombre visible (index 1 ou 2)
-    const scrolled = activeTab > 0;
-  const darkNav = activeTab === 1 || activeTab === 2;
+  const darkNav  = navTab === 1 || navTab === 2;
+  const scrolled = navTab > 0;
 
   return (
     
