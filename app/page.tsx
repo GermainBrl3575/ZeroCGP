@@ -1740,17 +1740,31 @@ export default function LandingPage() {
 
   // Détection section sombre pour adapter la nav
   useEffect(() => {
-    const el = containerRef.current;
+        const el = containerRef.current;
     if (!el) return;
-    const DARK_TABS = [1, 2]; // 1=HowSection, 2=StrategySection
-    const onScroll = () => {
-      const h = el.clientHeight;
-      const tab = Math.round(el.scrollTop / h);
-      setDarkNav(DARK_TABS.includes(tab));
-      setScrolled(el.scrollTop > 20);
+    // Détection fiable : on regarde quel élément section est visible au centre
+    // en utilisant elementFromPoint sur le conteneur scroll
+    const DARK_BG = new Set(["#050b14","#0a1628","rgb(5,11,20)","rgb(10,22,40)"]);
+    const handle = () => {
+      setScrolled(el.scrollTop > 15);
+      // Trouver la section dont le top est la plus proche du scroll
+      const sections = el.querySelectorAll("section[data-theme]");
+      let isDark = false;
+      const midY = el.scrollTop + el.clientHeight * 0.15; // 15% depuis le haut = zone nav
+      sections.forEach((sec: Element) => {
+        const htmlSec = sec as HTMLElement;
+        const top  = htmlSec.offsetTop;
+        const bot  = top + htmlSec.offsetHeight;
+        if (midY >= top && midY < bot) {
+          isDark = htmlSec.dataset.theme === "dark";
+        }
+      });
+      setDarkNav(isDark);
     };
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => el.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", handle, { passive: true });
+    // Appel immédiat pour l'état initial
+    setTimeout(handle, 50);
+    return () => el.removeEventListener("scroll", handle);
   }, []);
 
   const containerRef = useRef<HTMLDivElement>(null);
