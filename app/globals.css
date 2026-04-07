@@ -71,127 +71,127 @@ body {
 
 
 
-/* ── Auth pages ──────────────────────────────────── */
-@keyframes typing-cursor {
-  0%,100%{ opacity:1; } 50%{ opacity:0; }
-}
-@keyframes pulse-line {
-  0%,100%{ opacity:0.10; } 50%{ opacity:0.22; }
-}
-@keyframes wave-glow {
-  0%  { opacity:0; transform:translateX(60%); }
-  15% { opacity:1; }
-  100%{ opacity:0; transform:translateX(-10%); }
-}
+
+/* ── Auth pages ─────────────────────────────────── */
+@keyframes typing-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
+@keyframes pulse-line     { 0%,100%{opacity:.08} 50%{opacity:.20} }
 @keyframes shimmer-btn {
-  0%      { transform:translateX(-120%) skewX(-12deg); opacity:0; }
-  8%      { opacity:1; }
-  45%,100%{ transform:translateX(260%) skewX(-12deg); opacity:0; }
+  0%{transform:translateX(-120%) skewX(-12deg);opacity:0}
+  8%{opacity:1}
+  45%,100%{transform:translateX(260%) skewX(-12deg);opacity:0}
 }
+
 .auth-back {
   background:none; border:none; cursor:pointer; padding:0;
-  display:flex; align-items:center; gap:6px; margin-bottom:30px;
-  font-family:'Inter',sans-serif; font-size:9.5px; font-weight:400;
+  display:flex; align-items:center; gap:6px; margin-bottom:28px;
+  font-family:'Inter',sans-serif; font-size:9px; font-weight:400;
   letter-spacing:.14em; text-transform:uppercase;
-  color:rgba(229,231,235,0.22); transition:color .2s;
+  color:rgba(10,22,40,0.32); transition:color .2s;
 }
-.auth-back:hover { color:rgba(229,231,235,0.55); }
+.auth-back:hover { color:rgba(10,22,40,0.62); }
+
 .auth-title {
   font-family:'Cormorant Garant',serif;
-  font-size:34px; font-weight:300; letter-spacing:-.01em;
-  color:rgba(229,231,235,0.92); margin:0 0 8px;
+  font-size:33px; font-weight:300; letter-spacing:-.01em;
+  color:rgba(10,22,40,0.88); margin:0 0 7px;
 }
 .auth-sub {
-  font-family:'Inter',sans-serif; font-size:12px; font-weight:300;
-  color:rgba(229,231,235,0.34); margin:0 0 30px; line-height:1.6;
+  font-family:'Inter',sans-serif; font-size:11.5px; font-weight:300;
+  color:rgba(10,22,40,0.45); margin:0 0 28px; line-height:1.65;
 }
-.auth-link {
-  color:rgba(74,222,128,0.75); text-decoration:none; transition:color .2s;
-}
-.auth-link:hover { color:rgba(74,222,128,1); }
-.auth-field { margin-bottom:22px; }
+.auth-link { color:rgba(45,90,67,0.75); text-decoration:none; transition:color .2s; }
+.auth-link:hover { color:rgba(45,90,67,1); }
+
+.auth-field { margin-bottom:20px; }
 .auth-label {
   display:block;
   font-family:'Inter',sans-serif; font-size:8px; font-weight:500;
   letter-spacing:.18em; text-transform:uppercase;
-  color:rgba(229,231,235,0.22); margin-bottom:8px;
+  color:rgba(10,22,40,0.34); margin-bottom:7px;
 }
 .auth-input {
   width:100%; background:transparent; border:none; outline:none;
-  border-bottom:0.5px solid rgba(229,231,235,0.12);
-  padding:10px 0 9px;
-  font-family:'Inter',sans-serif; font-size:13.5px; font-weight:300;
-  color:rgba(229,231,235,0.86); letter-spacing:.025em;
+  border-bottom:0.5px solid rgba(10,22,40,0.16);
+  padding:10px 0 8px;
+  font-family:'Inter',sans-serif; font-size:13px; font-weight:300;
+  color:rgba(10,22,40,0.82); letter-spacing:.025em;
   transition:border-color .25s, box-shadow .25s;
-  caret-color:rgba(74,222,128,0.90);
+  caret-color:rgba(45,90,67,0.90);
   box-sizing:border-box;
 }
 .auth-input::placeholder {
   font-family:'JetBrains Mono','Roboto Mono',monospace;
-  font-size:11.5px; font-weight:300;
-  color:rgba(229,231,235,0.18); letter-spacing:.04em;
+  font-size:11px; font-weight:300;
+  color:rgba(10,22,40,0.22); letter-spacing:.04em;
 }
 .auth-input:focus {
-  border-bottom-color:rgba(74,222,128,0.60);
-  box-shadow:0 1px 0 0 rgba(74,222,128,0.22);
+  border-bottom-color:rgba(45,90,67,0.55);
+  box-shadow:0 1px 0 0 rgba(45,90,67,0.20);
 }
 .auth-hint {
   font-family:'JetBrains Mono','Roboto Mono',monospace;
   font-size:9px; font-weight:300; letter-spacing:.05em;
-  color:rgba(229,231,235,0.18); margin-top:5px;
+  color:rgba(10,22,40,0.22); margin-top:4px;
 }
 .auth-error {
   font-family:'JetBrains Mono','Roboto Mono',monospace;
-  font-size:10px; color:rgba(248,113,113,0.80);
-  margin-bottom:14px; letter-spacing:.03em;
+  font-size:9.5px; color:rgba(180,40,40,0.80);
+  margin-bottom:12px; letter-spacing:.03em;
 }
+
+/* Bouton principal — bleu nuit focal avec glow diffus */
 .auth-btn-primary {
-  width:100%; padding:14px 0; margin-bottom:18px;
-  background:rgba(10,22,40,0.95);
-  border:0.5px solid rgba(74,222,128,0.16);
+  width:100%; padding:14px 0; margin-bottom:16px;
+  background:rgba(10,22,40,0.88);
+  border:0.5px solid rgba(10,22,40,0.20);
   border-radius:8px; cursor:pointer;
   font-family:'Inter',sans-serif; font-size:9px;
   font-weight:500; letter-spacing:.22em; text-transform:uppercase;
-  color:rgba(229,231,235,0.88);
+  color:rgba(249,248,246,0.92);
   position:relative; overflow:hidden;
-  transition:box-shadow .3s, border-color .3s;
+  transition:box-shadow .3s, background .3s;
+  box-shadow:0 4px 20px rgba(10,22,40,0.18), 0 1px 4px rgba(10,22,40,0.12);
 }
 .auth-btn-primary:hover {
-  box-shadow:0 0 0 1px rgba(74,222,128,0.24),
-             0 0 20px rgba(74,222,128,0.08),
-             0 8px 24px rgba(5,11,20,0.40);
-  border-color:rgba(74,222,128,0.28);
+  background:rgba(10,22,40,0.96);
+  box-shadow:0 8px 32px rgba(10,22,40,0.28),
+             0 0 0 1px rgba(45,90,67,0.20),
+             0 0 20px rgba(45,90,67,0.08);
 }
 .auth-btn-primary::after {
   content:;
   position:absolute; top:0; left:0; width:38%; height:100%;
-  background:linear-gradient(90deg,transparent,rgba(74,222,128,0.06),transparent);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);
   transform:translateX(-120%) skewX(-12deg);
   animation:shimmer-btn 5s ease-in-out infinite;
 }
 .auth-btn-primary:disabled { opacity:.5; cursor:not-allowed; }
+
 .auth-divider {
-  display:flex; align-items:center; gap:12px; margin-bottom:18px;
+  display:flex; align-items:center; gap:12px; margin-bottom:16px;
 }
 .auth-divider::before,.auth-divider::after {
-  content:; flex:1; height:0.5px; background:rgba(229,231,235,0.07);
+  content:; flex:1; height:0.5px;
+  background:rgba(10,22,40,0.12);
 }
 .auth-divider span {
-  font-family:'Inter',sans-serif; font-size:9px;
+  font-family:'Inter',sans-serif; font-size:8.5px;
   letter-spacing:.14em; text-transform:uppercase;
-  color:rgba(229,231,235,0.18);
+  color:rgba(10,22,40,0.28);
 }
+
+/* Bouton secondaire — bordure légère, s'illumine au survol */
 .auth-btn-secondary {
-  width:100%; padding:13px 0;
+  width:100%; padding:12px 0;
   background:transparent;
-  border:0.5px solid rgba(229,231,235,0.12);
+  border:0.5px solid rgba(10,22,40,0.18);
   border-radius:8px; cursor:pointer;
   font-family:'Inter',sans-serif; font-size:9px;
   font-weight:500; letter-spacing:.22em; text-transform:uppercase;
-  color:rgba(229,231,235,0.34);
+  color:rgba(10,22,40,0.44);
   transition:border-color .25s, color .25s;
 }
 .auth-btn-secondary:hover {
-  border-color:rgba(229,231,235,0.52);
-  color:rgba(229,231,235,0.78);
+  border-color:rgba(10,22,40,0.55);
+  color:rgba(10,22,40,0.75);
 }
