@@ -1803,6 +1803,7 @@ export default function LandingPage() {
   }, []);
 
   // darkNav = section sombre visible (index 1 ou 2)
+    const scrolled = activeTab > 0;
   const darkNav = activeTab === 1 || activeTab === 2;
 
   return (
