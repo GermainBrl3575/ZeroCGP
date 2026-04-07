@@ -310,6 +310,7 @@ input[type=range]::-webkit-slider-thumb{
 // ══════════════════════════════════════════════════════════════
 // LANDING PAGE
 // ══════════════════════════════════════════════════════════════
+
 // ══════════════════════════════════════════════════════════════
 // SECTION DIVERGENCE — Canvas morphing, style institutionnel
 // ══════════════════════════════════════════════════════════════
@@ -333,7 +334,7 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
   const YEARS  = [10, 15, 20, 25];
   const PAD_L  = 52, PAD_R = 168, PAD_T = 20, PAD_B = 44;
 
-  const feur = (n: number) => new Intl.NumberFormat("fr-FR",{
+  const feurLocal = (n: number) => new Intl.NumberFormat("fr-FR",{
     style:"currency",currency:"EUR",maximumFractionDigits:0
   }).format(Math.round(n));
 
@@ -341,10 +342,7 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     return Array.from({length: yr+1}, (_,t) => cap * Math.pow(1 + MSCI - fees, t));
   }
 
-  function drawFrame(
-    zPts: number[], bPts: number[],
-    canvas: HTMLCanvasElement
-  ) {
+  function drawFrame(zPts: number[], bPts: number[], canvas: HTMLCanvasElement) {
     const r  = window.devicePixelRatio || 1;
     const W  = canvas.offsetWidth;
     const H  = canvas.offsetHeight;
@@ -364,7 +362,6 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     const sx = (i: number) => PAD_L + (i/(n-1)) * drawW;
     const sy = (v: number) => PAD_T + drawH - ((v - minV)/rng) * drawH;
 
-    // Grid lines horizontales subtiles
     ct.setLineDash([2,5]);
     ct.lineWidth = 0.5;
     [0.25,0.5,0.75].forEach(f => {
@@ -374,17 +371,15 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     });
     ct.setLineDash([]);
 
-    // Axe X — labels années
     ct.font = "9px 'Inter',sans-serif";
     ct.textAlign = "center";
     const nT = Math.min(6, n-1);
     for (let k=0; k<=nT; k++) {
       const i = Math.round((k/nT)*(n-1));
-      ct.fillStyle = "rgba(26,26,26,0.25)";
+      ct.fillStyle = "rgba(26,26,26,0.22)";
       ct.fillText(`An ${i}`, sx(i), PAD_T+drawH+16);
     }
 
-    // Zone de gain (gradient entre courbes)
     ct.beginPath();
     ct.moveTo(sx(0), sy(zPts[0]));
     for (let i=1;i<n;i++) ct.quadraticCurveTo(sx(i-.5),sy(zPts[i-1]),sx(i),sy(zPts[i]));
@@ -399,7 +394,6 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     gArea.addColorStop(1,   "rgba(74,222,128,0.10)");
     ct.fillStyle = gArea; ct.fill();
 
-    // Courbe banque — tiretée, grisée
     ct.beginPath();
     ct.setLineDash([4,6]);
     ct.moveTo(sx(0),sy(bPts[0]));
@@ -407,7 +401,6 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     ct.strokeStyle="rgba(26,26,26,0.28)"; ct.lineWidth=1.5; ct.stroke();
     ct.setLineDash([]);
 
-    // Courbe Zero CGP — pleine, profonde
     ct.beginPath();
     ct.moveTo(sx(0),sy(zPts[0]));
     for (let i=1;i<n;i++) ct.quadraticCurveTo(sx(i-.5),sy(zPts[i-1]),sx(i),sy(zPts[i]));
@@ -417,36 +410,31 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     gLine.addColorStop(1,"#0A1628");
     ct.strokeStyle=gLine; ct.lineWidth=2; ct.stroke();
 
-    // Dots finaux
     const ex=sx(n-1), ezy=sy(zPts[n-1]), eby=sy(bPts[n-1]);
-    // Dot Zero
     ct.beginPath(); ct.arc(ex,ezy,5,0,Math.PI*2); ct.fillStyle="#0A1628"; ct.fill();
     ct.beginPath(); ct.arc(ex,ezy,2.5,0,Math.PI*2); ct.fillStyle="#F9F8F6"; ct.fill();
-    // Dot banque
     ct.beginPath(); ct.arc(ex,eby,3.5,0,Math.PI*2); ct.fillStyle="rgba(26,26,26,0.30)"; ct.fill();
-    // Ligne écart
     ct.setLineDash([2,3]);
     ct.beginPath(); ct.moveTo(ex,eby); ct.lineTo(ex,ezy);
     ct.strokeStyle="rgba(74,222,128,0.45)"; ct.lineWidth=1; ct.stroke();
     ct.setLineDash([]);
 
-    // Mettre à jour les labels
     setZeroFinal(Math.round(zPts[n-1]));
     setBankFinal(Math.round(bPts[n-1]));
     setGainVal(Math.round(zPts[n-1]-bPts[n-1]));
   }
 
-  function morph(from: {z:number[];b:number[]}, to: {z:number[];b:number[]}) {
+  function morphCurves(from: {z:number[];b:number[]}, to: {z:number[];b:number[]}) {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     const canvas = cvsRef.current;
     if (!canvas) return;
     const start = performance.now();
-    const dur   = 480;
+    const dur = 480;
     function step(now: number) {
-      const t    = Math.min((now-start)/dur, 1);
+      const t = Math.min((now-start)/dur, 1);
       const ease = 1 - Math.pow(1-t, 3);
-      const zi   = to.z.map((v,i)=>(from.z[i]??v)+(v-(from.z[i]??v))*ease);
-      const bi   = to.b.map((v,i)=>(from.b[i]??v)+(v-(from.b[i]??v))*ease);
+      const zi = to.z.map((v,i) => (from.z[i]??v) + (v-(from.z[i]??v))*ease);
+      const bi = to.b.map((v,i) => (from.b[i]??v) + (v-(from.b[i]??v))*ease);
       drawFrame(zi, bi, canvas);
       if (t<1) rafRef.current=requestAnimationFrame(step);
       else { prevZRef.current=[...to.z]; prevBRef.current=[...to.b]; }
@@ -454,7 +442,7 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
     rafRef.current=requestAnimationFrame(step);
   }
 
-  function update(animate=true) {
+  function updateChart(animate=true) {
     const newZ = buildCurve(capital,years,FEES_Z);
     const newB = buildCurve(capital,years,FEES_B);
     const canvas = cvsRef.current;
@@ -463,129 +451,91 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
       prevZRef.current=[...newZ]; prevBRef.current=[...newB];
       drawFrame(newZ,newB,canvas);
     } else {
-      morph({z:prevZRef.current,b:prevBRef.current},{z:newZ,b:newB});
+      morphCurves({z:prevZRef.current,b:prevBRef.current},{z:newZ,b:newB});
     }
   }
 
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
-    const obs = new IntersectionObserver(([e])=>{
-      if(e.isIntersecting){setVisible(true);obs.disconnect();}
-    },{threshold:0.2});
+    const obs = new IntersectionObserver(([e]) => {
+      if(e.isIntersecting){ setVisible(true); obs.disconnect(); }
+    }, {threshold:0.2});
     obs.observe(el);
-    return ()=>obs.disconnect();
-  },[]);
+    return () => obs.disconnect();
+  }, []);
 
-  useEffect(()=>{ if(visible) update(false); },[visible]);
-  useEffect(()=>{ if(visible) update(true); },[capital,years]);
+  useEffect(() => { if(visible) updateChart(false); }, [visible]);
+  useEffect(() => { if(visible) updateChart(true);  }, [capital, years]);
 
-  useEffect(()=>{
-    function onResize(){ if(cvsRef.current && prevZRef.current && prevBRef.current) drawFrame(prevZRef.current,prevBRef.current,cvsRef.current); }
-    window.addEventListener("resize",onResize);
-    return ()=>window.removeEventListener("resize",onResize);
-  },[]);
+  useEffect(() => {
+    function onResize() {
+      if(cvsRef.current && prevZRef.current && prevBRef.current)
+        drawFrame(prevZRef.current, prevBRef.current, cvsRef.current);
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      style={{
-        height:"100vh", scrollSnapAlign:"start",
-        background:"#F9F8F6",
-        display:"flex", flexDirection:"column",
-        justifyContent:"center",
-        overflow:"hidden",
-      }}
-    >
+    <section ref={sectionRef} style={{
+      height:"100vh", scrollSnapAlign:"start",
+      background:"#F9F8F6",
+      display:"flex", flexDirection:"column",
+      justifyContent:"center", overflow:"hidden",
+    }}>
       <motion.div
         initial={{ opacity:0, y:22 }}
-        animate={visible?{opacity:1,y:0}:{}}
+        animate={visible ? {opacity:1,y:0} : {}}
         transition={{ duration:0.9, ease:[0.22,1,0.36,1] }}
         style={{ width:"100%", flex:1, display:"flex", flexDirection:"column", justifyContent:"center" }}
       >
-        {/* Texte haut gauche */}
         <div style={{ padding:"0 52px", marginBottom:4 }}>
           <div style={{
-            fontFamily:"'Inter',sans-serif",
-            fontSize:9, fontWeight:500, letterSpacing:".22em",
-            color:"rgba(26,26,26,0.34)", textTransform:"uppercase", marginBottom:10,
+            fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+            letterSpacing:".22em", color:"rgba(26,26,26,0.34)",
+            textTransform:"uppercase", marginBottom:10,
           }}>La divergence de fortune</div>
           <h2 style={{
             fontFamily:"'Cormorant Garant',serif",
-            fontSize:"clamp(26px,3.2vw,40px)",
-            fontWeight:300, color:"#1A1A1A",
-            lineHeight:1.06, letterSpacing:"-.02em", marginBottom:5,
+            fontSize:"clamp(26px,3.2vw,40px)", fontWeight:300,
+            color:"#1A1A1A", lineHeight:1.06, letterSpacing:"-.02em", marginBottom:5,
           }}>
             Investissez comme<br/>
             <span style={{fontStyle:"italic"}}>une institution.</span>
           </h2>
           <p style={{
-            fontFamily:"'Inter',sans-serif",
-            fontSize:11, fontWeight:300, fontStyle:"italic",
-            color:"rgba(26,26,26,0.38)",
+            fontFamily:"'Inter',sans-serif", fontSize:11, fontWeight:300,
+            fontStyle:"italic", color:"rgba(26,26,26,0.38)",
           }}>Le coût invisible de votre banque privée, visualisé.</p>
         </div>
 
-        {/* Canvas — 80% largeur, centré */}
         <div style={{ position:"relative", width:"100%", height:"56%", minHeight:240 }}>
-          <canvas
-            ref={cvsRef}
-            style={{ position:"absolute",top:0,left:0,width:"100%",height:"100%" }}
-          />
+          <canvas ref={cvsRef} style={{ position:"absolute",top:0,left:0,width:"100%",height:"100%" }} />
 
-          {/* Labels flottants droite */}
           <div style={{
-            position:"absolute", right:20,
-            top:"50%", transform:"translateY(-50%)",
+            position:"absolute", right:20, top:"50%", transform:"translateY(-50%)",
             display:"flex", flexDirection:"column", gap:8,
             pointerEvents:"none", zIndex:3,
           }}>
             <div style={{textAlign:"right"}}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif",
-                fontSize:9, fontWeight:500, letterSpacing:".12em",
-                color:"rgba(26,26,26,0.36)", textTransform:"uppercase", marginBottom:3,
-              }}>Zero CGP</div>
-              <div style={{
-                fontFamily:"'Cormorant Garant',serif",
-                fontSize:28, fontWeight:300, color:"#1A1A1A",
-                lineHeight:1, letterSpacing:"-.02em",
-              }}>{feur(zeroFinal)}</div>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".12em", color:"rgba(26,26,26,0.36)", textTransform:"uppercase", marginBottom:3 }}>Zero CGP</div>
+              <div style={{ fontFamily:"'Cormorant Garant',serif", fontSize:28, fontWeight:300, color:"#1A1A1A", lineHeight:1, letterSpacing:"-.02em" }}>{feurLocal(zeroFinal)}</div>
             </div>
             <div style={{textAlign:"right", marginTop:4}}>
-              <div style={{
-                fontFamily:"'Inter',sans-serif",
-                fontSize:9, fontWeight:500, letterSpacing:".12em",
-                color:"rgba(26,26,26,0.26)", textTransform:"uppercase", marginBottom:3,
-              }}>Banque privée</div>
-              <div style={{
-                fontFamily:"'Cormorant Garant',serif",
-                fontSize:22, fontWeight:300,
-                color:"rgba(26,26,26,0.42)",
-                lineHeight:1, letterSpacing:"-.02em",
-              }}>{feur(bankFinal)}</div>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".12em", color:"rgba(26,26,26,0.26)", textTransform:"uppercase", marginBottom:3 }}>Banque privée</div>
+              <div style={{ fontFamily:"'Cormorant Garant',serif", fontSize:22, fontWeight:300, color:"rgba(26,26,26,0.42)", lineHeight:1, letterSpacing:"-.02em" }}>{feurLocal(bankFinal)}</div>
             </div>
           </div>
 
-          {/* Bannière gain — flottante bas droite */}
           <div style={{
             position:"absolute", right:20, bottom:12,
-            background:"#0A1628", borderRadius:10,
-            padding:"14px 18px",
-            display:"flex", alignItems:"center", gap:16,
-            zIndex:3,
+            background:NAVY, borderRadius:10, padding:"14px 18px",
+            display:"flex", alignItems:"center", gap:16, zIndex:3,
           }}>
             <div>
-              <div style={{
-                fontFamily:"'Inter',sans-serif",
-                fontSize:8.5, fontWeight:500, letterSpacing:".14em",
-                color:"rgba(255,255,255,0.34)", textTransform:"uppercase", marginBottom:3,
-              }}>Économies réalisées</div>
-              <div style={{
-                fontFamily:"'Cormorant Garant',serif",
-                fontSize:26, fontWeight:300, color:"#4ADE80",
-                lineHeight:1, letterSpacing:"-.01em",
-              }}>{feur(gainVal)}</div>
+              <div style={{ fontFamily:"'Inter',sans-serif", fontSize:8.5, fontWeight:500, letterSpacing:".14em", color:"rgba(255,255,255,0.34)", textTransform:"uppercase", marginBottom:3 }}>Économies réalisées</div>
+              <div style={{ fontFamily:"'Cormorant Garant',serif", fontSize:26, fontWeight:300, color:"#4ADE80", lineHeight:1, letterSpacing:"-.01em" }}>{feurLocal(gainVal)}</div>
             </div>
             <motion.button
               whileHover={{scale:1.04, boxShadow:"0 6px 24px rgba(10,22,40,0.18)"}}
@@ -593,60 +543,34 @@ function DivergenceSection({ onCTA }: { onCTA: () => void }) {
               onClick={onCTA}
               style={{
                 background:"white", color:NAVY, border:"none",
-                fontFamily:"'Inter',sans-serif",
-                fontSize:9, fontWeight:500, letterSpacing:".16em",
-                padding:"11px 20px", borderRadius:7, cursor:"pointer",
-                textTransform:"uppercase", whiteSpace:"nowrap",
+                fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+                letterSpacing:".16em", padding:"11px 20px", borderRadius:7,
+                cursor:"pointer", textTransform:"uppercase", whiteSpace:"nowrap",
               }}
             >Récupérer ces gains →</motion.button>
           </div>
         </div>
 
-        {/* Contrôles */}
-        <div style={{
-          padding:"12px 52px 0",
-          display:"flex", alignItems:"center", gap:18, flexWrap:"wrap",
-        }}>
-          <span style={{
-            fontFamily:"'Inter',sans-serif",
-            fontSize:9, fontWeight:500, letterSpacing:".12em",
-            color:"rgba(26,26,26,0.34)", textTransform:"uppercase", whiteSpace:"nowrap",
-          }}>Capital</span>
+        <div style={{ padding:"12px 52px 0", display:"flex", alignItems:"center", gap:18, flexWrap:"wrap" }}>
+          <span style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".12em", color:"rgba(26,26,26,0.34)", textTransform:"uppercase", whiteSpace:"nowrap" }}>Capital</span>
           <input
             type="range" min={20000} max={500000} step={5000} value={capital}
-            onChange={(e)=>setCapital(Number(e.target.value))}
-            style={{
-              flex:1, maxWidth:280, WebkitAppearance:"none" as const,
-              height:1, background:"rgba(26,26,26,0.14)",
-              outline:"none", cursor:"pointer",
-            }}
+            onChange={(e) => setCapital(Number(e.target.value))}
+            style={{ flex:1, maxWidth:280, WebkitAppearance:"none" as const, height:1, background:"rgba(26,26,26,0.14)", outline:"none", cursor:"pointer" }}
           />
-          <span style={{
-            fontFamily:"'Cormorant Garant',serif",
-            fontSize:18, fontWeight:400, color:"#1A1A1A",
-            whiteSpace:"nowrap", minWidth:100,
-          }}>{feur(capital)}</span>
-          <span style={{
-            fontFamily:"'Inter',sans-serif",
-            fontSize:9, fontWeight:500, letterSpacing:".12em",
-            color:"rgba(26,26,26,0.34)", textTransform:"uppercase",
-            marginLeft:8, whiteSpace:"nowrap",
-          }}>Durée</span>
+          <span style={{ fontFamily:"'Cormorant Garant',serif", fontSize:18, fontWeight:400, color:"#1A1A1A", whiteSpace:"nowrap", minWidth:100 }}>{feurLocal(capital)}</span>
+          <span style={{ fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500, letterSpacing:".12em", color:"rgba(26,26,26,0.34)", textTransform:"uppercase", marginLeft:8, whiteSpace:"nowrap" }}>Durée</span>
           <div style={{display:"flex", gap:5}}>
-            {YEARS.map(y=>(
-              <button
-                key={y}
-                onClick={()=>setYears(y)}
-                style={{
-                  fontFamily:"'Inter',sans-serif",
-                  fontSize:9, fontWeight:500, letterSpacing:".10em",
-                  color: y===years?"#F9F8F6":"rgba(26,26,26,0.36)",
-                  background: y===years?"#1A1A1A":"none",
-                  border: y===years?"0.5px solid #1A1A1A":"0.5px solid rgba(26,26,26,0.14)",
-                  borderRadius:100, padding:"5px 13px", cursor:"pointer",
-                  textTransform:"uppercase", transition:"all .16s",
-                }}
-              >{y} ans</button>
+            {YEARS.map(y => (
+              <button key={y} onClick={() => setYears(y)} style={{
+                fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
+                letterSpacing:".10em",
+                color: y===years ? "#F9F8F6" : "rgba(26,26,26,0.36)",
+                background: y===years ? "#1A1A1A" : "none",
+                border: y===years ? "0.5px solid #1A1A1A" : "0.5px solid rgba(26,26,26,0.14)",
+                borderRadius:100, padding:"5px 13px", cursor:"pointer",
+                textTransform:"uppercase", transition:"all .16s",
+              }}>{y} ans</button>
             ))}
           </div>
         </div>
@@ -938,6 +862,8 @@ export default function LandingPage() {
             />
           </motion.div>
         </section>
+
+                <DivergenceSection onCTA={() => router.push("/auth/register")} />
 
         {/* ═══════════════ SECTION 2 ════════════════════════════ */}
         <section style={{
