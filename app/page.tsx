@@ -12,72 +12,58 @@ const ETF_FEES   = 0.002;
 // ── Données bancaires (niveau module pour SSR Next.js) ───────
 const BANKS: Record<string, {
   label: string;
-  // Frais annuels (prélevés sur l'encours)
-  garde: number;       // Droits de garde / tenue de compte (% encours/an)
-  opcvm: number;       // Frais moy. OPCVM actifs si gestion déléguée (% encours/an)
-  // Frais par transaction
-  courtage: number;    // Commission de courtage (% du montant de l'ordre)
-  versement: number;   // Frais sur versement (sur AV/gestion pilotée, généralement 0 sur PEA libre)
-  // Meta
   type: "banque_trad" | "banque_ligne" | "courtier";
+  // Frais liés au COURTIER (tenue de compte, service)
+  garde: number;       // Droits de garde / tenue de compte (%/an)
+  retrocessions: number; // Rétrocessions perçues par la banque sur les fonds (%/an)
+  courtage: number;    // Frais de courtage par ordre (%)
+  versement: number;   // Frais sur versement (AV/gestion pilotée)
+  // Frais des FONDS ACTIFS (TER inhérent, indépendant du courtier)
+  // Ces frais existent CHEZ TOUS LES COURTIERS si on achète des fonds actifs
+  ter_actif: number;   // TER moyen des OPCVM/fonds actifs proposés (%/an)
   note: string;
 }> = {
   bnp: {
-    label: "BNP Paribas", type: "banque_trad",
-    garde: 0.25,   // Barème progressif BNP : 0.40% jusqu'à 50k€, 0.20% jusqu'à 150k€ — moy. ~0.25%
-    opcvm: 1.8,    // Frais OPCVM BNP (fonds maison) : 1.5–2.5%/an, moy. 1.8%
-    courtage: 0.5, // Plafond légal PEA (0.5%), BNP est souvent au plafond
-    versement: 0,  // PEA : pas de frais de versement (réglementaire)
-    note: "Droits de garde + OPCVM maison chargés en frais",
+    label:"BNP Paribas", type:"banque_trad",
+    garde:0.25, retrocessions:0.80, courtage:0.50, versement:0,
+    ter_actif:1.60,  // fonds BNP Paribas AM : 1.4-1.8%/an
+    note:"Droits de garde + rétrocessions sur fonds maison BNP AM",
   },
   sg: {
-    label: "Société Générale", type: "banque_trad",
-    garde: 0.20,   // SG : droits de garde ~0.20-0.30% selon encours
-    opcvm: 1.7,    // Fonds SG actifs : ~1.5-2%/an
-    courtage: 0.5, // Au plafond légal PEA
-    versement: 0,
-    note: "Rétrocessions OPCVM importantes, courtage au plafond légal",
+    label:"Société Générale", type:"banque_trad",
+    garde:0.20, retrocessions:0.75, courtage:0.50, versement:0,
+    ter_actif:1.55,  // fonds SG/Lyxor actifs : 1.3-1.8%/an
+    note:"Rétrocessions Lyxor/Amundi actifs, courtage au plafond légal",
   },
   lcl: {
-    label: "LCL", type: "banque_trad",
-    garde: 0.30,   // LCL : droits de garde 0.20-0.40% selon profil
-    opcvm: 1.6,    // Fonds LCL : ~1.5-1.8%/an
-    courtage: 0.5, // Plafond légal PEA
-    versement: 0,
-    note: "Frais de garde + OPCVM maison, pas d'ETF mis en avant",
+    label:"LCL", type:"banque_trad",
+    garde:0.30, retrocessions:0.70, courtage:0.50, versement:0,
+    ter_actif:1.60,  // fonds LCL/Crédit Agricole AM
+    note:"Droits de garde élevés + fonds Crédit Agricole AM chargés",
   },
   cacib: {
-    label: "Crédit Agricole", type: "banque_trad",
-    garde: 0.20,   // CA : 0.10-0.50% selon région et encours
-    opcvm: 1.7,    // Fonds Amundi (filiale CA) : 1.5-2%/an
-    courtage: 0.5, // Plafond légal
-    versement: 0,
-    note: "Amundi est filiale CA — rétrocessions sur fonds maison",
+    label:"Crédit Agricole", type:"banque_trad",
+    garde:0.20, retrocessions:0.80, courtage:0.50, versement:0,
+    ter_actif:1.65,  // fonds Amundi actifs (filiale CA) : 1.4-2%/an
+    note:"Amundi est filiale CA — rétrocessions importantes sur fonds maison",
   },
   bourso: {
-    label: "BoursoBank", type: "banque_ligne",
-    garde: 0.0,    // Aucun droit de garde (argument marketing clé)
-    opcvm: 0.5,    // Frais courtage OPCVM (pas de droits de garde mais frais de transaction)
-    courtage: 0.5, // 0.50-0.60% selon offre (Boursomarkets, plafond légal PEA)
-    versement: 0,
-    note: "0 droits de garde, mais courtage au plafond légal depuis 2023",
+    label:"BoursoBank", type:"banque_ligne",
+    garde:0.0, retrocessions:0.0, courtage:0.55, versement:0,
+    ter_actif:1.40,  // OPCVM actifs dispo sur Bourso : ~1.2-1.6%/an TER
+    note:"0 rétrocessions, mais TER des fonds actifs reste élevé (~1.4%)",
   },
   fortuneo: {
-    label: "Fortuneo", type: "banque_ligne",
-    garde: 0.0,    // Aucun droit de garde
-    opcvm: 0.0,    // Pas de fonds maison chargés
-    courtage: 0.35, // Formule Starter : 0.35% (1 ordre/mois gratuit ≤500€)
-    versement: 0,
-    note: "Meilleur rapport qualité/prix : 1 ordre/mois gratuit ≤500€",
+    label:"Fortuneo", type:"banque_ligne",
+    garde:0.0, retrocessions:0.0, courtage:0.35, versement:0,
+    ter_actif:1.35,  // OPCVM actifs sur Fortuneo : ~1.2-1.5%/an TER
+    note:"0 rétrocessions, meilleur courtage — mais fonds actifs toujours ~1.35%",
   },
   rothschild: {
-    label: "Rothschild & Co", type: "banque_trad",
-    garde: 0.0,    // Inclus dans les frais globaux de gestion privée
-    opcvm: 0.0,    // Frais inclus dans la gestion sous mandat
-    courtage: 0.3, // Courtage négocié (tarifs privés)
-    versement: 0,
-    // Frais de gestion sous mandat = 1.0-1.5%/an all-in
-    note: "Gestion privée : frais globaux ~1.0-1.5%/an sous mandat",
+    label:"Rothschild & Co", type:"banque_trad",
+    garde:0.0, retrocessions:0.50, courtage:0.30, versement:0,
+    ter_actif:1.20,  // Gestion privée : frais all-in 1.0-1.5%/an sous mandat
+    note:"Gestion sous mandat ~1.0-1.5%/an all-in (inclut TER + rétro)",
   },
 };
 // ── Enveloppes fiscales (module level pour SSR) ──────────────
@@ -1091,8 +1077,9 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
   const hasAV      = envelopes.has("av");
 
   // ── Frais gestion ACTIVE ──────────────────────────────────
-  const actif_garde   = bank.garde;
-  const actif_opcvm   = bank.opcvm;
+  const actif_garde        = bank.garde;
+  // TER du fonds + rétrocessions = coût total de la gestion active
+  const actif_opcvm        = bank.ter_actif + bank.retrocessions;
   const actif_contrat = avgContrat;
   const actif_vers    = avgVers;
   const actif_court   = bank.courtage;
@@ -1176,7 +1163,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
         }] : []),
         {
           label:"Frais des supports investis",
-          sub:"OPCVM actifs : 1.5–2.5%/an · Titres vifs + ETF via Zero CGP : 0.10–0.20%/an",
+          sub:"TER fonds actifs (~1.4%/an) + rétrocessions banque · ETF : 0.10–0.20%/an via Zero CGP",
           actif: a_opcvm_a, passifVal: p_etf_a,
           passifNote: "~0.20 %", isKey:true, isZeroPassif:false, idx:2,
         },
