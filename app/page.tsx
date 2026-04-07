@@ -629,20 +629,37 @@ function HeroSection({
 
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
-// SECTION 2 — Comment ça fonctionne (prestige #0A1628)
+// SECTION 2 — Comment ça fonctionne — Prestige / Institutionnel
 // ══════════════════════════════════════════════════════════════
 function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
-  const sectionRef = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  const [hovered, setHovered] = useState<number|null>(null);
+  const sectionRef  = useRef<HTMLDivElement>(null);
+  const numbersRef  = useRef<HTMLDivElement>(null);
+  const [inView,    setInView   ] = useState(false);
+  const [hovered,   setHovered  ] = useState<number|null>(null);
+  const [scrollY,   setScrollY  ] = useState(0); // pour parallaxe numéros
 
+  // IntersectionObserver → déclenche les animations
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
-      { threshold: 0.12 }
+      { threshold: 0.1 }
     );
     if (sectionRef.current) obs.observe(sectionRef.current);
     return () => obs.disconnect();
+  }, []);
+
+  // Parallaxe : les numéros bougent plus lentement que le contenu
+  useEffect(() => {
+    const container = sectionRef.current?.closest("[style*='scroll-snap']") as HTMLElement|null;
+    if (!container) return;
+    function onScroll() {
+      const el = sectionRef.current;
+      if (!el || !container) return;
+      const relY = container.scrollTop - el.offsetTop;
+      setScrollY(relY);
+    }
+    container.addEventListener("scroll", onScroll, { passive: true });
+    return () => container.removeEventListener("scroll", onScroll);
   }, []);
 
   const feurLocal = (n: number) =>
@@ -650,41 +667,45 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       style: "currency", currency: "EUR", maximumFractionDigits: 0,
     }).format(Math.round(n));
 
+  const EMERALD = "#4A9970"; // vert émeraude sur fond navy
+
   const STEPS = [
     {
-      n: "01", t: "Votre profil",
-      d: "Horizon, risque, ESG, géographie.",
+      n: "01", t: "Profilage Avancé",
+      d: "Définition de votre ADN d'investisseur : horizon de temps, tolérance au risque et préférences sectorielles (ESG, Tech, Europe).",
+      accent: false,
     },
     {
-      n: "02", t: "Filtrage",
-      d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents.",
+      n: "02", t: "Univers d'Investissement",
+      d: "Scan complet du marché mondial. Notre algorithme filtre plus de 490 actifs pour ne retenir que les plus performants et liquides.",
+      accent: false,
     },
     {
-      n: "03", t: "Markowitz",
-      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente.",
+      n: "03", t: "Intelligence Markowitz",
+      d: "Optimisation mathématique via la Frontière Efficiente. 10 000 simulations Monte Carlo pour maximiser le rendement pour chaque unité de risque.",
+      accent: false,
     },
     {
-      n: "04", t: "Résultats",
-      d: gain > 0
-        ? `3 portefeuilles optimaux. Optimisé pour capturer vos ${feurLocal(gain)} de gain.`
-        : "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
+      n: "04", t: "Portefeuille Cible",
+      d: "Livraison de votre stratégie sur mesure.",
+      accent: true,
     },
   ];
 
-  // Variants stagger
+  // Stagger variants
   const wrapV = {
     hidden:   {},
-    visible:  { transition: { staggerChildren: 0.16, delayChildren: 0.05 } },
+    visible:  { transition: { staggerChildren: 0.15, delayChildren: 0.08 } },
   };
   const fadeUp = {
-    hidden:   { opacity: 0, y: 18 },
-    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+    hidden:   { opacity: 0, y: 22 },
+    visible:  { opacity: 1, y: 0, transition: { duration: 0.85, ease: [0.22, 1, 0.36, 1] } },
   };
   const blockV = (i: number) => ({
-    hidden:   { opacity: 0, y: 14 },
+    hidden:   { opacity: 0, y: 16 },
     visible:  {
       opacity: 1, y: 0,
-      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.14 },
+      transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.1 + i * 0.16 },
     },
   });
 
@@ -694,7 +715,8 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       style={{
         height: "100vh",
         scrollSnapAlign: "start",
-        background: NAVY,
+        // Fond radial : bleu profond au centre → noir sur les bords
+        background: "radial-gradient(ellipse 90% 75% at 50% 42%, #0A1628 0%, #060E1A 50%, #020509 100%)",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -704,16 +726,42 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         overflow: "hidden",
       }}
     >
-      {/* Radial glow discret au centre */}
-      <div style={{
-        position: "absolute",
-        top: "40%", left: "50%",
-        transform: "translate(-50%,-50%)",
-        width: "60vw", height: "40vh",
-        background: "radial-gradient(ellipse, rgba(30,58,110,0.55) 0%, transparent 70%)",
-        pointerEvents: "none", zIndex: 0,
-      }} />
+      {/* ── Numéros de fond en parallaxe ────────────────────── */}
+      {/* translateY inversé → bougent 40% moins vite que le scroll */}
+      <div
+        ref={numbersRef}
+        style={{
+          position: "absolute",
+          top: 0, left: 0, right: 0, bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-around",
+          pointerEvents: "none",
+          zIndex: 0,
+          transform: `translateY(${scrollY * 0.22}px)`,
+          transition: "transform .05s linear",
+        }}
+      >
+        {["01","02","03","04"].map((n, i) => (
+          <div
+            key={n}
+            style={{
+              fontFamily: "'Cormorant Garant',serif",
+              fontSize: "clamp(100px,13vw,180px)",
+              fontWeight: 300,
+              color: hovered === i
+                ? "rgba(255,255,255,0.06)"
+                : "rgba(255,255,255,0.025)",
+              lineHeight: 1,
+              letterSpacing: "-.02em",
+              userSelect: "none",
+              transition: "color .4s",
+            }}
+          >{n}</div>
+        ))}
+      </div>
 
+      {/* ── Contenu principal ───────────────────────────────── */}
       <motion.div
         variants={wrapV}
         initial="hidden"
@@ -721,108 +769,113 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         style={{
           width: "100%", maxWidth: 860,
           display: "flex", flexDirection: "column",
-          alignItems: "center", position: "relative", zIndex: 1,
+          alignItems: "center",
+          position: "relative", zIndex: 1,
         }}
       >
         {/* Eyebrow */}
         <motion.div variants={fadeUp} style={{
           fontFamily: "'Inter',sans-serif",
           fontSize: 9, fontWeight: 500,
-          letterSpacing: ".22em", textTransform: "uppercase",
-          color: "rgba(255,255,255,0.20)",
-          marginBottom: 18,
+          letterSpacing: ".24em", textTransform: "uppercase",
+          color: "rgba(255,255,255,0.18)",
+          marginBottom: 20,
         }}>
           Comment ça fonctionne
         </motion.div>
 
-        {/* Titre ligne 1 — Cormorant italic */}
+        {/* Titre 1 — Cormorant italic */}
         <motion.h2 variants={fadeUp} style={{
           fontFamily: "'Cormorant Garant',serif",
-          fontSize: "clamp(32px,4.2vw,54px)",
+          fontSize: "clamp(30px,4vw,52px)",
           fontWeight: 300, fontStyle: "italic",
-          letterSpacing: "-.02em", lineHeight: 1.06,
-          color: "rgba(255,255,255,0.92)",
-          textAlign: "center", margin: "0 0 6px",
+          letterSpacing: "-.02em", lineHeight: 1.05,
+          color: "rgba(255,255,255,0.90)",
+          textAlign: "center", margin: "0 0 5px",
         }}>7 questions.</motion.h2>
 
-        {/* Titre ligne 2 — Cormorant roman, atténué */}
+        {/* Titre 2 — atténué */}
         <motion.h2 variants={fadeUp} style={{
           fontFamily: "'Cormorant Garant',serif",
-          fontSize: "clamp(32px,4.2vw,54px)",
+          fontSize: "clamp(30px,4vw,52px)",
           fontWeight: 300,
-          letterSpacing: "-.02em", lineHeight: 1.06,
-          color: "rgba(255,255,255,0.34)",
-          textAlign: "center", margin: "0 0 48px",
+          letterSpacing: "-.02em", lineHeight: 1.05,
+          color: "rgba(255,255,255,0.30)",
+          textAlign: "center", margin: "0 0 52px",
         }}>Un portefeuille sur mesure.</motion.h2>
 
-        {/* Ligne supérieure */}
+        {/* Séparateur supérieur */}
         <div style={{
           width: "100%",
-          borderTop: "0.5px solid rgba(255,255,255,0.08)",
+          borderTop: "0.5px solid rgba(255,255,255,0.06)",
         }} />
 
         {/* 4 blocs */}
         <div style={{ display: "flex", width: "100%" }}>
-          {STEPS.map(({ n, t, d }, i) => (
+          {STEPS.map(({ n, t, d, accent }, i) => (
             <motion.div
               key={n}
               variants={blockV(i)}
               initial="hidden"
               animate={inView ? "visible" : "hidden"}
               onHoverStart={() => setHovered(i)}
-              onHoverEnd={() => setHovered(null)}
+              onHoverEnd={()  => setHovered(null)}
               style={{
                 flex: 1,
-                padding: "28px 24px 32px",
-                borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                padding: "30px 22px 34px",
+                // Séparateurs ultra-fins, opacité 5%
+                borderRight: i < 3
+                  ? "0.5px solid rgba(255,255,255,0.05)"
+                  : "none",
                 cursor: "default",
-                transition: "background .3s",
                 background: hovered === i
-                  ? "rgba(255,255,255,0.025)"
+                  ? "rgba(255,255,255,0.018)"
                   : "transparent",
+                transition: "background .35s",
               }}
             >
-              {/* Numéro — Cormorant, s'illumine au hover */}
+              {/* Numéro Cormorant — opacité variable au hover */}
               <div style={{
                 fontFamily: "'Cormorant Garant',serif",
-                fontSize: 40, fontWeight: 300,
-                lineHeight: 1, marginBottom: 18,
-                color: hovered === i
-                  ? "rgba(255,255,255,0.22)"
-                  : "rgba(255,255,255,0.08)",
-                transition: "color .3s",
+                fontSize: 44, fontWeight: 300,
+                lineHeight: 1, marginBottom: 20,
                 letterSpacing: "-.01em",
+                color: hovered === i
+                  ? "rgba(255,255,255,0.25)"
+                  : "rgba(255,255,255,0.10)",
+                transition: "color .35s",
               }}>{n}</div>
 
-              {/* Titre du bloc — Inter uppercase */}
+              {/* Titre bloc — Inter 500 uppercase */}
               <div style={{
                 fontFamily: "'Inter',sans-serif",
                 fontSize: 10, fontWeight: 500,
-                letterSpacing: ".12em",
-                textTransform: "uppercase",
+                letterSpacing: ".12em", textTransform: "uppercase",
                 color: hovered === i
-                  ? "rgba(255,255,255,0.85)"
-                  : "rgba(255,255,255,0.65)",
-                marginBottom: 10,
-                transition: "color .3s",
+                  ? "rgba(255,255,255,0.88)"
+                  : "rgba(255,255,255,0.60)",
+                marginBottom: 12,
+                transition: "color .35s",
               }}>{t}</div>
 
-              {/* Corps — Inter light */}
+              {/* Corps — Inter 300, blanc-cassé #E2E8F0 */}
               <div style={{
                 fontFamily: "'Inter',sans-serif",
-                fontSize: 11.5, fontWeight: 300,
+                fontSize: 12, fontWeight: 300,
                 letterSpacing: ".05em",
-                color: "rgba(255,255,255,0.32)",
-                lineHeight: 1.72,
+                color: "#B8C5D6",
+                lineHeight: 1.78,
               }}>
-                {/* Bloc 04 : le gain en vert si présent */}
-                {i === 3 && gain > 0 ? (
+                {accent && gain > 0 ? (
                   <>
-                    3 portefeuilles optimaux.<br/>
+                    Livraison de votre stratégie sur mesure.<br/>
                     <span style={{
                       fontFamily: "'Cormorant Garant',serif",
-                      fontSize: 12.5, fontWeight: 300, fontStyle: "italic",
-                      color: "#4ADE80", opacity: 0.80,
+                      fontSize: 13, fontWeight: 300, fontStyle: "italic",
+                      color: EMERALD,
+                      WebkitFontSmoothing: "antialiased",
+                      textShadow: `0 0 10px rgba(45,90,67,0.5)`,
+                      display: "inline-block", marginTop: 6,
                     }}>
                       Optimisé pour capturer vos {feurLocal(gain)} de gain.
                     </span>
@@ -833,27 +886,27 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
           ))}
         </div>
 
-        {/* Ligne inférieure */}
+        {/* Séparateur inférieur */}
         <div style={{
           width: "100%",
-          borderBottom: "0.5px solid rgba(255,255,255,0.08)",
-          marginBottom: 38,
+          borderBottom: "0.5px solid rgba(255,255,255,0.06)",
+          marginBottom: 40,
         }} />
 
-        {/* Bouton — identique Hero */}
+        {/* Bouton — identique Hero, lueur au hover */}
         <motion.div variants={fadeUp}>
           <motion.button
             className="btn-cta"
             whileHover={{
               scale: 1.04,
-              boxShadow: "0 0 0 1px rgba(255,255,255,0.18), 0 8px 30px rgba(10,22,40,0.40)",
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.18), 0 8px 32px rgba(0,0,0,0.40)",
             }}
             whileTap={{ scale: 0.97 }}
             onClick={onCTA}
             style={{
               background: "white",
               color: NAVY,
-              border: "1px solid rgba(255,255,255,0.10)",
+              border: "1px solid rgba(255,255,255,0.08)",
               fontFamily: "'Inter',sans-serif",
               fontSize: 9, fontWeight: 500,
               letterSpacing: ".18em",
