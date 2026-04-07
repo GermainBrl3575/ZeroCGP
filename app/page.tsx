@@ -629,210 +629,238 @@ function HeroSection({
 
 // ══════════════════════════════════════════════════════════════
 // ══════════════════════════════════════════════════════════════
-// SECTION 2 — Comment ça fonctionne
-// Transition crème→navy, fade-up stagger, blocs institutionnels
+// SECTION 2 — Comment ça fonctionne (prestige #0A1628)
 // ══════════════════════════════════════════════════════════════
 function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
-  const ref     = useRef<HTMLDivElement>(null);
-  const [scrollPct, setScrollPct] = useState(0); // 0=crème, 1=navy
-  const [inView,    setInView   ] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  const [hovered, setHovered] = useState<number|null>(null);
 
   useEffect(() => {
-    // Observer pour le fade-up
-    const obs = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { setInView(true); obs.disconnect(); }
-    }, { threshold: 0.15 });
-    if (ref.current) obs.observe(ref.current);
+    const obs = new IntersectionObserver(
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
+      { threshold: 0.12 }
+    );
+    if (sectionRef.current) obs.observe(sectionRef.current);
     return () => obs.disconnect();
   }, []);
-
-  useEffect(() => {
-    // Transition de fond basée sur la position de scroll du snap container
-    const container = ref.current?.closest("[style*='scroll-snap']") as HTMLElement | null;
-    if (!container) return;
-    function handleScroll() {
-      const el = ref.current;
-      if (!el || !container) return;
-      const sTop     = container.scrollTop;
-      const secTop   = el.offsetTop;
-      const winH     = container.clientHeight;
-      // pct : 0 quand la section commence à entrer, 1 quand elle est centrée
-      const raw      = (sTop - (secTop - winH)) / winH;
-      setScrollPct(Math.max(0, Math.min(1, raw)));
-    }
-    container.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => container.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Interpoler la couleur de fond crème → navy
-  function lerpColor(t: number): string {
-    const r = Math.round(249 + (10  - 249) * t);
-    const g = Math.round(248 + (22  - 248) * t);
-    const b = Math.round(246 + (40  - 246) * t);
-    return `rgb(${r},${g},${b})`;
-  }
-  const bg  = lerpColor(scrollPct);
-  const isD = scrollPct > 0.5; // dark = navy dominant
-
-  const textMain  = isD ? "rgba(255,255,255,0.92)" : "rgba(10,22,40,0.92)";
-  const textMuted = isD ? "rgba(255,255,255,0.35)" : "rgba(10,22,40,0.35)";
-  const textLabel = isD ? "rgba(255,255,255,0.22)" : "rgba(10,22,40,0.22)";
-  const divider   = isD ? "rgba(255,255,255,0.08)" : "rgba(10,22,40,0.08)";
-  const btnBg     = isD ? "white"                   : "rgba(10,22,40,0.92)";
-  const btnColor  = isD ? NAVY                      : "white";
 
   const feurLocal = (n: number) =>
     new Intl.NumberFormat("fr-FR", {
       style: "currency", currency: "EUR", maximumFractionDigits: 0,
     }).format(Math.round(n));
 
-  // Variants stagger
-  const wrapV = {
-    hidden:   {},
-    visible:  { transition: { staggerChildren: 0.18, delayChildren: 0.1 } },
-  };
-  const fadeV = {
-    hidden:   { opacity: 0, y: 20 },
-    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
-  };
-
   const STEPS = [
     {
       n: "01", t: "Votre profil",
-      d: "Horizon de placement, tolérance au risque, préférences ESG et zones géographiques.",
-      extra: null,
+      d: "Horizon, risque, ESG, géographie.",
     },
     {
       n: "02", t: "Filtrage",
-      d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents pour votre profil.",
-      extra: null,
+      d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents.",
     },
     {
       n: "03", t: "Markowitz",
-      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente et des corrélations réelles.",
-      extra: null,
+      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente.",
     },
     {
       n: "04", t: "Résultats",
-      d: "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
-      extra: gain > 0 ? `Optimisé pour capturer vos ${feurLocal(gain)} de gain.` : null,
+      d: gain > 0
+        ? `3 portefeuilles optimaux. Optimisé pour capturer vos ${feurLocal(gain)} de gain.`
+        : "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
     },
   ];
 
+  // Variants stagger
+  const wrapV = {
+    hidden:   {},
+    visible:  { transition: { staggerChildren: 0.16, delayChildren: 0.05 } },
+  };
+  const fadeUp = {
+    hidden:   { opacity: 0, y: 18 },
+    visible:  { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
+  };
+  const blockV = (i: number) => ({
+    hidden:   { opacity: 0, y: 14 },
+    visible:  {
+      opacity: 1, y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: i * 0.14 },
+    },
+  });
+
   return (
     <section
-      ref={ref}
+      ref={sectionRef}
       style={{
-        height: "100vh", scrollSnapAlign: "start",
-        background: bg,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
+        height: "100vh",
+        scrollSnapAlign: "start",
+        background: NAVY,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
         padding: "0 52px",
-        transition: "background .05s linear",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Radial glow discret au centre */}
+      <div style={{
+        position: "absolute",
+        top: "40%", left: "50%",
+        transform: "translate(-50%,-50%)",
+        width: "60vw", height: "40vh",
+        background: "radial-gradient(ellipse, rgba(30,58,110,0.55) 0%, transparent 70%)",
+        pointerEvents: "none", zIndex: 0,
+      }} />
+
       <motion.div
         variants={wrapV}
         initial="hidden"
         animate={inView ? "visible" : "hidden"}
-        style={{ width: "100%", maxWidth: 820, display: "flex", flexDirection: "column", alignItems: "center" }}
+        style={{
+          width: "100%", maxWidth: 860,
+          display: "flex", flexDirection: "column",
+          alignItems: "center", position: "relative", zIndex: 1,
+        }}
       >
         {/* Eyebrow */}
-        <motion.div variants={fadeV} style={{
+        <motion.div variants={fadeUp} style={{
           fontFamily: "'Inter',sans-serif",
-          fontSize: 9, fontWeight: 500, letterSpacing: ".24em",
-          color: textLabel, textTransform: "uppercase",
-          marginBottom: 18, textAlign: "center",
+          fontSize: 9, fontWeight: 500,
+          letterSpacing: ".22em", textTransform: "uppercase",
+          color: "rgba(255,255,255,0.20)",
+          marginBottom: 18,
         }}>
           Comment ça fonctionne
         </motion.div>
 
-        {/* Titre */}
-        <motion.h2 variants={fadeV} style={{
+        {/* Titre ligne 1 — Cormorant italic */}
+        <motion.h2 variants={fadeUp} style={{
           fontFamily: "'Cormorant Garant',serif",
           fontSize: "clamp(32px,4.2vw,54px)",
           fontWeight: 300, fontStyle: "italic",
-          color: textMain, lineHeight: 1.06, marginBottom: 12,
-          textAlign: "center", letterSpacing: "-.02em",
-        }}>
-          7 questions.
-        </motion.h2>
-        <motion.h2 variants={fadeV} style={{
+          letterSpacing: "-.02em", lineHeight: 1.06,
+          color: "rgba(255,255,255,0.92)",
+          textAlign: "center", margin: "0 0 6px",
+        }}>7 questions.</motion.h2>
+
+        {/* Titre ligne 2 — Cormorant roman, atténué */}
+        <motion.h2 variants={fadeUp} style={{
           fontFamily: "'Cormorant Garant',serif",
           fontSize: "clamp(32px,4.2vw,54px)",
           fontWeight: 300,
-          color: textMuted, lineHeight: 1.06, marginBottom: 44,
-          textAlign: "center", letterSpacing: "-.02em",
-        }}>
-          Un portefeuille sur mesure.
-        </motion.h2>
+          letterSpacing: "-.02em", lineHeight: 1.06,
+          color: "rgba(255,255,255,0.34)",
+          textAlign: "center", margin: "0 0 48px",
+        }}>Un portefeuille sur mesure.</motion.h2>
+
+        {/* Ligne supérieure */}
+        <div style={{
+          width: "100%",
+          borderTop: "0.5px solid rgba(255,255,255,0.08)",
+        }} />
 
         {/* 4 blocs */}
-        <motion.div variants={fadeV} style={{
-          display: "flex", width: "100%",
-          borderTop: `0.5px solid ${divider}`,
-        }}>
-          {STEPS.map(({ n, t, d, extra }) => (
-            <div key={n} style={{
-              flex: 1, padding: "28px 24px",
-              borderRight: `0.5px solid ${divider}`,
-            }}>
-              {/* Numéro */}
+        <div style={{ display: "flex", width: "100%" }}>
+          {STEPS.map(({ n, t, d }, i) => (
+            <motion.div
+              key={n}
+              variants={blockV(i)}
+              initial="hidden"
+              animate={inView ? "visible" : "hidden"}
+              onHoverStart={() => setHovered(i)}
+              onHoverEnd={() => setHovered(null)}
+              style={{
+                flex: 1,
+                padding: "28px 24px 32px",
+                borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                cursor: "default",
+                transition: "background .3s",
+                background: hovered === i
+                  ? "rgba(255,255,255,0.025)"
+                  : "transparent",
+              }}
+            >
+              {/* Numéro — Cormorant, s'illumine au hover */}
               <div style={{
                 fontFamily: "'Cormorant Garant',serif",
-                fontSize: 38, fontWeight: 300,
-                color: isD ? "rgba(255,255,255,0.08)" : "rgba(10,22,40,0.07)",
-                lineHeight: 1, marginBottom: 16,
+                fontSize: 40, fontWeight: 300,
+                lineHeight: 1, marginBottom: 18,
+                color: hovered === i
+                  ? "rgba(255,255,255,0.22)"
+                  : "rgba(255,255,255,0.08)",
+                transition: "color .3s",
+                letterSpacing: "-.01em",
               }}>{n}</div>
 
-              {/* Titre bloc */}
+              {/* Titre du bloc — Inter uppercase */}
               <div style={{
                 fontFamily: "'Inter',sans-serif",
-                fontSize: 10, fontWeight: 500, letterSpacing: ".12em",
-                color: isD ? "rgba(255,255,255,0.72)" : "rgba(10,22,40,0.72)",
-                textTransform: "uppercase", marginBottom: 9,
+                fontSize: 10, fontWeight: 500,
+                letterSpacing: ".12em",
+                textTransform: "uppercase",
+                color: hovered === i
+                  ? "rgba(255,255,255,0.85)"
+                  : "rgba(255,255,255,0.65)",
+                marginBottom: 10,
+                transition: "color .3s",
               }}>{t}</div>
 
-              {/* Description */}
+              {/* Corps — Inter light */}
               <div style={{
                 fontFamily: "'Inter',sans-serif",
                 fontSize: 11.5, fontWeight: 300,
-                color: textMuted, lineHeight: 1.7,
-              }}>{d}</div>
-
-              {/* Rappel gain (bloc 04) */}
-              {extra && (
-                <div style={{
-                  marginTop: 14,
-                  fontFamily: "'Cormorant Garant',serif",
-                  fontSize: 12.5, fontWeight: 300, fontStyle: "italic",
-                  color: "#4ADE80",
-                  opacity: 0.85,
-                  lineHeight: 1.5,
-                }}>{extra}</div>
-              )}
-            </div>
+                letterSpacing: ".05em",
+                color: "rgba(255,255,255,0.32)",
+                lineHeight: 1.72,
+              }}>
+                {/* Bloc 04 : le gain en vert si présent */}
+                {i === 3 && gain > 0 ? (
+                  <>
+                    3 portefeuilles optimaux.<br/>
+                    <span style={{
+                      fontFamily: "'Cormorant Garant',serif",
+                      fontSize: 12.5, fontWeight: 300, fontStyle: "italic",
+                      color: "#4ADE80", opacity: 0.80,
+                    }}>
+                      Optimisé pour capturer vos {feurLocal(gain)} de gain.
+                    </span>
+                  </>
+                ) : d}
+              </div>
+            </motion.div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Bouton — même style que Hero */}
-        <motion.div variants={fadeV} style={{ marginTop: 36 }}>
+        {/* Ligne inférieure */}
+        <div style={{
+          width: "100%",
+          borderBottom: "0.5px solid rgba(255,255,255,0.08)",
+          marginBottom: 38,
+        }} />
+
+        {/* Bouton — identique Hero */}
+        <motion.div variants={fadeUp}>
           <motion.button
             className="btn-cta"
-            whileHover={{ scale: 1.04, boxShadow: "0 8px 30px rgba(10,22,40,0.18)" }}
+            whileHover={{
+              scale: 1.04,
+              boxShadow: "0 0 0 1px rgba(255,255,255,0.18), 0 8px 30px rgba(10,22,40,0.40)",
+            }}
             whileTap={{ scale: 0.97 }}
             onClick={onCTA}
             style={{
-              background: btnBg,
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-              color: btnColor,
-              border: isD ? "1px solid rgba(255,255,255,0.07)" : "1px solid rgba(255,255,255,0.12)",
+              background: "white",
+              color: NAVY,
+              border: "1px solid rgba(255,255,255,0.10)",
               fontFamily: "'Inter',sans-serif",
-              fontSize: 9, fontWeight: 500, letterSpacing: ".18em",
-              padding: "14px 38px", borderRadius: 8,
-              cursor: "pointer", textTransform: "uppercase",
+              fontSize: 9, fontWeight: 500,
+              letterSpacing: ".18em",
+              padding: "14px 38px",
+              borderRadius: 8,
+              cursor: "pointer",
+              textTransform: "uppercase",
             }}
           >
             Optimiser mon portefeuille →
