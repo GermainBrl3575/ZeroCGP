@@ -11,15 +11,74 @@ const ETF_FEES   = 0.002;
 
 // ── Données bancaires (niveau module pour SSR Next.js) ───────
 const BANKS: Record<string, {
-  label:string; gestion:number; versement:number; courtage:number; retro:number;
+  label: string;
+  // Frais annuels (prélevés sur l'encours)
+  garde: number;       // Droits de garde / tenue de compte (% encours/an)
+  opcvm: number;       // Frais moy. OPCVM actifs si gestion déléguée (% encours/an)
+  // Frais par transaction
+  courtage: number;    // Commission de courtage (% du montant de l'ordre)
+  versement: number;   // Frais sur versement (sur AV/gestion pilotée, généralement 0 sur PEA libre)
+  // Meta
+  type: "banque_trad" | "banque_ligne" | "courtier";
+  note: string;
 }> = {
-  bnp:        { label:"BNP Paribas",      gestion:1.8, versement:2.5, courtage:0.5, retro:0.9 },
-  sg:         { label:"Société Générale",  gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
-  lcl:        { label:"LCL",              gestion:1.9, versement:2.5, courtage:0.5, retro:1.0 },
-  rothschild: { label:"Rothschild & Co",   gestion:1.5, versement:1.0, courtage:0.3, retro:1.2 },
-  fortuneo:   { label:"Fortuneo",         gestion:0.6, versement:0.0, courtage:0.1, retro:0.0 },
-  bourso:     { label:"Boursorama",       gestion:0.5, versement:0.0, courtage:0.1, retro:0.0 },
-  cacib:      { label:"Crédit Agricole",  gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
+  bnp: {
+    label: "BNP Paribas", type: "banque_trad",
+    garde: 0.25,   // Barème progressif BNP : 0.40% jusqu'à 50k€, 0.20% jusqu'à 150k€ — moy. ~0.25%
+    opcvm: 1.8,    // Frais OPCVM BNP (fonds maison) : 1.5–2.5%/an, moy. 1.8%
+    courtage: 0.5, // Plafond légal PEA (0.5%), BNP est souvent au plafond
+    versement: 0,  // PEA : pas de frais de versement (réglementaire)
+    note: "Droits de garde + OPCVM maison chargés en frais",
+  },
+  sg: {
+    label: "Société Générale", type: "banque_trad",
+    garde: 0.20,   // SG : droits de garde ~0.20-0.30% selon encours
+    opcvm: 1.7,    // Fonds SG actifs : ~1.5-2%/an
+    courtage: 0.5, // Au plafond légal PEA
+    versement: 0,
+    note: "Rétrocessions OPCVM importantes, courtage au plafond légal",
+  },
+  lcl: {
+    label: "LCL", type: "banque_trad",
+    garde: 0.30,   // LCL : droits de garde 0.20-0.40% selon profil
+    opcvm: 1.6,    // Fonds LCL : ~1.5-1.8%/an
+    courtage: 0.5, // Plafond légal PEA
+    versement: 0,
+    note: "Frais de garde + OPCVM maison, pas d'ETF mis en avant",
+  },
+  cacib: {
+    label: "Crédit Agricole", type: "banque_trad",
+    garde: 0.20,   // CA : 0.10-0.50% selon région et encours
+    opcvm: 1.7,    // Fonds Amundi (filiale CA) : 1.5-2%/an
+    courtage: 0.5, // Plafond légal
+    versement: 0,
+    note: "Amundi est filiale CA — rétrocessions sur fonds maison",
+  },
+  bourso: {
+    label: "BoursoBank", type: "banque_ligne",
+    garde: 0.0,    // Aucun droit de garde (argument marketing clé)
+    opcvm: 0.5,    // Frais courtage OPCVM (pas de droits de garde mais frais de transaction)
+    courtage: 0.5, // 0.50-0.60% selon offre (Boursomarkets, plafond légal PEA)
+    versement: 0,
+    note: "0 droits de garde, mais courtage au plafond légal depuis 2023",
+  },
+  fortuneo: {
+    label: "Fortuneo", type: "banque_ligne",
+    garde: 0.0,    // Aucun droit de garde
+    opcvm: 0.0,    // Pas de fonds maison chargés
+    courtage: 0.35, // Formule Starter : 0.35% (1 ordre/mois gratuit ≤500€)
+    versement: 0,
+    note: "Meilleur rapport qualité/prix : 1 ordre/mois gratuit ≤500€",
+  },
+  rothschild: {
+    label: "Rothschild & Co", type: "banque_trad",
+    garde: 0.0,    // Inclus dans les frais globaux de gestion privée
+    opcvm: 0.0,    // Frais inclus dans la gestion sous mandat
+    courtage: 0.3, // Courtage négocié (tarifs privés)
+    versement: 0,
+    // Frais de gestion sous mandat = 1.0-1.5%/an all-in
+    note: "Gestion privée : frais globaux ~1.0-1.5%/an sous mandat",
+  },
 };
 
 // ── Hook compteur animé ───────────────────────────────────────
@@ -933,7 +992,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
   const bank    = BANKS[bankKey];
   const MSCI    = 0.08;
   // Frais annuels cumulés sur durée
-  const annualFees    = bank.gestion + bank.retro;
+  const annualFees    = bank.garde + bank.opcvm;
   // Frais ponctuels (versement sur capital initial, courtage estimé 2 transactions/an)
   const upfrontFees   = capital * (bank.versement / 100);
   const tradingFees   = capital * (bank.courtage / 100) * 2;
@@ -949,8 +1008,8 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
   const totalAnnual = useAnimatedNumber(annualFees + bank.courtage + bank.versement);
   const lossAni     = useAnimatedNumber(totalLoss, 0, 900);
   const captureAni  = useAnimatedNumber(parseFloat(capturePct), 1, 700);
-  const gestionAni  = useAnimatedNumber(bank.gestion);
-  const retroAni    = useAnimatedNumber(bank.retro);
+  const gestionAni  = useAnimatedNumber(bank.garde);
+  const retroAni    = useAnimatedNumber(bank.opcvm);
   const versAni     = useAnimatedNumber(bank.versement);
   const courtAni    = useAnimatedNumber(bank.courtage);
 
@@ -1139,8 +1198,8 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
               color:"rgba(10,22,40,0.25)", padding:"8px 10px 4px",
             }}>Frais annuels</div>
             {[
-              { label:"Frais de gestion",  bank:gestionAni, note:"Supprimés — gestion passive" },
-              { label:"Rétrocessions",     bank:retroAni,   note:"Supprimés — frais cachés éliminés" },
+              { label:"Droits de garde",  bank:gestionAni, note:"Supprimés — gestion passive" },
+              { label:"Frais OPCVM/fonds actifs", bank:retroAni,   note:"Supprimés — ETF vs fonds actifs (-1.5%/an)" },
             ].map(({ label, bank: v, note }, i) => (
               <div key={label} style={{
                 display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
@@ -1169,8 +1228,8 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
               color:"rgba(10,22,40,0.25)", padding:"8px 10px 4px",
             }}>Frais ponctuels</div>
             {[
-              { label:"Frais sur versement", bank:versAni,  note:"Supprimés — courtage direct" },
-              { label:"Frais de courtage",   bank:courtAni, note:"Inhérents à votre courtier (~0.10%)" },
+              { label:"Frais sur versement",   bank:versAni,  note:"Supprimés — pas de frais sur versement PEA" },
+              { label:"Frais de courtage",   bank:courtAni, note:"Inhérent à votre courtier — varie selon l'offre" },
             ].map(({ label, bank: v, note }, i) => (
               <div key={label} style={{
                 display:"grid", gridTemplateColumns:"1fr 90px 90px 1fr",
