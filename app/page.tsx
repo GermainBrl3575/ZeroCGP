@@ -581,7 +581,7 @@ function HeroSection({
   const itemV={hidden:{opacity:0,y:14},visible:{opacity:1,y:0,transition:{duration:0.85,ease:[0.22,1,0.36,1]}}};
 
   return (
-    <section className="hero-grain" style={{
+    <section className="hero-grain" data-section-idx="0" style={{
       height:"100vh", scrollSnapAlign:"start",
       background:"radial-gradient(ellipse 110% 90% at 12% 8%, #F9F8F6 0%, #F5F2EE 45%, #ECE7E1 100%)",
       display:"flex", flexDirection:"column",
@@ -848,6 +848,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 
   return (
     <section
+      data-section-idx="1"
       ref={sectionRef}
       style={{
         height:"100vh", scrollSnapAlign:"start",
@@ -1737,6 +1738,7 @@ export default function LandingPage() {
 
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs  = useRef<(HTMLElement|null)[]>([null, null, null]);
   const [activeTab,  setActiveTab  ]=useState(0);
   const [capital,    setCapital    ]=useState(150000);
   const [years,      setYears      ]=useState(15);
@@ -1765,10 +1767,44 @@ export default function LandingPage() {
     "Banque / CGP":cgpTraj[i].value,
   }));
 
+  // ── Nav adaptive : IntersectionObserver sur les sections ──
+  // Sections sombres = index 1 (HowSection) et 2 (StrategySection)
+  // On track quelle section est visible à >40% dans le viewport
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
 
-  // Nav adapte automatiquement sa couleur selon la section active
-  const darkNav  = activeTab > 0;  // sections 1 (HowSection) et 2 (StrategySection) sont sombres
-  const scrolled = false;         // simplification : la nav est toujours sans bordure
+    const obs = new IntersectionObserver(
+      (entries) => {
+        let maxRatio = -1;
+        let visibleIdx = -1;
+        entries.forEach(entry => {
+          const idx = parseInt((entry.target as HTMLElement).dataset.sectionIdx ?? "-1");
+          if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
+            maxRatio = entry.intersectionRatio;
+            visibleIdx = idx;
+          }
+        });
+        if (visibleIdx >= 0) {
+          setActiveTab(visibleIdx);
+        }
+      },
+      {
+        root: el,
+        threshold: [0.25, 0.5, 0.75], // déclenche à 25%, 50%, 75% de visibilité
+      }
+    );
+
+    // Observer les sections enfants directes du container
+    const sections = el.querySelectorAll("section[data-section-idx]");
+    sections.forEach(s => obs.observe(s));
+
+    return () => obs.disconnect();
+  }, []);
+
+  // darkNav = section sombre visible (index 1 ou 2)
+  const darkNav = activeTab === 1 || activeTab === 2;
+
   return (
     
 <>
