@@ -1050,7 +1050,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                        - capital * actif_vers/100; // frais versement ponctuel
   const passifFinal  = capital * Math.pow(1 + passifNetRet, years);
   const gain         = passifFinal - actifFinal;
-  const capturePct   = (actif_total_an / MSCI * 100);
+  const capturePct   = (actif_total_an / (MSCI * 100)) * 100; // actif% / rendement% = part capturée
 
   const feurL = (n: number) =>
     new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:0})
