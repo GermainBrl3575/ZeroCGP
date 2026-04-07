@@ -175,7 +175,7 @@ const GLOBAL_CSS = `
 .hero-grain::after {
   content:""; position:absolute; inset:-100%; width:300%; height:300%;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  opacity:0.024; pointer-events:none; animation:grain 0.9s steps(2) infinite; z-index:1;
+  opacity:0.018; pointer-events:none; animation:grain 0.9s steps(2) infinite; z-index:1;
 }
 @keyframes rotateSlow {
   from { transform: rotate(0deg); }
@@ -351,10 +351,10 @@ function HeroSection({
       }
       ct.closePath();
       const gZ=ct.createLinearGradient(sx(0),0,sx(n-1),0);
-      gZ.addColorStop(0,   `rgba(45,90,67,0.0)`);
-      gZ.addColorStop(0.3, `rgba(134,239,172,${0.03*aArea})`);
-      gZ.addColorStop(0.75,`rgba(134,239,172,${0.07*aArea})`);
-      gZ.addColorStop(1,   `rgba(134,239,172,${0.13*aArea})`);
+      gZ.addColorStop(0,   `rgba(10,22,40,0.00)`);
+      gZ.addColorStop(0.3, `rgba(10,22,40,${0.025*aArea})`);
+      gZ.addColorStop(0.75,`rgba(10,22,40,${0.05*aArea})`);
+      gZ.addColorStop(1,   `rgba(10,22,40,${0.09*aArea})`);
       ct.fillStyle=gZ;
       ct.fill();
       void bEndX; void endIdx;
@@ -371,15 +371,19 @@ function HeroSection({
         );
       }
       const gLine=ct.createLinearGradient(sx(0),0,sx(n-1),0);
-      gLine.addColorStop(0,  "rgba(10,22,40,0.18)");
-      gLine.addColorStop(0.4,"rgba(10,22,40,0.55)");
-      gLine.addColorStop(0.8,"rgba(10,22,40,0.85)");
-      gLine.addColorStop(1,  "#0A1628");
+      gLine.addColorStop(0,  "rgba(10,22,40,0.12)");
+      gLine.addColorStop(0.35,"rgba(10,22,40,0.45)");
+      gLine.addColorStop(0.7, "rgba(10,22,40,0.78)");
+      gLine.addColorStop(1,   "#0A1628");
       ct.strokeStyle=gLine;
       ct.lineWidth=1.8;
       ct.lineJoin="round";
       ct.lineCap="round";
+      // Glow saphir — filtre drop-shadow via shadowBlur canvas
+      ct.shadowColor="rgba(10,22,40,0.18)";
+      ct.shadowBlur=18;
       ct.stroke();
+      ct.shadowBlur=0;  // reset pour ne pas affecter les autres éléments
 
       // Dot de tête (glowing)
       const [hx,hy]=zVisible[zVisible.length-1];
@@ -399,7 +403,7 @@ function HeroSection({
       // Ligne écart verticale
       ct.setLineDash([2,4]);
       ct.beginPath(); ct.moveTo(ex,eby); ct.lineTo(ex,ezy);
-      ct.strokeStyle="rgba(45,90,67,0.34)"; ct.lineWidth=1; ct.stroke();
+      ct.strokeStyle="rgba(10,22,40,0.25)"; ct.lineWidth=1; ct.stroke();
       ct.setLineDash([]);
       // Dot banque final
       ct.beginPath(); ct.arc(ex,eby,3,0,Math.PI*2);
@@ -555,7 +559,7 @@ function HeroSection({
   return (
     <section className="hero-grain" style={{
       height:"100vh", scrollSnapAlign:"start",
-      background:"radial-gradient(ellipse 72% 58% at 50% 36%, #F2F5FA 0%, #FBFBFD 50%, #F7F6F3 100%)",
+      background:"radial-gradient(ellipse 110% 90% at 12% 8%, #F9F8F6 0%, #F5F2EE 45%, #ECE7E1 100%)",
       display:"flex", flexDirection:"column",
       position:"relative", overflow:"hidden",
     }}>
@@ -785,7 +789,7 @@ function HeroSection({
         <p style={{
           fontFamily:"'Inter',sans-serif",
           fontSize:9, fontWeight:300, letterSpacing:".02em",
-          color:"rgba(10,22,40,0.35)", lineHeight:1.6,
+          color:"rgba(125,125,125,0.70)", lineHeight:1.6,
           margin:0,
         }}>
           Simulation basée sur un rendement historique moyen de 8&nbsp;% (MSCI World, 1990–2024).
