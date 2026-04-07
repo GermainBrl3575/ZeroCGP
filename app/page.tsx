@@ -13,57 +13,96 @@ const ETF_FEES   = 0.002;
 const BANKS: Record<string, {
   label: string;
   type: "banque_trad" | "banque_ligne" | "courtier";
-  // Frais liés au COURTIER (tenue de compte, service)
-  garde: number;       // Droits de garde / tenue de compte (%/an)
-  retrocessions: number; // Rétrocessions perçues par la banque sur les fonds (%/an)
-  courtage: number;    // Frais de courtage par ordre (%)
-  versement: number;   // Frais sur versement (AV/gestion pilotée)
-  // Frais des FONDS ACTIFS (TER inhérent, indépendant du courtier)
-  // Ces frais existent CHEZ TOUS LES COURTIERS si on achète des fonds actifs
-  ter_actif: number;   // TER moyen des OPCVM/fonds actifs proposés (%/an)
+  garde: number;         // Droits de garde / tenue de compte (%/an encours)
+  retrocessions: number; // Rétrocessions versées au distributeur par la SGP (%/an)
+  ter_actif: number;     // TER moyen fonds actifs disponibles (%/an) — source: DICI + AMF 2024
+  courtage: number;      // Frais de courtage par ordre (% montant)
+  versement: number;     // Frais sur versement (AV/gestion pilotée)
   note: string;
 }> = {
   bnp: {
-    label:"BNP Paribas", type:"banque_trad",
-    garde:0.25, retrocessions:0.80, courtage:0.50, versement:0,
-    ter_actif:1.60,  // fonds BNP Paribas AM : 1.4-1.8%/an
-    note:"Droits de garde + rétrocessions sur fonds maison BNP AM",
+    label: "BNP Paribas",
+    type: "banque_trad",
+    garde: 0.25,
+    // BNP Paribas AM fonds actions retail : 1.65-1.85%/an (DICI 2024)
+    // Rétrocessions moyennes : ~0.80%/an reversées au réseau BNP
+    retrocessions: 0.80,
+    ter_actif: 1.75,   // moy. fonds actions BNP Paribas AM (ex: BNP Paribas Actions Monde 1.75%)
+    courtage: 0.50,
+    versement: 0,
+    note: "TER moy. BNP AM fonds actions retail : 1.75%/an — source DICI 2024",
   },
   sg: {
-    label:"Société Générale", type:"banque_trad",
-    garde:0.20, retrocessions:0.75, courtage:0.50, versement:0,
-    ter_actif:1.55,  // fonds SG/Lyxor actifs : 1.3-1.8%/an
-    note:"Rétrocessions Lyxor/Amundi actifs, courtage au plafond légal",
+    label: "Société Générale",
+    type: "banque_trad",
+    garde: 0.20,
+    // SG AM / Lyxor actifs : 1.40-1.70%/an ; rétrocessions ~0.70-0.80%
+    retrocessions: 0.75,
+    ter_actif: 1.55,   // moy. fonds SG AM actifs (hors Lyxor ETF)
+    courtage: 0.50,
+    versement: 0,
+    note: "TER moy. SG AM fonds actions actifs : 1.55%/an — AMF/Morningstar 2024",
   },
   lcl: {
-    label:"LCL", type:"banque_trad",
-    garde:0.30, retrocessions:0.70, courtage:0.50, versement:0,
-    ter_actif:1.60,  // fonds LCL/Crédit Agricole AM
-    note:"Droits de garde élevés + fonds Crédit Agricole AM chargés",
+    label: "LCL",
+    type: "banque_trad",
+    garde: 0.30,
+    // LCL distribue Amundi (filiale CA) : frais actifs ~1.60-1.80%/an
+    // Ex: LCL Actions France (Amundi AM) : 1.70% ; LCL Actions Euro : 1.65%
+    retrocessions: 0.70,
+    ter_actif: 1.65,   // moy. fonds Amundi distribués par LCL
+    courtage: 0.50,
+    versement: 0,
+    note: "TER moy. Amundi actifs distribués par LCL : 1.65%/an — DICI Amundi 2024",
   },
   cacib: {
-    label:"Crédit Agricole", type:"banque_trad",
-    garde:0.20, retrocessions:0.80, courtage:0.50, versement:0,
-    ter_actif:1.65,  // fonds Amundi actifs (filiale CA) : 1.4-2%/an
-    note:"Amundi est filiale CA — rétrocessions importantes sur fonds maison",
+    label: "Crédit Agricole",
+    type: "banque_trad",
+    garde: 0.20,
+    // Amundi (filiale CA) fonds actifs actions : 1.50-1.80%/an
+    // Ex: Amundi Actions France ISR : 1.65% ; Amundi Patrimoine : 1.60%
+    retrocessions: 0.80,
+    ter_actif: 1.65,   // moy. fonds Amundi actions actifs (filiale du CA)
+    courtage: 0.50,
+    versement: 0,
+    note: "TER moy. fonds Amundi (filiale CA) : 1.65%/an — Amundi DICI 2024",
   },
   bourso: {
-    label:"BoursoBank", type:"banque_ligne",
-    garde:0.0, retrocessions:0.0, courtage:0.55, versement:0,
-    ter_actif:1.40,  // OPCVM actifs dispo sur Bourso : ~1.2-1.6%/an TER
-    note:"0 rétrocessions, mais TER des fonds actifs reste élevé (~1.4%)",
+    label: "BoursoBank",
+    type: "banque_ligne",
+    garde: 0.00,
+    retrocessions: 0.00, // Pas de rétrocessions (modèle banque en ligne)
+    // OPCVM tiers disponibles : 1.20-1.60%/an selon le fonds choisi
+    // Moy. fonds actifs actions sur plateforme Boursorama : ~1.40%
+    ter_actif: 1.40,
+    courtage: 0.55,    // 0.50-0.60% selon offre BoursoMarkets 2024
+    versement: 0,
+    note: "0 rétrocessions, mais TER fonds actifs distribués ~1.40%/an — AMF 2024",
   },
   fortuneo: {
-    label:"Fortuneo", type:"banque_ligne",
-    garde:0.0, retrocessions:0.0, courtage:0.35, versement:0,
-    ter_actif:1.35,  // OPCVM actifs sur Fortuneo : ~1.2-1.5%/an TER
-    note:"0 rétrocessions, meilleur courtage — mais fonds actifs toujours ~1.35%",
+    label: "Fortuneo",
+    type: "banque_ligne",
+    garde: 0.00,
+    retrocessions: 0.00, // Pas de rétrocessions (courtier en ligne)
+    // OPCVM actifs disponibles sur Fortuneo : 1.20-1.55%/an
+    // Ex: Carmignac Patrimoine (part A) : 1.51% ; Comgest Growth Europe : 1.65%
+    // Moy. fonds actifs sur plateforme : ~1.35%
+    ter_actif: 1.35,
+    courtage: 0.35,    // Formule Starter Fortuneo (mars 2024 : 0.35%, 1 ordre/mois gratuit ≤500€)
+    versement: 0,
+    note: "0 rétrocessions, TER fonds actifs disponibles ~1.35%/an — Fortuneo/AMF 2024",
   },
   rothschild: {
-    label:"Rothschild & Co", type:"banque_trad",
-    garde:0.0, retrocessions:0.50, courtage:0.30, versement:0,
-    ter_actif:1.20,  // Gestion privée : frais all-in 1.0-1.5%/an sous mandat
-    note:"Gestion sous mandat ~1.0-1.5%/an all-in (inclut TER + rétro)",
+    label: "Rothschild & Co",
+    type: "banque_trad",
+    garde: 0.00,       // Inclus dans les frais de mandat
+    retrocessions: 0.50,
+    // Mandat privé Rothschild : ~0.80-1.20%/an all-in selon taille patrimoine
+    // TER moyen des fonds sélectionnés dans les mandats : ~1.00%
+    ter_actif: 1.00,
+    courtage: 0.30,    // Tarifs négociés private banking
+    versement: 0,
+    note: "Gestion sous mandat ~0.80-1.20%/an all-in ; TER sélection fonds : ~1.00%",
   },
 };
 // ── Enveloppes fiscales (module level pour SSR) ──────────────
