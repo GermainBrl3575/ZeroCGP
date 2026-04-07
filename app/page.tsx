@@ -1742,7 +1742,7 @@ export default function LandingPage() {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const DARK_TABS = [2]; // index des sections sombres (StrategySection)
+    const DARK_TABS = [1, 2]; // 1=HowSection, 2=StrategySection
     const onScroll = () => {
       const h = el.clientHeight;
       const tab = Math.round(el.scrollTop / h);
@@ -1791,12 +1791,12 @@ export default function LandingPage() {
         position:"fixed", top:0, left:0, right:0, zIndex:9999,
         display:"flex", alignItems:"center", justifyContent:"space-between",
         padding:"16px 52px",
-        background: darkNav ? "rgba(5,11,20,0.72)" : "rgba(255,255,255,0.70)",
+        background: darkNav ? "rgba(5,11,20,0.72)" : "rgba(249,248,246,0.88)",
         backdropFilter:"blur(15px)", WebkitBackdropFilter:"blur(15px)",
         borderBottom: scrolled
           ? (darkNav ? "0.5px solid rgba(255,255,255,0.08)" : "0.5px solid rgba(10,22,40,0.08)")
           : "0.5px solid transparent",
-        transition:"background .35s ease, border-color .25s ease",
+        transition:"background .40s cubic-bezier(0.22,1,0.36,1), border-color .30s ease, color .30s ease",
       }}>
         <span style={{
           fontFamily:"'Cormorant Garant',serif", fontSize:12, fontWeight:400,
