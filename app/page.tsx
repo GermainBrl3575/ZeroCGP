@@ -80,6 +80,30 @@ const BANKS: Record<string, {
     note: "Gestion privée : frais globaux ~1.0-1.5%/an sous mandat",
   },
 };
+// ── Enveloppes fiscales (module level pour SSR) ──────────────
+type EnvelopeKey = "pea" | "cto" | "av";
+const ENVELOPES: Record<EnvelopeKey, {
+  label: string; fiscalite: string; plafond: number | null;
+  fraisContrat: number; fraisVersement: number; fraisArbitrage: number;
+}> = {
+  pea: {
+    label: "PEA", plafond: 150000,
+    fiscalite: "Exonéré IR après 5 ans (hors PS 17.2%)",
+    fraisContrat: 0, fraisVersement: 0, fraisArbitrage: 0,
+  },
+  cto: {
+    label: "CTO", plafond: null,
+    fiscalite: "Flat tax 30% sur plus-values et dividendes",
+    fraisContrat: 0, fraisVersement: 0, fraisArbitrage: 0,
+  },
+  av: {
+    label: "Assurance-Vie", plafond: null,
+    fiscalite: "Abattement 4 600€/an après 8 ans, PFU 7.5% jusqu'à 150k€",
+    fraisContrat: 0.75, fraisVersement: 2.0, fraisArbitrage: 0.5,
+  },
+};
+
+
 
 // ── Hook compteur animé ───────────────────────────────────────
 function useAnimatedNumber(target: number, decimals = 1, duration = 600) {
