@@ -1,89 +1,262 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+
+const BG = "#050B14";
+const TW = "rgba(229,231,235,0.88)";
+const TM = "rgba(229,231,235,0.38)";
+const TS = "rgba(229,231,235,0.18)";
+const VERT = "rgba(74,222,128,0.80)";
+
+function useTyping(text: string, started: boolean, speed = 52) {
+  const [displayed, setDisplayed] = useState("");
+  useEffect(() => {
+    if (!started) return;
+    setDisplayed("");
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setDisplayed(text.slice(0, i));
+      if (i >= text.length) clearInterval(id);
+    }, speed);
+    return () => clearInterval(id);
+  }, [text, started]);
+  return displayed;
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [focused, setFocused]   = useState<string|null>(null);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [started, setStarted]   = useState(false);
+  const [wave, setWave]         = useState(false);
 
-  async function handleLogin(e: React.FormEvent) {
+  useEffect(() => { setTimeout(() => setStarted(true), 200); }, []);
+
+  const t1 = useTyping("Bienvenue", started, 60);
+  const t2 = useTyping("de retour.", started && t1.length >= 9, 55);
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true); setError("");
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { setError(error.message); setLoading(false); }
-    else router.push("/dashboard/portfolio");
+    try {
+      const { createClient } = await import("@supabase/supabase-js");
+      const sb = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
+      const { error: err } = await sb.auth.signInWithPassword({ email, password });
+      if (err) { setError(err.message); setLoading(false); return; }
+      router.push("/dashboard");
+    } catch {
+      setError("Une erreur est survenue."); setLoading(false);
+    }
+  }
+
+  function onFocus(name: string) {
+    setFocused(name);
+    setWave(false);
+    setTimeout(() => setWave(true), 10);
+    setTimeout(() => setWave(false), 900);
   }
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Inter:wght@300;400;500&display=swap');
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#FAFAF8;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
-        .auth-root{min-height:100vh;display:grid;grid-template-columns:1fr 1fr}
-        .auth-left{background:#0A1628;display:flex;flex-direction:column;justify-content:space-between;padding:48px 56px}
-        .auth-logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;text-decoration:none}
-        .auth-left-title{font-family:'Cormorant Garant',serif;font-size:clamp(36px,4vw,52px);font-weight:300;color:white;line-height:1.1;letter-spacing:-.02em}
-        .auth-left-title em{font-style:italic;color:rgba(255,255,255,.4)}
-        .auth-left-sub{font-size:12px;font-weight:300;color:rgba(255,255,255,.3);line-height:1.8;margin-top:14px}
-        .auth-line{width:36px;height:1px;background:rgba(255,255,255,.2);margin-bottom:28px}
-        .auth-right{display:flex;align-items:center;justify-content:center;padding:48px}
-        .form-wrap{width:100%;max-width:340px}
-        .back-link{font-size:10px;letter-spacing:.1em;color:#8A9BB0;text-decoration:none;display:block;margin-bottom:48px;transition:color 0.2s}
-        .back-link:hover{color:#0A1628}
-        .auth-heading{font-family:'Cormorant Garant',serif;font-size:40px;font-weight:300;color:#0A1628;letter-spacing:-.02em;margin-bottom:8px}
-        .auth-hint{font-size:12px;font-weight:300;color:#8A9BB0;margin-bottom:36px}
-        .auth-hint a{color:#1E3A6E;text-decoration:none;border-bottom:1px solid rgba(30,58,110,.2)}
-        .auth-hint a:hover{border-color:#1E3A6E}
-        .fl{margin-bottom:28px}
-        .fl label{font-size:9px;font-weight:500;letter-spacing:.16em;color:#8A9BB0;display:block;margin-bottom:8px}
-        .fl input{width:100%;background:transparent;border:none;border-bottom:1px solid rgba(10,22,40,.15);padding:10px 0;font-size:13px;color:#0A1628;outline:none;transition:border-color 0.3s;font-weight:300;font-family:'Inter',sans-serif}
-        .fl input:focus{border-color:#0A1628}
-        .fl input::placeholder{color:rgba(10,22,40,.2)}
-        .auth-error{font-size:11px;color:#C0392B;margin-bottom:14px}
-        .btn-primary{width:100%;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:#0A1628;color:white;border:none;padding:16px;cursor:pointer;transition:opacity 0.2s;margin-top:8px}
-        .btn-primary:hover{opacity:.82}
-        .btn-primary:disabled{opacity:.4;cursor:not-allowed}
-        .divider{display:flex;align-items:center;gap:14px;margin:24px 0}
-        .divider-line{flex:1;height:1px;background:rgba(10,22,40,.08)}
-        .divider-text{font-size:9px;color:#8A9BB0;letter-spacing:.1em}
-        .btn-secondary{width:100%;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.18em;background:transparent;color:#0A1628;border:1px solid rgba(10,22,40,.2);padding:16px;cursor:pointer;transition:all 0.35s;position:relative;overflow:hidden}
-        .btn-secondary::before{content:'';position:absolute;inset:0;background:#0A1628;transform:scaleX(0);transform-origin:left;transition:transform 0.4s cubic-bezier(0.4,0,0.2,1);z-index:-1}
-        .btn-secondary:hover::before{transform:scaleX(1)}
-        .btn-secondary:hover{color:white;border-color:#0A1628}
-        @media(max-width:768px){.auth-root{grid-template-columns:1fr}.auth-left{display:none}}
-      `}</style>
-      <div className="auth-root">
-        <div className="auth-left">
-          <a href="/" className="auth-logo">ZERO CGP</a>
-          <div>
-            <div className="auth-line" />
-            <h2 className="auth-left-title">Bienvenue<br /><em>de retour.</em></h2>
-            <p className="auth-left-sub">Votre portefeuille vous attend.<br />Connectez-vous pour accéder<br />à vos analyses et optimisations.</p>
-          </div>
-          <div />
+    <div style={{
+      minHeight:"100vh", background:BG,
+      display:"flex", position:"relative", overflow:"hidden",
+      fontFamily:"'Inter',sans-serif",
+    }}>
+      {/* Radial ambient */}
+      <div style={{
+        position:"absolute", top:0, left:0, width:"50%", height:"100%",
+        background:"radial-gradient(ellipse 80% 60% at 20% 50%, rgba(10,22,40,0.60) 0%, transparent 70%)",
+        pointerEvents:"none", zIndex:0,
+      }}/>
+
+      {/* Wave focus */}
+      {wave && (
+        <div style={{
+          position:"absolute", top:0, left:0, right:0, bottom:0,
+          background:"linear-gradient(90deg, transparent 0%, rgba(74,222,128,0.03) 50%, transparent 100%)",
+          animation:"wave-glow 0.85s ease-out forwards",
+          pointerEvents:"none", zIndex:1,
+        }}/>
+      )}
+
+      {/* ── Côté gauche ─────────────────────────── */}
+      <div style={{
+        width:"42%", padding:"0 52px",
+        display:"flex", flexDirection:"column",
+        justifyContent:"center", position:"relative", zIndex:2,
+      }}>
+        {/* Logo */}
+        <div style={{
+          position:"absolute", top:36, left:52,
+          fontFamily:"'Cormorant Garant',serif",
+          fontSize:12, fontWeight:400, letterSpacing:".38em",
+          color:"rgba(229,231,235,0.55)", textTransform:"uppercase",
+        }}>Zero CGP</div>
+
+        {/* Trait */}
+        <div style={{
+          width:32, height:"0.5px",
+          background:"rgba(74,222,128,0.40)",
+          marginBottom:28,
+        }}/>
+
+        {/* Titre typing */}
+        <div style={{ marginBottom:20 }}>
+          <h1 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(42px,5.2vw,68px)",
+            fontWeight:300, color:TW,
+            lineHeight:1.08, margin:"0 0 4px",
+          }}>{t1}
+            {t1.length < 9 && (
+              <span style={{ animation:"typing-cursor 1s infinite", color:VERT }}>|</span>
+            )}
+          </h1>
+          <h1 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:"clamp(42px,5.2vw,68px)",
+            fontWeight:300, fontStyle:"italic",
+            color:"rgba(229,231,235,0.38)",
+            lineHeight:1.08, margin:0,
+          }}>{t2}
+            {t1.length >= 9 && t2.length < 10 && (
+              <span style={{ animation:"typing-cursor 1s infinite", color:VERT }}>|</span>
+            )}
+          </h1>
         </div>
-        <div className="auth-right">
-          <div className="form-wrap">
-            <a href="/" className="back-link">← RETOUR</a>
-            <h1 className="auth-heading">Connexion</h1>
-            <p className="auth-hint">Pas encore de compte ? <Link href="/auth/register">S'inscrire gratuitement</Link></p>
-            <form onSubmit={handleLogin}>
-              <div className="fl"><label>ADRESSE EMAIL</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} required placeholder="vous@exemple.fr" /></div>
-              <div className="fl"><label>MOT DE PASSE</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} required placeholder="••••••••" /></div>
-              {error && <p className="auth-error">{error}</p>}
-              <button type="submit" disabled={loading} className="btn-primary">{loading ? "CONNEXION..." : "SE CONNECTER →"}</button>
-            </form>
-            <div className="divider"><div className="divider-line"/><span className="divider-text">OU</span><div className="divider-line"/></div>
-            <button className="btn-secondary" onClick={()=>router.push("/auth/register")}>CRÉER UN COMPTE →</button>
-          </div>
+
+        <p style={{
+          fontFamily:"'Inter',sans-serif",
+          fontSize:12, fontWeight:300, color:TM, lineHeight:1.75,
+          maxWidth:280,
+        }}>
+          Votre portefeuille vous attend.<br/>
+          Connectez-vous pour accéder<br/>
+          à vos analyses et optimisations.
+        </p>
+      </div>
+
+      {/* Ligne séparatrice pulsante */}
+      <div style={{
+        width:"0.5px", alignSelf:"stretch", flexShrink:0,
+        background:"rgba(229,231,235,0.08)",
+        animation:"pulse-line 4s ease-in-out infinite",
+        position:"relative", zIndex:2,
+      }}/>
+
+      {/* ── Côté droit — formulaire glassmorphism ── */}
+      <div style={{
+        flex:1, display:"flex", alignItems:"center",
+        justifyContent:"center", padding:"60px 52px",
+        position:"relative", zIndex:2,
+      }}>
+        <div style={{
+          width:"100%", maxWidth:380,
+          background:"rgba(255,255,255,0.03)",
+          backdropFilter:"blur(20px)",
+          WebkitBackdropFilter:"blur(20px)",
+          border:"0.5px solid rgba(255,255,255,0.07)",
+          borderRadius:16, padding:"44px 40px 40px",
+        }}>
+          {/* Retour */}
+          <button onClick={()=>router.push("/")} style={{
+            background:"none", border:"none", cursor:"pointer",
+            fontFamily:"'Inter',sans-serif",
+            fontSize:10, fontWeight:400, letterSpacing:".12em",
+            color:TS, textTransform:"uppercase", marginBottom:36,
+            padding:0, display:"flex", alignItems:"center", gap:6,
+          }}>
+            <span style={{ fontSize:14, lineHeight:1 }}>←</span> Retour
+          </button>
+
+          <h2 style={{
+            fontFamily:"'Cormorant Garant',serif",
+            fontSize:38, fontWeight:300, color:TW,
+            letterSpacing:"-.01em", margin:"0 0 8px",
+          }}>Connexion</h2>
+          <p style={{
+            fontFamily:"'Inter',sans-serif",
+            fontSize:12, fontWeight:300, color:TM, margin:"0 0 36px",
+          }}>
+            Pas encore de compte ?{" "}
+            <a href="/auth/register" style={{ color:VERT, textDecoration:"none" }}>
+              S'inscrire gratuitement
+            </a>
+          </p>
+
+          <form onSubmit={handleSubmit}>
+            {/* Email */}
+            <div style={{ marginBottom:28 }}>
+              <div style={{
+                fontFamily:"'Inter',sans-serif",
+                fontSize:8.5, fontWeight:500, letterSpacing:".16em",
+                textTransform:"uppercase", color:TS, marginBottom:8,
+              }}>Adresse email</div>
+              <input
+                type="email" required
+                value={email} onChange={e=>setEmail(e.target.value)}
+                placeholder="vous@exemple.fr"
+                onFocus={()=>onFocus("email")}
+                onBlur={()=>setFocused(null)}
+                className="auth-input"
+              />
+            </div>
+
+            {/* Mot de passe */}
+            <div style={{ marginBottom:36 }}>
+              <div style={{
+                fontFamily:"'Inter',sans-serif",
+                fontSize:8.5, fontWeight:500, letterSpacing:".16em",
+                textTransform:"uppercase", color:TS, marginBottom:8,
+              }}>Mot de passe</div>
+              <input
+                type="password" required
+                value={password} onChange={e=>setPassword(e.target.value)}
+                placeholder="••••••••"
+                onFocus={()=>onFocus("password")}
+                onBlur={()=>setFocused(null)}
+                className="auth-input"
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                fontFamily:"'Roboto Mono',monospace",
+                fontSize:10, color:"rgba(248,113,113,0.80)",
+                marginBottom:16, letterSpacing:".02em",
+              }}>{error}</div>
+            )}
+
+            <button type="submit" disabled={loading} className="auth-btn-primary"
+              style={{ marginBottom:20 }}>
+              {loading ? "Connexion..." : "Se connecter →"}
+            </button>
+
+            <div style={{
+              display:"flex", alignItems:"center", gap:12, marginBottom:20,
+            }}>
+              <div style={{ flex:1, height:"0.5px", background:"rgba(229,231,235,0.08)" }}/>
+              <span style={{
+                fontFamily:"'Inter',sans-serif",
+                fontSize:9, color:TS, letterSpacing:".12em", textTransform:"uppercase",
+              }}>ou</span>
+              <div style={{ flex:1, height:"0.5px", background:"rgba(229,231,235,0.08)" }}/>
+            </div>
+
+            <button type="button" className="auth-btn-secondary"
+              onClick={()=>router.push("/auth/register")}>
+              Créer un compte →
+            </button>
+          </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }
