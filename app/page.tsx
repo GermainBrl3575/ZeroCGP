@@ -656,42 +656,41 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 
   const STEPS = [
     {
-      n: "01", num: "1", t: "Votre profil",
-      d: "Horizon, tolérance au risque, filtres ESG et zones géographiques. Votre ADN d'investisseur.",
-      detail: "Ce diagnostic précis nous permet d'adapter la prise de risque à votre situation patrimoniale réelle, pour un portefeuille qui vous ressemble vraiment.",
+      n:"01", num:"1", t:"Votre profil",
+      d:"Horizon, tolérance au risque, filtres ESG et zones géographiques. Votre ADN d'investisseur.",
+      detail:"Ce diagnostic précis nous permet d'adapter la prise de risque à votre situation patrimoniale réelle, pour un portefeuille qui vous ressemble vraiment.",
     },
     {
-      n: "02", num: "2", t: "Filtrage",
-      d: "490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents selon votre univers.",
-      detail: "Nous scannons l'univers mondial pour ne retenir que les actifs les plus liquides et performants, éliminant les produits bancaires chargés de frais inutiles.",
+      n:"02", num:"2", t:"Filtrage",
+      d:"490+ actifs analysés. L'algorithme sélectionne les 12 à 40 plus pertinents selon votre univers.",
+      detail:"Nous scannons l'univers mondial pour ne retenir que les actifs les plus liquides et performants, éliminant les produits bancaires chargés de frais inutiles.",
     },
     {
-      n: "03", num: "3", t: "Markowitz",
-      d: "10 000 simulations Monte Carlo. Calcul de la frontière efficiente.",
-      detail: "L'algorithme de Markowitz ne fait pas de suppositions. Il utilise 10 000 scénarios pour trouver l'allocation exacte qui maximise votre rendement pour le risque choisi.",
+      n:"03", num:"3", t:"Markowitz",
+      d:"10 000 simulations Monte Carlo. Calcul de la frontière efficiente.",
+      detail:"L'algorithme de Markowitz ne fait pas de suppositions. Il utilise 10 000 scénarios pour trouver l'allocation exacte qui maximise votre rendement pour le risque choisi.",
     },
     {
-      n: "04", num: "4", t: "Résultats",
-      d: "3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
-      detail: null, // géré à part pour inclure le gain dynamique
+      n:"04", num:"4", t:"Résultats",
+      d:"3 portefeuilles optimaux : Variance Minimale, Sharpe Maximum, Utilité Maximale.",
+      detail:"Vous obtenez 3 stratégies claires (Prudent, Équilibré, Dynamique), chacune conçue pour capturer la performance du marché tout en préservant votre capital.",
     },
   ];
 
-  const isFocused    = focused !== null;
-  const TRANS        = "all 0.38s cubic-bezier(0.22, 1, 0.36, 1)";
+  const isFocused = focused !== null;
+  const TR = "all 0.38s cubic-bezier(0.22, 1, 0.36, 1)";
 
   return (
     <section
       ref={sectionRef}
       style={{
-        height: "100vh", scrollSnapAlign: "start",
-        background: NAVY,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", justifyContent: "center",
-        padding: "0 52px", position: "relative", overflow: "hidden",
+        height:"100vh", scrollSnapAlign:"start",
+        background:NAVY,
+        display:"flex", flexDirection:"column",
+        alignItems:"center", justifyContent:"center",
+        padding:"0 52px", position:"relative", overflow:"hidden",
       }}
     >
-      {/* Radial glow */}
       <div style={{
         position:"absolute", top:"40%", left:"50%",
         transform:"translate(-50%,-50%)",
@@ -700,21 +699,17 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         pointerEvents:"none", zIndex:0,
       }}/>
 
-      <motion.div
-        initial={{ opacity:0 }}
-        animate={inView ? { opacity:1 } : { opacity:0 }}
-        style={{
-          width:"100%", maxWidth:860,
-          display:"flex", flexDirection:"column",
-          alignItems:"center", position:"relative", zIndex:1,
-        }}
-      >
-        {/* Eyebrow + Titres — s'atténuent quand un bloc est en focus */}
-        <motion.div initial={{ opacity:0, y:18 }} animate={inView ? { opacity:1, y:0 } : {}} transition={{ duration:0.8, ease:[0.22,1,0.36,1] }} style={{
+      <div style={{
+        width:"100%", maxWidth:860,
+        display:"flex", flexDirection:"column",
+        alignItems:"center", position:"relative", zIndex:1,
+      }}>
+        {/* Eyebrow + titres */}
+        <div style={{
           textAlign:"center", marginBottom:44,
-          transition: TRANS,
-          opacity:    isFocused ? 0.12 : 1,
-          filter:     isFocused ? "blur(2px)" : "none",
+          transition:TR,
+          opacity: isFocused ? 0.12 : 1,
+          filter:  isFocused ? "blur(2px)" : "none",
         }}>
           <div style={{
             fontFamily:"'Inter',sans-serif", fontSize:9, fontWeight:500,
@@ -733,121 +728,93 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
             letterSpacing:"-.02em", lineHeight:1.06,
             color:"rgba(255,255,255,0.38)", margin:0,
           }}>Un portefeuille sur mesure.</h2>
-        </motion.div>
+        </div>
 
         {/* Séparateur haut */}
         <div style={{
           width:"100%",
           borderTop:"0.5px solid rgba(255,255,255,0.10)",
-          transition: TRANS,
-          opacity: isFocused ? 0.15 : 1,
+          transition:TR, opacity: isFocused ? 0.15 : 1,
         }}/>
 
         {/* Blocs */}
         <div style={{ display:"flex", width:"100%" }}>
-          {STEPS.map(({ n, num, t, d, detail }, i) => {
-            const isThis = focused === i;
+          {STEPS.map(function({ n, num, t, d, detail }, i) {
+            const isThis   = focused === i;
             const isDimmed = isFocused && !isThis;
-            const detail04 = i === 3
-              ? `Vous obtenez 3 stratégies claires (Prudent, Équilibré, Dynamique), chacune conçue pour capturer la performance du marché tout en préservant votre capital.`
-              : null;
-            const effectiveDetail = detail || detail04;
-
             return (
               <div
                 key={n}
-                onMouseEnter={() => setFocused(i)}
-                onMouseLeave={() => setFocused(null)}
+                onMouseEnter={function() { setFocused(i); }}
+                onMouseLeave={function() { setFocused(null); }}
                 style={{
-                  flex: 1,
-                  padding: "26px 20px 30px",
-                  borderRight: i < 3
-                    ? "0.5px solid rgba(255,255,255,0.08)"
-                    : "none",
-                  position: "relative",
-                  overflow: "hidden",
-                  cursor: "default",
-                  transition: TRANS,
-                  // Focus : agrandit + reste net
+                  flex:1, padding:"26px 20px 30px",
+                  borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                  position:"relative", overflow:"hidden", cursor:"default",
+                  transition:TR,
                   transform:  isThis  ? "scale(1.04)" : "scale(1)",
-                  opacity:    isDimmed ? 0.12 : 1,
+                  opacity:    isDimmed ? 0.12          : 1,
                   filter:     isDimmed ? "blur(2.5px)" : "none",
-                  background: isThis
-                    ? "rgba(255,255,255,0.04)"
-                    : "transparent",
+                  background: isThis  ? "rgba(255,255,255,0.04)" : "transparent",
                   zIndex: isThis ? 2 : 1,
                 }}
               >
-                {/* Grand chiffre en fond — opacité 5%, apparaît au focus */}
+                {/* Grand chiffre fond */}
                 <div style={{
-                  position: "absolute",
-                  right: -12, bottom: -18,
-                  fontFamily: "'Cormorant Garant',serif",
-                  fontSize: 140, fontWeight: 300,
-                  color: "white",
-                  lineHeight: 1,
-                  userSelect: "none",
-                  pointerEvents: "none",
-                  transition: TRANS,
-                  opacity: isThis ? 0.05 : 0,
+                  position:"absolute", right:-12, bottom:-18,
+                  fontFamily:"'Cormorant Garant',serif",
+                  fontSize:140, fontWeight:300, color:"white",
+                  lineHeight:1, userSelect:"none", pointerEvents:"none",
+                  transition:TR,
+                  opacity:   isThis ? 0.05 : 0,
                   transform: isThis ? "translateY(0)" : "translateY(10px)",
                 }}>{num}</div>
 
-                {/* Numéro petit */}
+                {/* Numéro */}
                 <div style={{
-                  fontFamily: "'Cormorant Garant',serif",
-                  fontSize: 40, fontWeight: 300, lineHeight: 1,
-                  marginBottom: 16, letterSpacing: "-.01em",
-                  transition: TRANS,
-                  color: isThis
-                    ? "rgba(255,255,255,0.22)"
-                    : "rgba(255,255,255,0.07)",
+                  fontFamily:"'Cormorant Garant',serif",
+                  fontSize:40, fontWeight:300, lineHeight:1,
+                  marginBottom:16, letterSpacing:"-.01em",
+                  transition:TR,
+                  color: isThis ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
                 }}>{n}</div>
 
-                {/* Titre bloc */}
+                {/* Titre */}
                 <div style={{
-                  fontFamily: "'Inter',sans-serif",
-                  fontSize: 10, fontWeight: 500, letterSpacing: ".12em",
-                  textTransform: "uppercase",
-                  color: isThis
-                    ? "rgba(255,255,255,1.0)"
-                    : "rgba(255,255,255,0.88)",
-                  marginBottom: 10,
-                  transition: TRANS,
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:10, fontWeight:500, letterSpacing:".12em",
+                  textTransform:"uppercase",
+                  color: isThis ? "rgba(255,255,255,1.0)" : "rgba(255,255,255,0.88)",
+                  marginBottom:10, transition:TR,
                 }}>{t}</div>
 
-                {/* Description principale */}
+                {/* Description */}
                 <div style={{
-                  fontFamily: "'Inter',sans-serif",
-                  fontSize: 12, fontWeight: 300, letterSpacing: ".04em",
-                  color: "#F1F5F9", lineHeight: 1.72,
-                  opacity: 0.72, marginBottom: 0,
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:12, fontWeight:300, letterSpacing:".04em",
+                  color:"#F1F5F9", lineHeight:1.72, opacity:0.72,
                 }}>{d}</div>
 
-                {/* Texte détaillé — fade-in au hover */}
+                {/* Texte détaillé */}
                 <div style={{
-                  fontFamily: "'Inter',sans-serif",
-                  fontSize: 11.5, fontWeight: 300, letterSpacing: ".03em",
-                  color: "rgba(241,245,249,0.72)",
-                  lineHeight: 1.72, marginTop: 12,
-                  transition: TRANS,
-                  opacity:    isThis ? 1 : 0,
-                  transform:  isThis ? "translateY(0)" : "translateY(6px)",
-                  maxHeight:  isThis ? "120px" : "0",
-                  overflow:   "hidden",
-                }}>{effectiveDetail}</div>
+                  fontFamily:"'Inter',sans-serif",
+                  fontSize:11.5, fontWeight:300, letterSpacing:".03em",
+                  color:"rgba(241,245,249,0.72)", lineHeight:1.72,
+                  marginTop:12, transition:TR,
+                  opacity:   isThis ? 1 : 0,
+                  transform: isThis ? "translateY(0)" : "translateY(6px)",
+                  maxHeight: isThis ? "120px" : "0",
+                  overflow:"hidden",
+                }}>{detail}</div>
 
-                {/* Rappel gain bloc 04 */}
+                {/* Gain bloc 04 */}
                 {i === 3 && gain > 0 && (
                   <div style={{
-                    marginTop: 10,
-                    fontFamily: "'Cormorant Garant',serif",
-                    fontSize: 13, fontWeight: 300, fontStyle: "italic",
-                    color: "#5CB88A",
-                    lineHeight: 1.55,
-                    WebkitFontSmoothing: "antialiased",
-                    transition: TRANS,
-                    opacity: isThis ? 1 : 0.6,
+                    marginTop:10,
+                    fontFamily:"'Cormorant Garant',serif",
+                    fontSize:13, fontWeight:300, fontStyle:"italic",
+                    color:"#5CB88A", lineHeight:1.55,
+                    transition:TR, opacity: isThis ? 1 : 0.6,
                   }}>
                     Optimisé pour capturer vos {feurLocal(gain)} de gain.
                   </div>
@@ -861,70 +828,36 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         <div style={{
           width:"100%",
           borderTop:"0.5px solid rgba(255,255,255,0.10)",
-          marginBottom:34,
-          transition: TRANS,
+          marginBottom:34, transition:TR,
           opacity: isFocused ? 0.15 : 1,
         }}/>
 
-        {/* Bouton — s'atténue quand focus actif */}
-        <motion.div initial={{ opacity:0, y:18 }} animate={inView ? { opacity:1, y:0 } : {}} transition={{ duration:0.8, ease:[0.22,1,0.36,1] }} style={{
-          transition: TRANS,
+        {/* Bouton */}
+        <div style={{
+          transition:TR,
           opacity: isFocused ? 0.12 : 1,
           filter:  isFocused ? "blur(2px)" : "none",
         }}>
           <motion.button
             className="btn-cta"
-            whileHover={{
-              scale: 1.04,
-              boxShadow: "0 0 0 1px rgba(255,255,255,0.20), 0 8px 30px rgba(0,0,0,0.30)",
-            }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale:1.04, boxShadow:"0 0 0 1px rgba(255,255,255,0.20), 0 8px 30px rgba(0,0,0,0.30)" }}
+            whileTap={{ scale:0.97 }}
             onClick={onCTA}
             style={{
-              background: "white", color: NAVY,
-              border: "1px solid rgba(255,255,255,0.10)",
-              fontFamily: "'Inter',sans-serif",
-              fontSize: 9, fontWeight: 500, letterSpacing: ".18em",
-              padding: "14px 38px", borderRadius: 8,
-              cursor: "pointer", textTransform: "uppercase",
-     
-// ══════════════════════════════════════════════════════════════
-// SECTION 3 — LA STRATÉGIE : Bloomberg / Goldman Sachs Edition
-// ══════════════════════════════════════════════════════════════
-
-// ── Données bancaires ─────────────────────────────────────────
-const BANKS: Record<string, {
-  label: string;
-  gestion: number; versement: number; courtage: number; retro: number;
-}> = {
-  bnp:        { label:"BNP Paribas",       gestion:1.8, versement:2.5, courtage:0.5, retro:0.9 },
-  sg:         { label:"Société Générale",   gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
-  lcl:        { label:"LCL",               gestion:1.9, versement:2.5, courtage:0.5, retro:1.0 },
-  rothschild: { label:"Rothschild & Co",    gestion:1.5, versement:1.0, courtage:0.3, retro:1.2 },
-  fortuneo:   { label:"Fortuneo",          gestion:0.6, versement:0.0, courtage:0.1, retro:0.0 },
-  bourso:     { label:"Boursorama",        gestion:0.5, versement:0.0, courtage:0.1, retro:0.0 },
-  cacib:      { label:"Crédit Agricole",   gestion:1.7, versement:2.0, courtage:0.4, retro:0.8 },
-};
-
-function useAnimatedNumber(target: number, decimals = 1, duration = 600) {
-  const [val, setVal] = useState(target);
-  const prev = useRef(target);
-  useEffect(() => {
-    const from = prev.current;
-    prev.current = target;
-    const start = performance.now();
-    let raf: number;
-    function step(now: number) {
-      const t = Math.min((now - start) / duration, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      setVal(parseFloat((from + (target - from) * ease).toFixed(decimals)));
-      if (t < 1) raf = requestAnimationFrame(step);
-    }
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [target, decimals, duration]);
-  return val;
+              background:"white", color:NAVY,
+              border:"1px solid rgba(255,255,255,0.10)",
+              fontFamily:"'Inter',sans-serif",
+              fontSize:9, fontWeight:500, letterSpacing:".18em",
+              padding:"14px 38px", borderRadius:8,
+              cursor:"pointer", textTransform:"uppercase",
+            }}
+          >Optimiser mon portefeuille →</motion.button>
+        </div>
+      </div>
+    </section>
+  );
 }
+
 
 function AnimNum({ value, decimals = 1 }: { value: number; decimals?: number }) {
   const v = useAnimatedNumber(value, decimals);
