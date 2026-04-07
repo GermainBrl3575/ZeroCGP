@@ -677,15 +677,6 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
     },
   ];
 
-  const wrapV = {
-    hidden:   {},
-    visible:  { transition: { staggerChildren: 0.16, delayChildren: 0.05 } },
-  };
-  const fadeUp = {
-    hidden:  { opacity: 0, y: 18 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } },
-  };
-
   const isFocused    = focused !== null;
   const TRANS        = "all 0.38s cubic-bezier(0.22, 1, 0.36, 1)";
 
@@ -710,9 +701,8 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
       }}/>
 
       <motion.div
-        variants={wrapV}
-        initial="hidden"
-        animate={inView ? "visible" : "hidden"}
+        initial={{ opacity:0 }}
+        animate={inView ? { opacity:1 } : { opacity:0 }}
         style={{
           width:"100%", maxWidth:860,
           display:"flex", flexDirection:"column",
@@ -720,7 +710,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         }}
       >
         {/* Eyebrow + Titres — s'atténuent quand un bloc est en focus */}
-        <motion.div variants={fadeUp} style={{
+        <motion.div initial={{ opacity:0, y:18 }} animate={inView ? { opacity:1, y:0 } : {}} transition={{ duration:0.8, ease:[0.22,1,0.36,1] }} style={{
           textAlign:"center", marginBottom:44,
           transition: TRANS,
           opacity:    isFocused ? 0.12 : 1,
@@ -877,7 +867,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         }}/>
 
         {/* Bouton — s'atténue quand focus actif */}
-        <motion.div variants={fadeUp} style={{
+        <motion.div initial={{ opacity:0, y:18 }} animate={inView ? { opacity:1, y:0 } : {}} transition={{ duration:0.8, ease:[0.22,1,0.36,1] }} style={{
           transition: TRANS,
           opacity: isFocused ? 0.12 : 1,
           filter:  isFocused ? "blur(2px)" : "none",
