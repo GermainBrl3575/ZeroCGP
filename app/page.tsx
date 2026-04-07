@@ -189,7 +189,7 @@ function HeroSection({
       }
       ct.closePath();
       const gZ=ct.createLinearGradient(sx(0),0,sx(n-1),0);
-      gZ.addColorStop(0,   `rgba(134,239,172,0.00)`);
+      gZ.addColorStop(0,   `rgba(45,90,67,0.0)`);
       gZ.addColorStop(0.3, `rgba(134,239,172,${0.03*aArea})`);
       gZ.addColorStop(0.75,`rgba(134,239,172,${0.07*aArea})`);
       gZ.addColorStop(1,   `rgba(134,239,172,${0.13*aArea})`);
@@ -237,7 +237,7 @@ function HeroSection({
       // Ligne écart verticale
       ct.setLineDash([2,4]);
       ct.beginPath(); ct.moveTo(ex,eby); ct.lineTo(ex,ezy);
-      ct.strokeStyle="rgba(134,239,172,0.45)"; ct.lineWidth=1; ct.stroke();
+      ct.strokeStyle="rgba(45,90,67,0.34)"; ct.lineWidth=1; ct.stroke();
       ct.setLineDash([]);
       // Dot banque final
       ct.beginPath(); ct.arc(ex,eby,3,0,Math.PI*2);
@@ -524,19 +524,19 @@ function HeroSection({
           <div style={{
             fontFamily:"'Inter',sans-serif",
             fontSize:8.5,fontWeight:500,letterSpacing:".18em",
-            color:"rgba(74,222,128,0.60)",textTransform:"uppercase",marginBottom:5,
+            color:"rgba(45,90,67,0.51)",textTransform:"uppercase",marginBottom:5,
           }}>Économies réalisées</div>
           <div style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(22px,2.6vw,34px)",
-            fontWeight:300,color:"#4ADE80",
+            fontWeight:300,color:"#2D5A43",
             lineHeight:1,letterSpacing:"-.01em",
-            textShadow:"0 0 28px rgba(74,222,128,0.35), 0 0 8px rgba(74,222,128,0.18)",
+            textShadow:"0 0 28px rgba(45,90,67,0.3), 0 0 8px rgba(45,90,67,0.15)",
           }}>{feur(displayG)}</div>
           <div style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:13,fontWeight:300,fontStyle:"italic",
-            color:"rgba(74,222,128,0.50)",marginTop:7,lineHeight:1.6,
+            color:"rgba(45,90,67,0.42)",marginTop:7,lineHeight:1.6,
           }}>
             Soit&nbsp;{feur(displayM)}&nbsp;économisés&nbsp;par&nbsp;mois.
           </div>
