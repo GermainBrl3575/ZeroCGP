@@ -595,40 +595,6 @@ function HeroSection({
         width:"100%", height:"100%",
         zIndex:2, pointerEvents:"none",
       }}/>
-
-      {/* Nav sticky — z-index élevé, fond cream + blur */}
-      <nav className={`nav-sticky${scrolled ? " scrolled" : ""}`} style={{
-        display:"flex", alignItems:"center", justifyContent:"space-between",
-        padding:"20px 52px",
-      }}>
-        <span style={{
-          fontFamily:"'Cormorant Garant',serif",
-          fontSize:12, fontWeight:400, letterSpacing:".38em",
-          color:NAVY, textTransform:"uppercase",
-        }}>Zero CGP</span>
-
-        <div style={{ display:"flex", gap:2 }}>
-          {["Accueil","Comment ça fonctionne","La Stratégie"].map((label,i)=>(
-            <button key={i} onClick={()=>onNav(i)} style={{
-              background:"none", border:"none", cursor:"pointer",
-              fontFamily:"'Inter',sans-serif",
-              fontSize:9, fontWeight:500, letterSpacing:".13em",
-              color:activeTab===i ? NAVY : "rgba(10,22,40,0.30)",
-              padding:"8px 16px", borderRadius:6, transition:"color .2s",
-              textTransform:"uppercase",
-            }}>{label}</button>
-          ))}
-        </div>
-
-        <button onClick={()=>window.location.href="/auth/login"} style={{
-          background:"none", border:"0.5px solid rgba(10,22,40,0.18)",
-          fontFamily:"'Inter',sans-serif",
-          fontSize:9, fontWeight:500, letterSpacing:".13em",
-          color:NAVY, padding:"9px 22px", borderRadius:7,
-          cursor:"pointer", textTransform:"uppercase",
-        }}>Connexion</button>
-      </nav>
-
       {/* Titre immersif — z:4 */}
       <div style={{
         position:"absolute",
@@ -1769,6 +1735,24 @@ function SphereSVG({ dark = false }: { dark?: boolean }) {
 
 export default function LandingPage() {
   const router       = useRouter();
+  const [darkNav,    setDarkNav   ] = useState(false);
+  const [scrolled,   setScrolled  ] = useState(false);
+
+  // Détection section sombre pour adapter la nav
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const DARK_TABS = [2]; // index des sections sombres (StrategySection)
+    const onScroll = () => {
+      const h = el.clientHeight;
+      const tab = Math.round(el.scrollTop / h);
+      setDarkNav(DARK_TABS.includes(tab));
+      setScrolled(el.scrollTop > 20);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeTab,  setActiveTab  ]=useState(0);
   const [capital,    setCapital    ]=useState(150000);
