@@ -427,16 +427,26 @@ export async function POST(req: NextRequest) {
       const opt = markowitz(returns, capital, method);
       const weightedSyms = Object.keys(opt.weights);
 
-      const weights: Weight[] = weightedSyms
+      // Filtrer les poids significatifs et normaliser à exactement 100%
+      const rawWeights = weightedSyms
         .filter(s => opt.weights[s] > 0.01)
-        .sort((a,b) => opt.weights[b] - opt.weights[a])
-        .map(s => ({
+        .sort((a,b) => opt.weights[b] - opt.weights[a]);
+
+      const totalW = rawWeights.reduce((s, sym) => s + opt.weights[sym], 0);
+
+      const weights: Weight[] = rawWeights.map((s, i) => {
+        const normalized = opt.weights[s] / totalW; // normaliser à 1.0
+        return {
           symbol: s,
           name:   meta[s]?.name || s,
           type:   meta[s]?.type || "stock",
-          weight: Math.round(opt.weights[s] * 1000) / 10,
-          amount: Math.round(opt.weights[s] * capital),
-        }));
+          // Arrondir à 1 décimale mais garantir que le total = 100%
+          weight: i === rawWeights.length - 1
+            ? Math.round((1 - rawWeights.slice(0,-1).reduce((s,x) => s + opt.weights[x]/totalW, 0)) * 1000) / 10
+            : Math.round(normalized * 1000) / 10,
+          amount: Math.round(normalized * capital),
+        };
+      });
 
       return {
         method,

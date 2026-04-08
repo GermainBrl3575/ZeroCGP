@@ -13,7 +13,7 @@ interface AssetInfo {
 }
 
 interface PerfData {
-  "1M": string; "6M": string; "1A": string; "5A": string; "10A": string;
+  "1S"?: string; "1M": string; "6M": string; "1A": string; "5A": string; "10A": string;
 }
 
 interface Props {
@@ -172,7 +172,7 @@ export default function AssetCard({ symbol, name, weight, amount, type, perf }: 
                     Performances historiques
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    {(["1M","6M","1A","5A","10A"] as const).map(p => {
+                    {(["1S","1M","6M","1A","5A","10A"] as const).map(p => {
                       const val = perf[p];
                       const num = parseFloat(val);
                       const isPos = !isNaN(num) && num >= 0;
