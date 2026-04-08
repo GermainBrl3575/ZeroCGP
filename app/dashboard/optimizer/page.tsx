@@ -133,6 +133,15 @@ const QUESTIONS = [
   { id:"Q5", q:"Quelles classes d'actifs souhaitez-vous ?",   opts:[], isMulti:true },
   { id:"Q6", q:"Quelles zones géographiques privilégiez-vous ?", opts:["Monde entier","USA dominante","Europe","Marchés émergents"] },
   { id:"Q7", q:"Quel niveau de diversification visez-vous ?", opts:["Concentré (5 actifs)","Équilibré (8–10 actifs)","Large (15+ actifs)"] },
+  { id:"Q8", q:"Quel support d'investissement souhaitez-vous ?", opts:["PEA","Compte-Titres (CTO)","Assurance-Vie","Crypto"], isMulti:true,
+    tooltips: {
+      "PEA": "Plan d'Épargne en Actions — fiscalité avantageuse après 5 ans, plafonné à 150 000 €. Limité aux ETF et actions européens éligibles.",
+      "Compte-Titres (CTO)": "Aucune restriction d'actifs ni de montant. Fiscalité standard (Flat Tax 30%).",
+      "Assurance-Vie": "Enveloppe fiscale long terme. Accès à des fonds en unités de compte selon les contrats disponibles.",
+      "Crypto": "Actifs numériques (Bitcoin, Ethereum...). Achetables via Binance, Coinbase ou conservés sur cold wallet (clé privée physique).",
+    }
+  },
+  { id:"Q9", q:"Quelle banque ou courtier utilisez-vous ?", opts:["BNP Paribas","Société Générale","LCL","Crédit Agricole","BoursoBank","Fortuneo","Degiro","Interactive Brokers","Binance / Coinbase"] },
 ];
 
 const CALC_STEPS = [
@@ -324,9 +333,9 @@ function OptimizerInner() {
   if(step===0)return(<><style>{css}</style><div className="op">
     <div className="op-ey">OPTIMISEUR MARKOWITZ</div>
     <h1 className="op-h1">Créez votre<br/>portefeuille optimal.</h1>
-    <p className="op-sub">En 7 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie de Markowitz (1952).</p>
+    <p className="op-sub">En 9 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie de Markowitz (1952).</p>
     <div className="op-metrics">
-      {[["7","Questions"],["3","Méthodes"],["305","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
+      {[["9","Questions"],["3","Méthodes"],["1000+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
     </div>
     <div className="fl" style={{marginBottom:28}}><label>CAPITAL À INVESTIR (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="Ex: 50 000"/></div>
     <button onClick={()=>setStep(1)} className="btn-navy">CRÉER UN PORTEFEUILLE ZERO CGP →</button>

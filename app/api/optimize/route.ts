@@ -13,6 +13,205 @@ interface FPt     { vol:number; ret:number }
 interface Result  { method:string; label:string; ret:number; vol:number; sharpe:number;
                     var95:number; rec?:boolean; weights:Weight[]; frontier:FPt[] }
 
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DONNÉES ETF — indice sous-jacent, TER, éligibilité, émetteur
+   Utilisé pour : déduplication (même indice = garder le moins cher)
+                  filtrage PEA / AV / CTO
+══════════════════════════════════════════════════════════════════════════ */
+interface ETFInfo {
+  index: string;      // Indice répliqué (clé de déduplication)
+  ter: number;        // Total Expense Ratio en %
+  issuer: string;     // Émetteur (iShares, Vanguard, Amundi, etc.)
+  pea: boolean;       // Éligible PEA
+  av: boolean;        // Disponible en Assurance-Vie (général)
+  cto: boolean;       // Éligible CTO (toujours true pour les ETF cotés)
+}
+
+const ETF_DATABASE: Record<string, ETFInfo> = {
+  // ── MSCI World ──────────────────────────────────────────────────────────
+  "IWDA.AS":  { index:"MSCI_WORLD",    ter:0.20, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "EUNL.DE":  { index:"MSCI_WORLD",    ter:0.20, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "PANX.PA":  { index:"MSCI_WORLD",    ter:0.12, issuer:"Amundi",   pea:false, av:true,  cto:true },
+  "SWRD.SW":  { index:"MSCI_WORLD",    ter:0.12, issuer:"SPDR",     pea:false, av:false, cto:true },
+  "XDWD.DE":  { index:"MSCI_WORLD",    ter:0.19, issuer:"Xtrackers", pea:false, av:true, cto:true },
+  "HMWO.L":   { index:"MSCI_WORLD",    ter:0.15, issuer:"HSBC",     pea:false, av:false, cto:true },
+  "LCWD.PA":  { index:"MSCI_WORLD",    ter:0.10, issuer:"Lyxor",    pea:false, av:true,  cto:true },
+  "MWRD.L":   { index:"MSCI_WORLD_SRI",ter:0.20, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "SUSW.SW":  { index:"MSCI_WORLD_SRI",ter:0.20, issuer:"iShares",  pea:false, av:true,  cto:true },
+
+  // ── S&P 500 ────────────────────────────────────────────────────────────
+  "CSPX.L":   { index:"SP500",         ter:0.07, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "SXR8.DE":  { index:"SP500",         ter:0.07, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "IUSA.L":   { index:"SP500",         ter:0.07, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "CSP1.PA":  { index:"SP500",         ter:0.07, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "SPY":      { index:"SP500",         ter:0.095,issuer:"SPDR",     pea:false, av:false, cto:true },
+  "VOO":      { index:"SP500",         ter:0.03, issuer:"Vanguard", pea:false, av:false, cto:true },
+  "IVV":      { index:"SP500",         ter:0.03, issuer:"iShares",  pea:false, av:false, cto:true },
+  "500X.PA":  { index:"SP500",         ter:0.15, issuer:"Amundi",   pea:true,  av:true,  cto:true },
+  "VUSD.L":   { index:"SP500",         ter:0.07, issuer:"Vanguard", pea:false, av:true,  cto:true },
+
+  // ── NASDAQ 100 ─────────────────────────────────────────────────────────
+  "QQQ":      { index:"NASDAQ100",     ter:0.20, issuer:"Invesco",  pea:false, av:false, cto:true },
+  "EQQQ.DE":  { index:"NASDAQ100",     ter:0.30, issuer:"Invesco",  pea:false, av:true,  cto:true },
+  "QDVE.DE":  { index:"SP500_IT",      ter:0.15, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "IQQQ.DE":  { index:"NASDAQ100",     ter:0.30, issuer:"iShares",  pea:false, av:true,  cto:true },
+
+  // ── FTSE All-World ─────────────────────────────────────────────────────
+  "VWCE.DE":  { index:"FTSE_ALLWORLD", ter:0.22, issuer:"Vanguard", pea:false, av:true,  cto:true },
+  "ACWI":     { index:"MSCI_ACWI",     ter:0.32, issuer:"iShares",  pea:false, av:false, cto:true },
+  "VT":       { index:"FTSE_ALLWORLD", ter:0.07, issuer:"Vanguard", pea:false, av:false, cto:true },
+
+  // ── Euro Stoxx 50 ──────────────────────────────────────────────────────
+  "EXSA.DE":  { index:"EUROSTOXX50",   ter:0.10, issuer:"iShares",  pea:true,  av:true,  cto:true },
+  "C50.PA":   { index:"EUROSTOXX50",   ter:0.10, issuer:"Amundi",   pea:true,  av:true,  cto:true },
+  "MEUD.PA":  { index:"EUROSTOXX50",   ter:0.10, issuer:"Lyxor",    pea:true,  av:true,  cto:true },
+  "FEZ":      { index:"EUROSTOXX50",   ter:0.29, issuer:"SPDR",     pea:false, av:false, cto:true },
+
+  // ── MSCI Europe ────────────────────────────────────────────────────────
+  "EXW1.DE":  { index:"MSCI_EUROPE",   ter:0.12, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "SMEA.PA":  { index:"MSCI_EUROPE",   ter:0.15, issuer:"Amundi",   pea:true,  av:true,  cto:true },
+  "IEUR":     { index:"MSCI_EUROPE",   ter:0.12, issuer:"iShares",  pea:false, av:false, cto:true },
+  "VGK":      { index:"FTSE_EUROPE",   ter:0.11, issuer:"Vanguard", pea:false, av:false, cto:true },
+
+  // ── Marchés Émergents ──────────────────────────────────────────────────
+  "PAEEM.PA": { index:"MSCI_EM",       ter:0.20, issuer:"Amundi",   pea:true,  av:true,  cto:true },
+  "VFEM.L":   { index:"FTSE_EM",       ter:0.22, issuer:"Vanguard", pea:false, av:true,  cto:true },
+  "IEMG":     { index:"MSCI_EM_IMI",   ter:0.11, issuer:"iShares",  pea:false, av:false, cto:true },
+  "EEM":      { index:"MSCI_EM",       ter:0.68, issuer:"iShares",  pea:false, av:false, cto:true },
+  "VWO":      { index:"FTSE_EM",       ter:0.08, issuer:"Vanguard", pea:false, av:false, cto:true },
+  "AEEM.PA":  { index:"MSCI_EM_ESG",   ter:0.25, issuer:"Amundi",   pea:true,  av:true,  cto:true },
+  "EMIM.L":   { index:"MSCI_EM_IMI",   ter:0.18, issuer:"iShares",  pea:false, av:true,  cto:true },
+
+  // ── Obligations ────────────────────────────────────────────────────────
+  "AGGH.L":   { index:"GLOBAL_AGG",    ter:0.10, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "IEAG.L":   { index:"EUR_AGG",       ter:0.17, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "TLT":      { index:"US_20Y_TREAS",  ter:0.15, issuer:"iShares",  pea:false, av:false, cto:true },
+  "BND":      { index:"US_TOT_BOND",   ter:0.03, issuer:"Vanguard", pea:false, av:false, cto:true },
+  "LQD":      { index:"US_IG_CORP",    ter:0.14, issuer:"iShares",  pea:false, av:false, cto:true },
+  "XGLE.DE":  { index:"EUR_GOV",       ter:0.09, issuer:"Xtrackers", pea:false, av:true, cto:true },
+
+  // ── Or ─────────────────────────────────────────────────────────────────
+  "SGLD.L":   { index:"GOLD_PHYSICAL", ter:0.12, issuer:"Invesco",  pea:false, av:false, cto:true },
+  "IGLN.L":   { index:"GOLD_PHYSICAL", ter:0.19, issuer:"iShares",  pea:false, av:false, cto:true },
+  "GLD":      { index:"GOLD_PHYSICAL", ter:0.40, issuer:"SPDR",     pea:false, av:false, cto:true },
+  "IAU":      { index:"GOLD_PHYSICAL", ter:0.25, issuer:"iShares",  pea:false, av:false, cto:true },
+
+  // ── Immobilier ─────────────────────────────────────────────────────────
+  "EPRE.PA":  { index:"EUROPE_REITS",  ter:0.40, issuer:"AXA",      pea:true,  av:true,  cto:true },
+  "IPRP.L":   { index:"EUROPE_REITS",  ter:0.40, issuer:"iShares",  pea:false, av:true,  cto:true },
+  "VNQ":      { index:"US_REITS",      ter:0.12, issuer:"Vanguard", pea:false, av:false, cto:true },
+  "REET":     { index:"GLOBAL_REITS",  ter:0.14, issuer:"iShares",  pea:false, av:false, cto:true },
+};
+
+/* ── Actions éligibles PEA ───────────────────────────────────────────────── */
+// Actions cotées sur marchés européens = PEA éligible
+const PEA_ELIGIBLE_STOCKS = new Set([
+  // CAC 40
+  "AI.PA","AIR.PA","ALO.PA","BN.PA","BNP.PA","CA.PA","CAP.PA","CS.PA",
+  "DG.PA","DSY.PA","ENGI.PA","EL.PA","EN.PA","GLE.PA","HO.PA","KER.PA",
+  "LR.PA","MC.PA","ML.PA","ORA.PA","PUB.PA","RI.PA","RMS.PA","RNO.PA",
+  "SAF.PA","SAN.PA","SGO.PA","STM.PA","SU.PA","TTE.PA","URW.PA","VIE.PA","VIV.PA",
+  // DAX
+  "ADS.DE","ALV.DE","BAYN.DE","BMW.DE","BAS.DE","CON.DE","DAI.DE","DB1.DE",
+  "DBK.DE","DPW.DE","DTE.DE","EOAN.DE","FME.DE","FRE.DE","HEI.DE","HEN3.DE",
+  "IFX.DE","LIN.DE","MRK.DE","MUV2.DE","RWE.DE","SAP.DE","SIE.DE","VOW3.DE",
+  // AEX
+  "ASML.AS","MT.AS","INGA.AS","PHIA.AS","ADYEN.AS",
+  // SMI
+  "NESN.SW","NOVN.SW","ROG.SW","UBSG.SW","ZURN.SW","ABB.ST",
+  // FTSE (non PEA mais cotées en Europe — via CTO)
+  // Nordiques
+  "ERIC-B.ST","VOLV-B.ST","ATCO-A.ST","SAND.ST","NOVO-B.CO",
+  // Italie
+  "ISP.MI","UCG.MI","ENEL.MI","ENI.MI","RACE.MI","STLAM.MI","PRY.MI",
+]);
+
+/* ── Disponibilité par banque ────────────────────────────────────────────── */
+// Banques FR = accès ETF UCITS Euro. Courtiers en ligne = accès plus large.
+const BANK_UNIVERSE: Record<string, {
+  hasPEA: boolean;
+  hasAV: boolean;
+  hasCTO: boolean;
+  hasCrypto: boolean;
+  custoFeeETF: boolean;  // frais de garde sur ETF
+  preferredExchange: string; // bourse préférée
+  blockedSymbols: string[]; // actifs non disponibles
+}> = {
+  "BNP Paribas":       { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:true,  preferredExchange:"PA", blockedSymbols:["QQQ","VOO","VTI","IVV","BND","TLT"] },
+  "Société Générale":  { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:true,  preferredExchange:"PA", blockedSymbols:["QQQ","VOO","VTI","IVV"] },
+  "LCL":               { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:true,  preferredExchange:"PA", blockedSymbols:["QQQ","VOO","VTI","IVV","BND"] },
+  "Crédit Agricole":   { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:true,  preferredExchange:"PA", blockedSymbols:["QQQ","VOO","VTI","IVV"] },
+  "BoursoBank":        { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:false, preferredExchange:"PA", blockedSymbols:[] },
+  "Fortuneo":          { hasPEA:true,  hasAV:true,  hasCTO:true,  hasCrypto:false, custoFeeETF:false, preferredExchange:"PA", blockedSymbols:[] },
+  "Degiro":            { hasPEA:false, hasAV:false, hasCTO:true,  hasCrypto:false, custoFeeETF:false, preferredExchange:"AS", blockedSymbols:[] },
+  "Interactive Brokers":{ hasPEA:false,hasAV:false, hasCTO:true,  hasCrypto:true,  custoFeeETF:false, preferredExchange:"US", blockedSymbols:[] },
+  "Binance / Coinbase":{ hasPEA:false, hasAV:false, hasCTO:false, hasCrypto:true,  custoFeeETF:false, preferredExchange:"CRYPTO", blockedSymbols:[] },
+};
+
+/* ── Déduplication ETF par indice — garde le moins cher éligible ────────── */
+function deduplicateETFs(
+  symbols: string[],
+  allowedSupports: string[],
+  bank: string
+): string[] {
+  const bankConfig = BANK_UNIVERSE[bank];
+  const hasPEA  = allowedSupports.includes("PEA");
+  const hasCTO  = allowedSupports.includes("Compte-Titres (CTO)") || allowedSupports.includes("CTO");
+  const hasAV   = allowedSupports.includes("Assurance-Vie");
+  const hasCrypto = allowedSupports.includes("Crypto");
+
+  // Pour chaque indice unique, garder le seul ETF le moins cher ET éligible
+  const byIndex: Record<string, { symbol:string; ter:number }[]> = {};
+  const nonETF: string[] = [];
+
+  symbols.forEach(sym => {
+    const info = ETF_DATABASE[sym];
+    if (!info) {
+      // Pas un ETF connu → action ou crypto
+      nonETF.push(sym);
+      return;
+    }
+
+    // Vérifier éligibilité support
+    const eligible =
+      (hasPEA  && info.pea)  ||
+      (hasCTO  && info.cto)  ||
+      (hasAV   && info.av)   ||
+      (!hasPEA && !hasCTO && !hasAV); // si aucun support précisé → tout garder
+
+    if (!eligible) return;
+
+    // Vérifier disponibilité banque
+    if (bankConfig?.blockedSymbols.includes(sym)) return;
+
+    if (!byIndex[info.index]) byIndex[info.index] = [];
+    byIndex[info.index].push({ symbol: sym, ter: info.ter });
+  });
+
+  // Pour chaque indice → garder uniquement l'ETF avec le TER le plus bas
+  const bestETFs = Object.values(byIndex).map(candidates => {
+    candidates.sort((a, b) => a.ter - b.ter);
+    return candidates[0].symbol;
+  });
+
+  // Filtrer les actions non-ETF selon le support
+  const filteredNonETF = nonETF.filter(sym => {
+    // Crypto
+    if (["BTC-USD","ETH-USD","BNB-USD","SOL-USD","IBIT","FBTC","GBTC","BITO"].includes(sym)) {
+      return hasCrypto;
+    }
+    // Actions PEA
+    if (hasPEA && !hasCTO) {
+      return PEA_ELIGIBLE_STOCKS.has(sym);
+    }
+    // CTO ou AV → tout
+    return true;
+  });
+
+  return [...bestETFs, ...filteredNonETF];
+}
+
 /* ── Bibliothèques d'actifs par zone et type ──────────────────────────────── */
 
 // Actifs mondiaux diversifiés (défaut "Monde entier")
@@ -215,12 +414,16 @@ function selectUniverse(answers: Record<string,string>): string[] {
   if (riskLevel === "defensive") maxAssets = Math.max(maxAssets, 15);
   if (riskLevel === "aggressive") maxAssets = Math.min(maxAssets, 25);
 
-  // ── Déduplication + limite finale ──────────────────────────────────────
-  const deduped = [...new Set(baseUniverse)];
+  // ── Déduplication + filtrage support/banque ─────────────────────────────
+  const supportsStr = answers["8"] || "";
+  const supports = supportsStr ? supportsStr.split(",").map(s => s.trim()) : ["Compte-Titres (CTO)"];
+  const bank     = answers["9"] || "BoursoBank";
 
-  // Log pour debugging
-  console.log(`[selectUniverse] zone=${zone} risk=${riskLevel} esg=${esgStrict?"strict":esgPartial?"partial":"none"} max=${maxAssets} → ${deduped.length} actifs avant limite`);
+  const deduped = deduplicateETFs([...new Set(baseUniverse)], supports, bank);
 
+  console.log(`[selectUniverse] zone=${zone} risk=${riskLevel} support=${supports} bank=${bank} → ${deduped.length} actifs → limite ${maxAssets}`);
+
+  // Respecter STRICTEMENT maxAssets — priorité aux ETF larges puis actions
   return deduped.slice(0, maxAssets);
 }
 
