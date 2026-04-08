@@ -23,6 +23,7 @@ interface Props {
   amount: number;
   type: string;
   perf?: PerfData;
+  supports?: string[]; // ["PEA","CTO","AV"] — badges éligibilité
 }
 
 const TYPE_COLOR: Record<string, { bg: string; color: string }> = {
@@ -34,7 +35,7 @@ const TYPE_COLOR: Record<string, { bg: string; color: string }> = {
   forex:    { bg: "#F0F9FF", color: "#0369A1" },
 };
 
-export default function AssetCard({ symbol, name, weight, amount, type, perf }: Props) {
+export default function AssetCard({ symbol, name, weight, amount, type, perf, supports }: Props) {
   const [info, setInfo] = useState<AssetInfo | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -82,9 +83,19 @@ export default function AssetCard({ symbol, name, weight, amount, type, perf }: 
           letterSpacing: ".06em", flexShrink: 0,
         }}>{type.toUpperCase()}</span>
 
-        {/* Nom + symbole */}
+        {/* Nom + symbole + badges support */}
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: 13, color: NAVY }}>{symbol}</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ fontWeight: 600, fontSize: 13, color: NAVY }}>{symbol}</div>
+            {supports && supports.map(s => (
+              <span key={s} style={{
+                fontSize:8, fontWeight:700, padding:"2px 5px", borderRadius:3,
+                background: s==="PEA"?"#ECFDF5":s==="AV"?"#EEF2FF":"#F0F9FF",
+                color: s==="PEA"?"#059669":s==="AV"?"#4F46E5":"#0284C7",
+                letterSpacing:".04em", flexShrink:0,
+              }}>{s}</span>
+            ))}
+          </div>
           <div style={{
             fontSize: 11, color: "#8A9BB0", marginTop: 1,
             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",

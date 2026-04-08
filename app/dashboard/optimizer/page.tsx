@@ -373,12 +373,83 @@ function OptimizerInner() {
         </div>
       ):(
         <div style={{maxWidth:520}}>
-          {q.opts.map(opt=>{
-            const isSel=answers[step]===opt,isFlash=flash===opt;
-            return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?NAVY:isSel?"rgba(10,22,40,.03)":"white",borderColor:isFlash||isSel?NAVY:"rgba(10,22,40,.1)",color:isFlash?"white":NAVY,fontWeight:isSel?500:400}}>
-              {opt}{isSel&&!isFlash&&<span style={{color:NAVY_MID,fontSize:12,fontWeight:600}}>✓</span>}
-            </button>);
-          })}
+          {/* Q9 : dropdown banque */}
+          {q.id==="Q9" ? (
+            <div>
+              <select
+                value={answers[step]||""}
+                onChange={e=>{
+                  const v=e.target.value;
+                  setAnswers(a=>({...a,[step]:v}));
+                }}
+                style={{width:"100%",padding:"14px 16px",fontSize:14,border:"1.5px solid rgba(10,22,40,.15)",borderRadius:10,background:"white",color:NAVY,fontFamily:"'Inter',sans-serif",cursor:"pointer",appearance:"none",backgroundImage:"url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%230A1628' d='M6 8L1 3h10z'/%3E%3C/svg%3E")",backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"}}
+              >
+                <option value="">-- Sélectionnez votre banque --</option>
+                {["BNP Paribas","Société Générale","LCL","Crédit Agricole","Caisse d'Épargne","Banque Populaire","BoursoBank","Fortuneo","Hello Bank","Degiro","Trade Republic","Interactive Brokers","Binance / Coinbase","Autre"].map(b=>(
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              {answers[step] && (
+                <button onClick={()=>setStep(s=>s+1)} className="q-btn" style={{marginTop:16,background:NAVY,color:"white",borderColor:NAVY,width:"100%"}}>
+                  Continuer →
+                </button>
+              )}
+            </div>
+          ) : q.isMulti ? (
+            /* Q8 : checkboxes multi-select avec tooltips */
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {q.opts.map((opt:string)=>{
+                const selected=(answers[step]||"").split(",").filter(Boolean);
+                const isSel=selected.includes(opt);
+                const tooltip=(q as {tooltips?:Record<string,string>}).tooltips?.[opt];
+                return(
+                  <div key={opt} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <button
+                      onClick={()=>{
+                        const cur=(answers[step]||"").split(",").filter(Boolean);
+                        const next=cur.includes(opt)?cur.filter(x=>x!==opt):[...cur,opt];
+                        setAnswers(a=>({...a,[step]:next.join(",")}));
+                      }}
+                      style={{flex:1,display:"flex",alignItems:"center",gap:12,padding:"14px 16px",
+                        background:isSel?"rgba(10,22,40,0.04)":"white",
+                        border:`1.5px solid ${isSel?NAVY:"rgba(10,22,40,.1)"}`,
+                        borderRadius:10,cursor:"pointer",fontFamily:"'Inter',sans-serif",
+                        fontSize:13,color:NAVY,textAlign:"left",fontWeight:isSel?600:400}}
+                    >
+                      <span style={{width:20,height:20,borderRadius:4,border:`2px solid ${isSel?NAVY:"rgba(10,22,40,.2)"}`,
+                        background:isSel?NAVY:"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {isSel&&<span style={{color:"white",fontSize:12,lineHeight:1}}>✓</span>}
+                      </span>
+                      {opt}
+                    </button>
+                    {tooltip&&(
+                      <div style={{position:"relative",display:"inline-block"}}>
+                        <span
+                          title={tooltip}
+                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+                            width:20,height:20,borderRadius:"50%",border:"1.5px solid #8A9BB0",
+                            fontSize:11,color:"#8A9BB0",cursor:"help",fontWeight:700,userSelect:"none"}}
+                        >ⓘ</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {(answers[step]||"").split(",").filter(Boolean).length>0 && (
+                <button onClick={()=>setStep(s=>s+1)} className="q-btn" style={{marginTop:8,background:NAVY,color:"white",borderColor:NAVY}}>
+                  Continuer →
+                </button>
+              )}
+            </div>
+          ) : (
+            /* Questions standards : boutons radio */
+            q.opts.map((opt:string)=>{
+              const isSel=answers[step]===opt,isFlash=flash===opt;
+              return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?NAVY:isSel?"rgba(10,22,40,.03)":"white",borderColor:isFlash||isSel?NAVY:"rgba(10,22,40,.1)",color:isFlash?"white":NAVY,fontWeight:isSel?500:400}}>
+                {opt}{isSel&&!isFlash&&<span style={{color:NAVY_MID,fontSize:12,fontWeight:600}}>✓</span>}
+              </button>);
+            })
+          )}
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"#8A9BB0",fontSize:12,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>← Précédent</button>}
         </div>
       )}
