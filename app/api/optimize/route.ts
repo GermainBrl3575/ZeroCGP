@@ -294,6 +294,24 @@ function selectUniverse(answers:Record<string,string>):{
   });
 
   let pool=dedup(filter(false));
+  // Anti-doublon: si MSCI World present, supprimer les sous-indices US
+  const WDEDUPS=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
+  const USDEDUPS=["SP500","NASDAQ100"];
+  const hasW=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+  if(hasW&&!zUSA){
+    const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
+    pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
+  }
+  // Garder 1 seul ETF monde parmi les world dedups
+  const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+  if(wETFs.length>1){
+    const best=wETFs.reduce((b,a)=>{
+      if(wPEA&&a.pea&&!b.pea)return a;
+      if(wPEA&&!a.pea&&b.pea)return b;
+      return a.ter<b.ter?a:b;
+    });
+    pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
+  }
 
   // ── Enrichissement PEA si trop peu d'ETFs ────────────────────
   // Quand ETF uniquement + PEA → seulement 2-3 ETFs dans Neon
