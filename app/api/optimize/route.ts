@@ -13,87 +13,217 @@ interface FPt     { vol:number; ret:number }
 interface Result  { method:string; label:string; ret:number; vol:number; sharpe:number;
                     var95:number; rec?:boolean; weights:Weight[]; frontier:FPt[] }
 
-/* ── Mapping questionnaire → univers d'actifs ──────────── */
-const UNIVERSE_BY_PROFILE: Record<string,string[]> = {
-  // Profil très défensif (perte max -10%)
-  defensive: [
-    "AGGH.L","IEAG.L","TLT","BND","LQD","HYG","SHY","IEF","GOVT","AGG",
-    "SGLD.L","IGLN.L","GLD","IAU","VCSH","BSV","JPST","SGOV","FLOT","MINT",
-    "VWCE.DE","IWDA.AS","CSPX.L","^TNX","^TYX","EURUSD=X",
-  ],
-  // Profil modéré (perte max -20%)
-  moderate: [
-    "IWDA.AS","VWCE.DE","CSPX.L","PANX.PA","EUNL.DE","IUSA.L",
-    "PAEEM.PA","VFEM.L","IEMG","EEM","EXSA.DE","EXW1.DE",
-    "AGGH.L","IEAG.L","TLT","BND","CORP.PA","IHYG.L",
-    "SGLD.L","IGLN.L","GLD","VNQ","IPRP.L","REET",
-    "EPRE.PA","NOBL","VYM","HDV","SCHD","VIG",
-  ],
-  // Profil équilibré (perte max -35%)
-  balanced: [
-    "IWDA.AS","VWCE.DE","CSPX.L","SPY","VOO","QQQ","EQQQ.DE",
-    "PAEEM.PA","EEM","IEMG","EXSA.DE","EXW1.DE","EWJ","EWZ",
-    "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA",
-    "ASML.AS","MC.PA","RMS.PA","NOVO-B.CO","SAP.DE","NESN.SW",
-    "AGGH.L","TLT","BND","LQD","GLD","SGLD.L",
-    "VNQ","IPRP.L","AMT","PLD","EQIX",
-    "AIR.PA","SAF.PA","SAN.PA","TTE.PA","SU.PA",
-  ],
-  // Profil agressif (pas de limite)
-  aggressive: [
-    "QQQ","EQQQ.DE","SPY","NVDA","AAPL","MSFT","GOOGL","AMZN","META","TSLA",
-    "ASML.AS","AMD","NFLX","CRM","ADBE","NOW","AVGO","ORCL",
-    "SOXX","SMH","ARKK","BOTZ","ROBO","AIQ","ICLN","INRG.L",
-    "MC.PA","RMS.PA","KER.PA","NOVO-B.CO","SAP.DE","ASML.AS",
-    "PAEEM.PA","EEM","KWEB","MCHI","INDA","SE","MELI",
-    "BTC-USD","ETH-USD","IBIT","FBTC","COIN",
-    "2330.TW","005930.KS","9984.T","6861.T",
-  ],
+/* ── Bibliothèques d'actifs par zone et type ──────────────────────────────── */
+
+// Actifs mondiaux diversifiés (défaut "Monde entier")
+const WORLD_CORE = [
+  "IWDA.AS","VWCE.DE","CSPX.L","PANX.PA","EUNL.DE",
+  "PAEEM.PA","VFEM.L","IEMG",
+  "EXSA.DE","EXW1.DE","MEUD.PA",
+  "AGGH.L","TLT","BND","LQD","SGLD.L","GLD",
+];
+
+// Actifs USA
+const USA_ASSETS = [
+  "SPY","VOO","QQQ","IVV","VTI","CSPX.L",
+  "AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA",
+  "JPM","JNJ","V","MA","UNH","LLY","XOM","PG","KO",
+  "SOXX","SMH","IBB","XLK","XLV","XLF","XLE","XLP","XLY",
+  "VNQ","EQIX","AMT","PLD",
+  "TLT","BND","LQD","HYG","AGG","SHY","IEF",
+  "GLD","IAU","USO",
+];
+
+// Actifs Europe
+const EUROPE_ASSETS = [
+  "EXSA.DE","EXW1.DE","MEUD.PA","C50.PA","SMEA.PA","IEUR","VGK","EZU",
+  "MC.PA","RMS.PA","KER.PA","AIR.PA","SAF.PA","SAN.PA","TTE.PA","SU.PA",
+  "OR.PA","EL.PA","BN.PA","BNP.PA","AXA.PA","VIE.PA","ENGI.PA",
+  "ASML.AS","SAP.DE","SIE.DE","BAYN.DE","ALV.DE","MUV2.DE","LIN.DE",
+  "AZN.L","HSBA.L","SHEL.L","BP.L","GSK.L","RIO.L","DGE.L",
+  "NOVO-B.CO","ABB.ST","NESN.SW","NOVN.SW","ROG.SW","UBSG.SW",
+  "IEAG.L","AGGH.L","XGLE.DE","IHYG.L",
+  "EPRE.PA","IPRP.L","SGLD.L",
+];
+
+// Actifs Marchés Émergents UNIQUEMENT
+const EM_ASSETS = [
+  // ETF EM diversifiés
+  "PAEEM.PA","VFEM.L","IEMG","EEM","VWO","AEEM.PA","EMIM.L","EMXC",
+  // Asie
+  "MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH",
+  // Actions EM
+  "BABA","TCEHY","JD","BIDU","PDD","NTES",
+  "2330.TW","005930.KS","000660.KS",
+  "RELIANCE.NS","TCS.NS","INFY.NS","HDFCBANK.NS",
+  "0700.HK","9988.HK","3690.HK","1810.HK",
+  "7203.T","6758.T","6861.T","9984.T",
+  "SE","MELI","STNE","NU",
+  // Matières premières liées aux EM
+  "GLD","SGLD.L","FCX","VALE","BHP",
+];
+
+// Actifs défensifs (obligations + or + faible vol)
+const DEFENSIVE_EXTRA = [
+  "TLT","BND","LQD","SHY","IEF","AGG","GOVT","BSV",
+  "VTIP","TIP","STIP","VWOB","EMB",
+  "GLD","IAU","SGLD.L","IGLN.L",
+  "USMV","SPLV","MVOL.L","EFAV",
+  "VYM","HDV","SCHD","NOBL","DVY",
+];
+
+// Classes d'actifs optionnelles
+const ASSET_CLASSES: Record<string, string[]> = {
+  actions:    ["IWDA.AS","VWCE.DE","SPY","QQQ","EXSA.DE","PAEEM.PA","EWJ"],
+  obligations:["TLT","BND","LQD","HYG","AGG","AGGH.L","IEAG.L","VCIT","VCSH"],
+  immobilier: ["VNQ","IPRP.L","REET","AMT","PLD","EQIX","ARE","WELL","SPG","EXR"],
+  matieres:   ["GLD","SGLD.L","IAU","USO","BCIT.L","GNR","COPX","LIT","PDBC","GSG"],
+  crypto:     ["BTC-USD","ETH-USD","IBIT","FBTC","GBTC","BITO"],
+  etf_monde:  ["IWDA.AS","VWCE.DE","PANX.PA","ACWI","VT","EUNL.DE"],
 };
 
-/* ── Sélectionner l'univers selon le profil ────────────── */
+// Actifs ESG
+const ESG_ASSETS = [
+  "SUSW.SW","MWRD.L","ESGU","ESGD","ESGE","ERTH",
+  "IWDA.AS","VWCE.DE","PAEEM.PA", // ETF monde globalement propres
+  "NESN.SW","NOVN.SW","ROG.SW","OR.PA","SAN.PA", // Santé/Alimentation
+  "NEE","BEP","BEPC","CWEN","FSLR","ENPH","SEDG","TAN", // Energie propre
+  "MSFT","AAPL","GOOGL","ADBE","CRM","NOW", // Tech ESG+
+  "AGGH.L","IEAG.L","TLT","BND","GLD","SGLD.L", // Obligations + Or
+];
+
+// Exclusions ESG stricts
+const ESG_EXCLUSIONS = [
+  "BTC-USD","ETH-USD","COIN","GBTC","BITO", // Crypto (impact carbone)
+  "OXY","DVN","APA","EOG","COP","XOM","CVX","SLB","HAL","BKR", // Pétrole
+  "MO","BTI","PM","LO", // Tabac
+  "LMT","RTX","NOC","GD","BA","HII", // Armement
+  "CCL","RCL","NCLH", // Croisières (fort impact CO2)
+];
+
+/* ── Fonction selectUniverse — entièrement réécrite ────────────────────────── */
 function selectUniverse(answers: Record<string,string>): string[] {
-  const loss   = answers["3"] || "";
-  const assets = answers["5"] || "";
 
-  let profile = "balanced";
-  if (loss.includes("10%"))   profile = "defensive";
-  else if (loss.includes("20%")) profile = "moderate";
-  else if (loss.includes("limite")) profile = "aggressive";
+  // ── Q1 : Horizon → ajuste le risque acceptable
+  const horizon = answers["1"] || "";
+  const isShortTerm = horizon.includes("2 ans") || horizon.includes("Moins");
 
-  let universe = [...UNIVERSE_BY_PROFILE[profile]];
+  // ── Q2 : Profil de risque
+  const riskProfile = answers["2"] || "";
 
-  // Filtres ESG
-  if (answers["4"]?.includes("strict")) {
-    universe = universe.filter(s =>
-      ["SUSW.SW","MWRD.L","ESGU","ESGD","ESGE","ERTH"].includes(s) ||
-      !["BTC-USD","ETH-USD","COIN","OXY","DVN","APA","EOG"].includes(s)
-    );
+  // ── Q3 : Perte max acceptée → détermine le profil
+  const lossStr = answers["3"] || "";
+  let riskLevel: "defensive" | "moderate" | "balanced" | "aggressive";
+  if      (lossStr.includes("−10%") || lossStr.includes("10%"))  riskLevel = "defensive";
+  else if (lossStr.includes("−20%") || lossStr.includes("20%"))  riskLevel = "moderate";
+  else if (lossStr.includes("−35%") || lossStr.includes("35%"))  riskLevel = "balanced";
+  else if (lossStr.includes("limite"))                            riskLevel = "aggressive";
+  else if (riskProfile.includes("Conservateur"))                  riskLevel = "defensive";
+  else if (riskProfile.includes("Modéré"))                       riskLevel = "moderate";
+  else if (riskProfile.includes("Agressif"))                      riskLevel = "aggressive";
+  else                                                             riskLevel = "balanced";
+
+  // Court terme → toujours défensif
+  if (isShortTerm) riskLevel = "defensive";
+
+  // ── Q4 : ESG
+  const esgPref = answers["4"] || "";
+  const esgStrict  = esgPref.includes("strict");
+  const esgPartial = esgPref.includes("armement") || esgPref.includes("tabac");
+
+  // ── Q5 : Classes d'actifs souhaitées (multi-select CSV)
+  const classesStr = answers["5"] || "";
+  const wantsActions     = classesStr === "" || classesStr.toLowerCase().includes("action");
+  const wantsOblig       = classesStr.toLowerCase().includes("obligation");
+  const wantsImmo        = classesStr.toLowerCase().includes("immobilier");
+  const wantsMatieres    = classesStr.toLowerCase().includes("matière") || classesStr.toLowerCase().includes("or");
+  const wantsCrypto      = classesStr.toLowerCase().includes("crypto");
+  const wantsETF         = classesStr === "" || classesStr.toLowerCase().includes("etf");
+
+  // ── Q6 : Zone géographique → détermine l'UNIVERS DE BASE
+  const zone = answers["6"] || "Monde entier";
+  let baseUniverse: string[];
+
+  if (zone.includes("Marchés émergents")) {
+    // EXCLUSIVEMENT des actifs marchés émergents
+    baseUniverse = [...EM_ASSETS];
+  } else if (zone.includes("USA")) {
+    // Prédominance USA
+    baseUniverse = [...USA_ASSETS];
+  } else if (zone.includes("Europe")) {
+    // Prédominance Europe
+    baseUniverse = [...EUROPE_ASSETS];
+  } else {
+    // Monde entier — univers diversifié
+    baseUniverse = [...WORLD_CORE, ...USA_ASSETS.slice(0,15), ...EUROPE_ASSETS.slice(0,15)];
   }
 
-  // Classes d'actifs demandées
-  const wantsCrypto  = assets.includes("crypto") || assets.includes("Crypto");
-  const wantsImmo    = assets.includes("immobilier") || assets.includes("Immobilier");
-  const wantsMatieres= assets.includes("matière") || assets.includes("Matière");
+  // ── Ajustement selon niveau de risque ───────────────────────────────────
+  // Défensif : garder surtout obligations, or, low-vol
+  if (riskLevel === "defensive") {
+    // Garder ETF monde larges + obligations + or, enlever actions individuelles volatiles
+    baseUniverse = baseUniverse.filter(s =>
+      !["TSLA","NVDA","AMD","RIVN","LCID","COIN","BTC-USD","ETH-USD",
+        "ARKK","ARKG","TQQQ","SQQQ","LABU","TECL"].includes(s)
+    );
+    // Ajouter actifs défensifs
+    baseUniverse.push(...DEFENSIVE_EXTRA);
+  }
 
-  if (!wantsCrypto)   universe = universe.filter(s => !["BTC-USD","ETH-USD","IBIT","FBTC","COIN"].includes(s));
-  if (wantsImmo)      universe.push("VNQ","IPRP.L","REET","AMT","PLD","EQIX","ARE","WELL");
-  if (wantsMatieres)  universe.push("GLD","SGLD.L","USO","BCIT.L","GNR","COPX","LIT");
+  // ── Filtre par classes d'actifs (Q5) ───────────────────────────────────
+  // Si l'utilisateur a sélectionné des classes spécifiques, on filtre
+  if (classesStr !== "") {
+    let filtered: string[] = [];
 
-  // Zones géographiques
-  const zone = answers["6"] || "";
-  if (zone.includes("USA"))     universe = universe.filter(s => !["EXSA.DE","EXW1.DE","PAEEM.PA","EWJ"].includes(s));
-  if (zone.includes("Europe"))  universe = universe.filter(s => !["SPY","VOO","QQQ","EEM","EWJ"].includes(s));
-  if (zone.includes("émergents")) universe.push("PAEEM.PA","EEM","IEMG","KWEB","INDA","MCHI","SE","MELI");
+    if (wantsActions || wantsETF) {
+      filtered.push(...baseUniverse.filter(s =>
+        !ASSET_CLASSES.obligations.includes(s) &&
+        !ASSET_CLASSES.matieres.includes(s) &&
+        !ASSET_CLASSES.crypto.includes(s) &&
+        !ASSET_CLASSES.immobilier.includes(s)
+      ));
+    }
+    if (wantsOblig)    filtered.push(...ASSET_CLASSES.obligations);
+    if (wantsImmo)     filtered.push(...ASSET_CLASSES.immobilier);
+    if (wantsMatieres) filtered.push(...ASSET_CLASSES.matieres);
+    if (wantsCrypto)   filtered.push(...ASSET_CLASSES.crypto);
 
-  // Diversification
+    baseUniverse = filtered.length > 0 ? filtered : baseUniverse;
+  } else {
+    // Pas de filtre classes → enlever crypto par défaut
+    baseUniverse = baseUniverse.filter(s => !ASSET_CLASSES.crypto.includes(s));
+  }
+
+  // ── Filtre ESG ──────────────────────────────────────────────────────────
+  if (esgStrict) {
+    // Garder UNIQUEMENT les actifs ESG validés
+    baseUniverse = baseUniverse.filter(s => ESG_ASSETS.includes(s));
+    if (baseUniverse.length < 5) baseUniverse = [...ESG_ASSETS]; // fallback
+  } else if (esgPartial) {
+    // Exclure armement & tabac & pétrole lourd
+    baseUniverse = baseUniverse.filter(s => !ESG_EXCLUSIONS.includes(s));
+  }
+
+  // ── Q7 : Diversification → nombre max d'actifs ─────────────────────────
   const diversif = answers["7"] || "";
-  const maxAssets = diversif.includes("5") ? 8
-                  : diversif.includes("15") ? 30 : 18;
+  let maxAssets: number;
+  if      (diversif.includes("5 actifs") || diversif.includes("Concentré"))  maxAssets = 8;
+  else if (diversif.includes("15+")      || diversif.includes("Large"))      maxAssets = 35;
+  else                                                                         maxAssets = 18; // Équilibré
 
-  // Déduplication + limite
-  return [...new Set(universe)].slice(0, Math.min(universe.length, 50));
+  // Ajuster selon le risque (défensif → plus diversifié)
+  if (riskLevel === "defensive") maxAssets = Math.max(maxAssets, 15);
+  if (riskLevel === "aggressive") maxAssets = Math.min(maxAssets, 25);
+
+  // ── Déduplication + limite finale ──────────────────────────────────────
+  const deduped = [...new Set(baseUniverse)];
+
+  // Log pour debugging
+  console.log(`[selectUniverse] zone=${zone} risk=${riskLevel} esg=${esgStrict?"strict":esgPartial?"partial":"none"} max=${maxAssets} → ${deduped.length} actifs avant limite`);
+
+  return deduped.slice(0, maxAssets);
 }
+
 
 /* ── Récupérer les historiques depuis Neon ─────────────── */
 async function fetchReturns(
