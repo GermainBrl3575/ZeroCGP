@@ -296,9 +296,9 @@ function selectUniverse(answers:Record<string,string>):{
   let pool=dedup(filter(false));
   // Anti-doublon: si MSCI World present, supprimer les sous-indices US
   const WDEDUPS=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
-  const USDEDUPS=["SP500","NASDAQ100"];
+  const USDEDUPS=["SP500","NASDAQ100","EUROSTOXX50","MSCI_EUROPE","EU_SMALL_CAP","FR_MID_CAP"];
   const hasW=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(hasW&&!zUSA){
+  if(hasW&&!zUSA&&!zEU){
     const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
     pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
   }
