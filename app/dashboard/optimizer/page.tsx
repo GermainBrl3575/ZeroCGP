@@ -1,7 +1,6 @@
 "use client";
 import dynamic from "next/dynamic";
 import AssetCard from "@/components/AssetCard";
-import dynamic from "next/dynamic";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
