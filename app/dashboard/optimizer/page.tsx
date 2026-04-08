@@ -1,5 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
+import AssetCard from "@/components/AssetCard";
+import dynamic from "next/dynamic";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -119,109 +121,7 @@ function InfoBubble({ text, dark }: { text: string; dark?: boolean }) {
 }
 
 // ─── Accordéon actif ────────────────────────────────────────────────────────────
-function AssetRow({ w }: { w: Weight }) {
-  const [open, setOpen] = useState(false);
-  const [newsData, setNewsData] = useState<Array<{title:string;publisher:string;link:string;time:string}>>([]);
-  const [newsLoading, setNewsLoading] = useState(false);
-  const info    = getAssetInfo(w.symbol);
-  const hist    = getAssetHistory(w.symbol);
-  const isin    = w.isin || info.isin || "";
-  const typeCol = TYPE_COLOR[w.type] ?? "#6B7280";
 
-  function handleClick() {
-    if (!open && newsData.length === 0) {
-      setNewsLoading(true);
-      fetch("/api/yahoo/news?symbol=" + encodeURIComponent(w.symbol))
-        .then(function(r) { return r.json(); })
-        .then(function(d) { setNewsData(d.news ?? []); setNewsLoading(false); })
-        .catch(function() { setNewsLoading(false); });
-    }
-    setOpen(function(o) { return !o; });
-  }
-
-  return (
-    <div style={{marginBottom:8,borderRadius:10,overflow:"hidden",border:"1px solid rgba(10,22,40,.07)",background:"white"}}>
-      <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px",cursor:"pointer"}} onClick={handleClick}>
-        <div style={{width:140,flexShrink:0}}>
-          <div style={{fontSize:12,fontWeight:700,color:NAVY}}>{w.symbol.split(".")[0]}</div>
-          <div style={{fontSize:10,color:"#8A9BB0",marginTop:1,fontWeight:300}}>{info.name}</div>
-          {isin && <div style={{fontSize:8,color:"#B0BEC5",marginTop:1,letterSpacing:".04em"}}>{isin}</div>}
-        </div>
-        <div style={{flex:1,height:4,background:"rgba(10,22,40,.06)",borderRadius:2}}>
-          <div style={{width:(Math.round(w.weight*100))+"%",height:"100%",borderRadius:2,background:typeCol,minWidth:4}}/>
-        </div>
-        <div style={{width:36,textAlign:"right",fontSize:12,color:"#8A9BB0",flexShrink:0}}>
-          {Math.round(w.weight*100)}%
-        </div>
-        <div style={{width:80,textAlign:"right",fontSize:12,fontWeight:600,color:NAVY,flexShrink:0}}>
-          {eur(w.amount)}
-        </div>
-        <div style={{width:20,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"transform .25s",transform:open?"rotate(180deg)":"rotate(0deg)"}}>
-          <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-            <path d="M1 1L6 6.5L11 1" stroke="#8A9BB0" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-      </div>
-
-      {open && (
-        <div style={{borderTop:"1px solid rgba(10,22,40,.05)",padding:"20px 18px",background:"#FAFAF9"}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:24,marginBottom:16}}>
-            <div>
-              <div style={{fontSize:9,fontWeight:600,letterSpacing:".14em",color:"#8A9BB0",marginBottom:8}}>
-                {info.sector.toUpperCase()}
-              </div>
-              <p style={{fontSize:12.5,color:"#3D4F63",lineHeight:1.8,fontWeight:300,margin:0}}>
-                {info.desc}
-              </p>
-              {isin && (
-                <div style={{marginTop:10,fontSize:10,color:"#8A9BB0"}}>
-                  ISIN : <span style={{fontWeight:600,color:NAVY,letterSpacing:".04em"}}>{isin}</span>
-                </div>
-              )}
-            </div>
-            <div>
-              <div style={{fontSize:9,fontWeight:600,letterSpacing:".14em",color:"#8A9BB0",marginBottom:10}}>
-                PERFORMANCES HISTORIQUES
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {(["1M","6M","1A","5A","10A"] as const).map(function(p) {
-                  const val = hist[p] ?? "N/D";
-                  const isPos = val.startsWith("+");
-                  const isNeg = val.startsWith("-");
-                  const isND  = val === "N/D";
-                  return (
-                    <div key={p} style={{background:isND?"#F3F4F6":isPos?"#F0FDF4":"#FEF2F2",borderRadius:8,padding:"8px 12px",textAlign:"center",minWidth:52}}>
-                      <div style={{fontSize:9,color:"#8A9BB0",marginBottom:4,letterSpacing:".06em"}}>{p}</div>
-                      <div style={{fontSize:13,fontWeight:700,color:isND?"#9CA3AF":isPos?"#16A34A":"#DC2626"}}>{val}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-          <div style={{borderTop:"1px solid rgba(10,22,40,.06)",paddingTop:14}}>
-            <div style={{fontSize:9,fontWeight:600,letterSpacing:".14em",color:"#8A9BB0",marginBottom:10}}>ACTUALITÉS RÉCENTES</div>
-            {newsLoading && <div style={{fontSize:11,color:"#8A9BB0",fontStyle:"italic"}}>Chargement...</div>}
-            {!newsLoading && newsData.length === 0 && <div style={{fontSize:11,color:"#8A9BB0",fontStyle:"italic"}}>Actualités non disponibles.</div>}
-            {newsData.map(function(n, i) {
-              return (
-                <a key={i} href={n.link} target="_blank" rel="noopener noreferrer" style={{display:"block",marginBottom:8,textDecoration:"none"}}>
-                  <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:12,color:"#0A1628",fontWeight:500,lineHeight:1.5}}>{n.title}</div>
-                      <div style={{fontSize:10,color:"#8A9BB0",marginTop:2}}>{n.publisher}{n.time ? " · " + n.time : ""}</div>
-                    </div>
-                    <span style={{fontSize:10,color:"#4A7FBF",flexShrink:0,marginTop:2}}>→</span>
-                  </div>
-                </a>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 
 const ASSET_CLASSES = ["ETF", "Actions", "Crypto", "Obligations", "Immobilier coté"];
@@ -542,7 +442,17 @@ function OptimizerInner() {
             <div style={{fontSize:11,color:"#8A9BB0"}}>Capital : {eur(cap)}</div>
           </div>
           <p style={{fontSize:11,color:"#5A6B80",marginBottom:16,fontWeight:300}}>Cliquez sur un actif pour voir sa fiche détaillée, ses performances et ses actualités.</p>
-          {selR.weights.map(w=><AssetRow key={w.symbol} w={w}/>)}
+          {selR.weights.map(w=>(
+          <AssetCard
+            key={w.symbol}
+            symbol={w.symbol}
+            name={w.name}
+            weight={w.weight}
+            amount={w.amount}
+            type={w.type||"stock"}
+            perf={assetHistories[w.symbol]}
+          />
+        ))}
         </div>
       )}
 
