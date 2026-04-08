@@ -302,6 +302,14 @@ function selectUniverse(answers:Record<string,string>):{
     const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
     pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
   }
+  // Limiter ETF pays EM: max 3 ETF pays (Inde, Chine, Taiwan, HK, Corée)
+  const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
+  const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
+  if(emCountryETFs.length>3){
+    // Garder les 3 meilleurs TER
+    const keep=emCountryETFs.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
+    pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
+  }
   // Garder 1 seul ETF monde parmi les world dedups
   const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
   if(wETFs.length>1){
@@ -386,7 +394,7 @@ function selectUniverse(answers:Record<string,string>):{
   const universe=[...mandatory,...rest].slice(0,maxAssets);
   const symbols=universe.map(a=>a.s);
 
-  const minBondPct  =onlyBonds?80:risk==="defensive"?25:risk==="moderate"?12:wBonds?12:0;
+  const minBondPct  =onlyBonds?80:risk==="defensive"&&wBonds?30:risk==="defensive"?15:wBonds?12:0;
   const minGoldPct  =wGold?6:0;
   const minReitPct  =wReits?5:0;
   const minCryptoPct=wCrypto&&!onlyCrypto?5:0;
@@ -440,7 +448,7 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
   const wMin=syms.map(s=>(minClass[s]||0)/100);
   // Contrainte différenciée : ETF/bonds max 28%, actions max 15%
   const isStock=syms.map(s=>CAT.find(a=>a.s===s)?.type==="stock");
-  const maxW=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.15):maxWeight);
+  const maxW=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.12):maxWeight);
   let bestW=new Array(N).fill(1/N),bestScore=-Infinity;
   for(let trial=0;trial<8000;trial++){
     const raw=syms.map(()=>Math.random());let sum=raw.reduce((a,b)=>a+b,0);
