@@ -321,18 +321,31 @@ function selectUniverse(answers:Record<string,string>):{
     pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
   }
 
-  // ── Enrichissement PEA si trop peu d'ETFs ────────────────────
-  // Quand ETF uniquement + PEA → seulement 2-3 ETFs dans Neon
-  // → ajouter actions PEA pour atteindre min 5 actifs
-  if(wPEA&&pool.filter(a=>a.type==="etf").length<7){
-    const peaStocks=CAT.filter(a=>
-      a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
-      (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
-       !zEM&&!zUSA&&!zEU)&&
-      (!esgStrict||a.esg)&&(!esgPartial||!a.excl_esg)
-    );
-    pool=[...pool,...dedup(peaStocks)];
+  // ── Enrichissement PEA — ETF d'abord, actions seulement si aucun ETF monde
+  if(wPEA){
+    // 1) Ajouter ETF PEA complémentaires s'il en manque
+    const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
+    for(const sym of PEA_ETF_EXTRA){
+      const asset=CAT.find(a=>a.s===sym);
+      if(asset&&asset.pea&&!pool.find(a=>a.s===sym)&&!blocked.has(sym)&&
+         (!esgStrict||asset.esg)&&(!esgPartial||!asset.excl_esg)){
+        pool.push(asset);
+      }
+    }
     pool=dedup(pool);
+    // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA présent
+    const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
+    const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
+    if(!hasWorldPEA&&pool.filter(a=>a.type==="etf"&&a.pea).length<3){
+      const peaStocks=CAT.filter(a=>
+        a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
+        (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
+         (!zEM&&!zUSA&&!zEU))&&
+        (!esgStrict||a.esg)&&(!esgPartial||!a.excl_esg)
+      );
+      pool=[...pool,...dedup(peaStocks)];
+      pool=dedup(pool);
+    }
   }
 
   // onlyBonds: forcer pool = bonds uniquement
