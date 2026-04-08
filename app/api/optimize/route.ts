@@ -31,7 +31,7 @@ const CAT: Asset[] = [
   // CW8.PA = Amundi MSCI World Swap — PEA éligible, même dedup MSCI_WORLD → garde lowest TER
   {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
   // EWLD.PA = version distribution de CW8
-  {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD_D", ter:0.12,pea:true, cto:true, av:true },
+  {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD", ter:0.12,pea:true, cto:true, av:true },
   // ETF S&P 500 PEA synthétiques
   {s:"PE500.PA", n:"Amundi PEA S&P 500 Screened",   zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
   {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
@@ -206,7 +206,7 @@ function dedup(assets:Asset[]):Asset[]{
 }
 
 function selectUniverse(answers:Record<string,string>):{
-  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;
+  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;
 }{
   const q1=answers["1"]||"",q2=answers["2"]||"",q3=answers["3"]||"";
   const q4=answers["4"]||"",q5=answers["5"]||"",q6=answers["6"]||"";
@@ -270,7 +270,9 @@ function selectUniverse(answers:Record<string,string>):{
     if(zEM &&a.zone!=="em" &&a.zone!=="any")return false;
     if(zUSA&&a.zone!=="usa"&&a.zone!=="any")return false;
     if(zEU &&a.zone!=="europe"&&a.zone!=="any")return false;
+    // onlyBonds : priorité absolue
     if(onlyBonds&&a.type!=="bond")return false;
+    // Cas normal
     if(a.type==="crypto"&&!wCrypto)return false;
     if(!relaxTypes){
       if(!wETF   &&a.type==="etf")      return false;
@@ -296,7 +298,7 @@ function selectUniverse(answers:Record<string,string>):{
   // ── Enrichissement PEA si trop peu d'ETFs ────────────────────
   // Quand ETF uniquement + PEA → seulement 2-3 ETFs dans Neon
   // → ajouter actions PEA pour atteindre min 5 actifs
-  if(wPEA&&!wStocks&&pool.filter(a=>a.type==="etf").length<5){
+  if(wPEA&&pool.filter(a=>a.type==="etf").length<7){
     const peaStocks=CAT.filter(a=>
       a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
       (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
@@ -364,9 +366,11 @@ function selectUniverse(answers:Record<string,string>):{
   const minGoldPct  =wGold?6:0;
   const minReitPct  =wReits?5:0;
   const minCryptoPct=wCrypto&&!onlyCrypto?5:0;
+  // Zone EM : forcer au moins 40% en actifs EM dans Markowitz
+  const minEMPct    =zEM?40:0;
 
-  console.log(`[v5] z=${q6}|r=${risk}|s=${q8}|b=${q9}|esg=${q4} → [${symbols.join(",")}] bonds>=${minBondPct}%`);
-  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct};
+  console.log(`[v5] z=${q6}|r=${risk}|s=${q8}|b=${q9}|esg=${q4} → [${symbols.join(",")}] bonds>=${minBondPct}% em>=${minEMPct}%`);
+  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct};
 }
 
 async function fetchReturns(symbols:string[],years=10):Promise<Record<string,number[]>>{
@@ -442,7 +446,7 @@ type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var9
 export async function POST(req:NextRequest){
   const{capital=50000,answers={}}=await req.json();
   try{
-    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct}=selectUniverse(answers);
+    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct}=selectUniverse(answers);
     const returns=await fetchReturns(symbols,15);
     const validSyms=Object.keys(returns);
     if(validSyms.length<3)return NextResponse.json({error:"Pas assez de donnees historiques pour ce profil"},{status:500});
@@ -452,7 +456,8 @@ export async function POST(req:NextRequest){
     const reitSyms  =validSyms.filter(s=>CAT.find(a=>a.s===s&&a.type==="reit"));
     const cryptoSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&a.type==="crypto"));
     const distrib=(syms:string[],pct:number)=>{if(!syms.length||!pct)return{};const r:Record<string,number>={};syms.forEach(s=>{r[s]=pct/syms.length;});return r;};
-    const minClass={...distrib(bondSyms,minBondPct),...distrib(goldSyms,minGoldPct),...distrib(reitSyms,minReitPct),...distrib(cryptoSyms,minCryptoPct)};
+    const emSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&(a.zone==="em")));
+    const minClass={...distrib(bondSyms,minBondPct),...distrib(goldSyms,minGoldPct),...distrib(reitSyms,minReitPct),...distrib(cryptoSyms,minCryptoPct),...distrib(emSyms,minEMPct)};
     const frontier:FPt[]=[];for(let k=0;k<150;k++)frontier.push({vol:Math.random()*0.25+0.03,ret:Math.random()*0.3+0.03});
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
