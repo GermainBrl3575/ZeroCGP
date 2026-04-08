@@ -247,8 +247,10 @@ const EUROPE_ASSETS = [
 
 // Actifs Marchés Émergents UNIQUEMENT
 const EM_ASSETS = [
-  // ETF EM diversifiés
-  "PAEEM.PA","VFEM.L","IEMG","EEM","VWO","AEEM.PA","EMIM.L","EMXC",
+  // ETF EM diversifiés — dont PEA-éligibles (PAEEM.PA, AEEM.PA, GWT.PA)
+  "PAEEM.PA","AEEM.PA","VFEM.L","IEMG","EEM","VWO","EMIM.L","EMXC",
+  // ETF EM sectoriels cotés à Paris (PEA-éligibles)
+  "PAAEM.PA","LEME.PA","AMEM.PA",
   // Asie
   "MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH",
   // Actions EM
@@ -336,7 +338,8 @@ function selectUniverse(answers: Record<string,string>): string[] {
   const wantsOblig       = classesStr.toLowerCase().includes("obligation");
   const wantsImmo        = classesStr.toLowerCase().includes("immobilier");
   const wantsMatieres    = classesStr.toLowerCase().includes("matière") || classesStr.toLowerCase().includes("or");
-  const wantsCrypto      = classesStr.toLowerCase().includes("crypto");
+  const wantsCrypto      = classesStr.toLowerCase().includes("crypto")
+                        || (answers["8"]||"").toLowerCase().includes("crypto");
   const wantsETF         = classesStr === "" || classesStr.toLowerCase().includes("etf");
 
   // ── Q6 : Zone géographique → détermine l'UNIVERS DE BASE
@@ -423,7 +426,31 @@ function selectUniverse(answers: Record<string,string>): string[] {
 
   console.log(`[selectUniverse] zone=${zone} risk=${riskLevel} support=${supports} bank=${bank} → ${deduped.length} actifs → limite ${maxAssets}`);
 
-  // Respecter STRICTEMENT maxAssets — priorité aux ETF larges puis actions
+  // Si trop peu d'actifs après filtrage (ex: PEA+EM strict) → fallback intelligent
+  if (deduped.length < 4) {
+    console.warn(`[selectUniverse] Seulement ${deduped.length} actifs après filtres — fallback`);
+
+    // PEA + EM : utiliser actions EM cotées en Europe (éligibles PEA)
+    if (zone.includes("émergents") && supports.includes("PEA")) {
+      const pea_em_fallback = [
+        "PAEEM.PA","AEEM.PA","LEME.PA", // ETF EM PEA
+        "MC.PA","RMS.PA","KER.PA",       // Luxe = exposition Asie indirecte
+        "AIR.PA","SAF.PA",               // Aéronautique = Asie
+        "EXSA.DE","SMEA.PA",             // Actions Europe larges PEA
+      ];
+      return [...new Set([...deduped, ...pea_em_fallback])].slice(0, maxAssets);
+    }
+
+    // Fallback générique : univers monde PEA-compatible
+    const generic_fallback = [
+      "PANX.PA","PAEEM.PA","EXSA.DE","SMEA.PA","MEUD.PA",
+      "MC.PA","RMS.PA","ASML.AS","SAP.DE","NESN.SW",
+      "IEAG.L","AGGH.L","SGLD.L",
+    ];
+    return [...new Set([...deduped, ...generic_fallback])].slice(0, maxAssets);
+  }
+
+  // Respecter STRICTEMENT maxAssets
   return deduped.slice(0, maxAssets);
 }
 
@@ -456,7 +483,7 @@ async function fetchReturns(
     });
 
     Object.entries(prices).forEach(([sym, p]) => {
-      if (p.length > 52) { // au moins 1 an de données
+      if (p.length > 26) { // au moins 6 mois de données
         grouped[sym] = p.slice(1).map((c, i) => (c - p[i]) / p[i]);
       }
     });
