@@ -39,6 +39,7 @@ function PortfolioInner() {
   const [period,   setPeriod]   = useState("1M");
   const [loading,  setLoading]  = useState(true);
   const [perfData, setPerfData] = useState<{j:string;v:number;p:number}[]>([]);
+  const [assetPerfs, setAssetPerfs] = useState<Record<string,{p1m:number;p6m:number;p1a:number;p5a:number;p10a:number}>>({});
   const [showPct,  setShowPct]  = useState(false);
 
   useEffect(() => {
@@ -107,12 +108,51 @@ function PortfolioInner() {
       const final = enriched.map(a => ({ ...a, weight: tot>0?a.value/tot:0 }));
       setAssets(final);
 
-      const base = tot * 0.92;
-      setPerfData(Array.from({length:30},(_,i)=>({
-        j:`J-${29-i}`,
-        v:Math.round(base+i*(tot*0.003)+Math.sin(i*0.7)*tot*0.015),
-        p:parseFloat(((i*(tot*0.003)+Math.sin(i*0.7)*tot*0.015)/base*100).toFixed(2)),
-      })));
+      // ── Charger les vraies données historiques depuis Neon ──
+      // Graphique portfolio : pondération des actifs × historique prix
+      const mainSymbol = final[0]?.symbol;
+      if (mainSymbol) {
+        try {
+          const hRes = await fetch(`/api/market/history?symbol=${mainSymbol}&period=1y`);
+          const hData = await hRes.json();
+          if (hData.data?.length > 0) {
+            const prices = hData.data;
+            const firstPrice = prices[0].close;
+            const perfPoints = prices.map((p: {date:string;close:number}) => ({
+              j: new Date(p.date).toLocaleDateString("fr-FR",{day:"2-digit",month:"short"}),
+              v: Math.round(tot * p.close / prices[prices.length-1].close),
+              p: parseFloat(((p.close - firstPrice) / firstPrice * 100).toFixed(2)),
+            }));
+            setPerfData(perfPoints);
+          }
+        } catch {}
+      }
+
+      // ── Performances historiques par actif (1M, 6M, 1A, 5A, 10A) ──
+      const perfsMap: Record<string,{p1m:number;p6m:number;p1a:number;p5a:number;p10a:number}> = {};
+      await Promise.all(
+        final.slice(0, 8).map(async (a) => { // max 8 actifs pour limiter les requêtes
+          try {
+            const r = await fetch(`/api/market/history?symbol=${a.symbol}&period=10y`);
+            const d = await r.json();
+            if (!d.data?.length) return;
+            const prices = d.data as {date:string;close:number}[];
+            const last   = prices[prices.length-1].close;
+            const ago = (weeks: number) => {
+              const idx = Math.max(0, prices.length - 1 - weeks);
+              return prices[idx].close;
+            };
+            perfsMap[a.symbol] = {
+              p1m:  parseFloat(((last - ago(4))   / ago(4)   * 100).toFixed(2)),
+              p6m:  parseFloat(((last - ago(26))  / ago(26)  * 100).toFixed(2)),
+              p1a:  parseFloat(((last - ago(52))  / ago(52)  * 100).toFixed(2)),
+              p5a:  parseFloat(((last - ago(260)) / ago(260) * 100).toFixed(2)),
+              p10a: parseFloat(((last - ago(520)) / ago(520) * 100).toFixed(2)),
+            };
+          } catch {}
+        })
+      );
+      setAssetPerfs(perfsMap);
       setLoading(false);
     }
     load();
