@@ -27,17 +27,17 @@ interface Asset {
    ═══════════════════════════════════════════════════════ */
 const CAT: Asset[] = [
   // ── ETF MONDE ─────────────────────────────────────────────────
-  {s:"PANX.PA",  n:"Amundi MSCI World PEA",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
+  {s:"PANX.PA",  n:"ETF MSCI World PEA (PANX)",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
   // CW8.PA = Amundi MSCI World Swap — PEA éligible, même dedup MSCI_WORLD → garde lowest TER
   {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
   // EWLD.PA = version distribution de CW8
   {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD", ter:0.12,pea:true, cto:true, av:true },
   // ETF S&P 500 PEA synthétiques
-  {s:"PE500.PA", n:"Amundi PEA S&P 500 Screened",   zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"PE500.PA", n:"ETF SP500 PEA (PE500)",   zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
   {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
   {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
   // ETF NASDAQ PEA
-  {s:"PUST.PA",  n:"Amundi PEA Nasdaq-100 UCITS",   zone:"usa",  type:"etf",dedup:"NASDAQ_PEA",   ter:0.23,pea:true, cto:true, av:true },
+  {s:"PUST.PA",  n:"ETF NASDAQ-100 PEA (PUST)",   zone:"usa",  type:"etf",dedup:"NASDAQ_PEA",   ter:0.23,pea:true, cto:true, av:true },
   {s:"IWDA.AS",  n:"iShares MSCI World",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
@@ -52,7 +52,7 @@ const CAT: Asset[] = [
   {s:"VOO",      n:"Vanguard S&P 500",             zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
   {s:"SPY",      n:"SPDR S&P 500",                 zone:"usa",  type:"etf",dedup:"SP500",         ter:0.095,pea:false,cto:true,av:false},
   // VTI = US total (incl. small/mid) → dedup distinct de SP500
-  {s:"VTI",      n:"Vanguard Total US Market",     zone:"usa",  type:"etf",dedup:"US_TOTAL",      ter:0.03,pea:false,cto:true, av:false},
+  {s:"VTI",      n:"Vanguard Total US Market",     zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
   // NASDAQ 100
   {s:"EQQQ.DE",  n:"Invesco NASDAQ 100 EUR",       zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.30,pea:false,cto:true, av:true },
   {s:"QQQ",      n:"Invesco NASDAQ 100",           zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.20,pea:false,cto:true, av:false},
@@ -92,7 +92,7 @@ const CAT: Asset[] = [
   // ── OBLIGATIONS ───────────────────────────────────────────────
   {s:"XGLE.DE",n:"Xtrackers EUR Gov Bond",      zone:"europe",type:"bond",dedup:"EUR_GOV",    ter:0.09,pea:false,cto:true,av:true },
   {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:false},
-  {s:"AGGH.L", n:"iShares Global Agg Bond",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
+  {s:"AGGH.L", n:"ETF Oblig Aggregate Monde (AGGH)",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
   {s:"TLT",    n:"iShares 20Y US Treasury",      zone:"usa",   type:"bond",dedup:"US_20Y",     ter:0.15,pea:false,cto:true,av:false},
   {s:"IEF",    n:"iShares 7-10Y Treasury",       zone:"usa",   type:"bond",dedup:"US_7_10Y",   ter:0.15,pea:false,cto:true,av:false},
   {s:"AGG",    n:"iShares US Aggregate Bond",    zone:"usa",   type:"bond",dedup:"US_AGG",     ter:0.03,pea:false,cto:true,av:false},
@@ -414,13 +414,22 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
     cov[i][j]=cov[j][i]=(c/(T-1))*52;
   }
   const wMin=syms.map(s=>(minClass[s]||0)/100);
+  // Contrainte différenciée : ETF/bonds max 28%, actions max 15%
+  const isStock=syms.map(s=>CAT.find(a=>a.s===s)?.type==="stock");
+  const maxW=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.15):maxWeight);
   let bestW=new Array(N).fill(1/N),bestScore=-Infinity;
   for(let trial=0;trial<8000;trial++){
     const raw=syms.map(()=>Math.random());let sum=raw.reduce((a,b)=>a+b,0);
     let w=raw.map(x=>x/sum);
     for(let i=0;i<N;i++)if(w[i]<wMin[i])w[i]=wMin[i];
-    for(let i=0;i<N;i++)if(w[i]>maxWeight)w[i]=maxWeight;
+    for(let i=0;i<N;i++)if(w[i]>maxW[i])w[i]=maxW[i];
     sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);
+    // Contrainte géo : max 40% USA, max 40% Europe pour zone "monde"
+    const usaIdx=syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="usa"?w[i]:0]).map(([,v])=>v as number);
+    const euIdx =syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="europe"?w[i]:0]).map(([,v])=>v as number);
+    const usaW=usaIdx.reduce((a,b)=>a+b,0);
+    const euW =euIdx.reduce((a,b)=>a+b,0);
+    if(usaW>0.55||euW>0.55){sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);}
     const pRet=w.reduce((a,x,i)=>a+x*mu[i],0);
     let pVar=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)pVar+=w[i]*w[j]*cov[i][j];
     const pVol=Math.sqrt(Math.max(0,pVar));const pSharpe=pVol>0?(pRet-rfRate)/pVol:0;
