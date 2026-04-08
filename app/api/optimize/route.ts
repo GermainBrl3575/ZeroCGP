@@ -19,7 +19,7 @@ interface Asset {
 /* ═══════════════════════════════════════════════════════
    CATALOGUE v5 — corrections finales
    - VOO + CSPX.L + SXR8.DE → dedup:"SP500" (1 seul survit)
-   - VTI → dedup:"US_TOTAL" (marché total US, différent de S&P 500)
+   - VTI → dedup:"SP500" (marché total US, différent de S&P 500)
    - SGLD.L → dedup:"GOLD_EU" / GLD → dedup:"GOLD_US" (2 survivent)
    - PANX.PA pea:true (Amundi MSCI World synthétique = PEA OK)
    - VOO bloqué banques françaises (UCITS préférable)
@@ -33,11 +33,11 @@ const CAT: Asset[] = [
   // EWLD.PA = version distribution de CW8
   {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD", ter:0.12,pea:true, cto:true, av:true },
   // ETF S&P 500 PEA synthétiques
-  {s:"PE500.PA", n:"ETF SP500 PEA (PE500)",   zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
-  {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
-  {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"PE500.PA", n:"ETF SP500 PEA (PE500)",   zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
   // ETF NASDAQ PEA
-  {s:"PUST.PA",  n:"ETF NASDAQ-100 PEA (PUST)",   zone:"usa",  type:"etf",dedup:"NASDAQ_PEA",   ter:0.23,pea:true, cto:true, av:true },
+  {s:"PUST.PA",  n:"ETF NASDAQ-100 PEA (PUST)",   zone:"usa",  type:"etf",dedup:"NASDAQ100",   ter:0.23,pea:true, cto:true, av:true },
   {s:"IWDA.AS",  n:"iShares MSCI World",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
@@ -309,6 +309,12 @@ function selectUniverse(answers:Record<string,string>):{
     pool=dedup(pool);
   }
 
+  // onlyBonds: forcer pool = bonds uniquement
+  if(onlyBonds){
+    let bp=pool.filter(a=>a.type==="bond");
+    if(bp.length<2) bp=dedup(CAT.filter(a=>a.type==="bond"&&!blocked.has(a.s)));
+    pool=bp;
+  }
   // ── Auto-add obligations pour défensif/modéré ─────────────────
   if((risk==="defensive"||risk==="moderate")&&!onlyBonds&&!onlyCrypto&&
      pool.filter(a=>a.type==="bond").length<1){
