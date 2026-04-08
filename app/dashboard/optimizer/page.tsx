@@ -466,6 +466,10 @@ function OptimizerInner() {
 }
 
 export default function OptimizerPage() {
+
+  const [assetHistories, setAssetHistories] = useState<Record<string,Record<string,string>>>({});
+  const [assetMeta, setAssetMeta] = useState<Record<string,{name:string;sector:string;type:string}>>({});
+
   return (
     <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}><div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div></div>}>
       <OptimizerInner />
