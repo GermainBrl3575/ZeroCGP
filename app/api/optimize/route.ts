@@ -28,6 +28,16 @@ interface Asset {
 const CAT: Asset[] = [
   // ── ETF MONDE ─────────────────────────────────────────────────
   {s:"PANX.PA",  n:"Amundi MSCI World PEA",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
+  // CW8.PA = Amundi MSCI World Swap — PEA éligible, même dedup MSCI_WORLD → garde lowest TER
+  {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
+  // EWLD.PA = version distribution de CW8
+  {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD_D", ter:0.12,pea:true, cto:true, av:true },
+  // ETF S&P 500 PEA synthétiques
+  {s:"PE500.PA", n:"Amundi PEA S&P 500 Screened",   zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
+  {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500_PEA",    ter:0.15,pea:true, cto:true, av:true },
+  // ETF NASDAQ PEA
+  {s:"PUST.PA",  n:"Amundi PEA Nasdaq-100 UCITS",   zone:"usa",  type:"etf",dedup:"NASDAQ_PEA",   ter:0.23,pea:true, cto:true, av:true },
   {s:"IWDA.AS",  n:"iShares MSCI World",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
