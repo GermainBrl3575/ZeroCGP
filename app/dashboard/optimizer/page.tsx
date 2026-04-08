@@ -242,6 +242,8 @@ const css = `
 
 function OptimizerInner() {
   const router = useRouter();
+  const [assetHistories, setAssetHistories] = useState<Record<string,Record<string,string>>>({});
+  const [assetMeta, setAssetMeta] = useState<Record<string,{name:string;sector:string;type:string}>>({});
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [multiSel, setMultiSel] = useState<string[]>(["ETF","Actions"]);
@@ -467,8 +469,6 @@ function OptimizerInner() {
 
 export default function OptimizerPage() {
 
-  const [assetHistories, setAssetHistories] = useState<Record<string,Record<string,string>>>({});
-  const [assetMeta, setAssetMeta] = useState<Record<string,{name:string;sector:string;type:string}>>({});
 
   return (
     <Suspense fallback={<div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}><div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div></div>}>
