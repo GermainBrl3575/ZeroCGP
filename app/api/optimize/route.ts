@@ -414,7 +414,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D",
     "US_CONS_S", "US_DEFENSE", "US_AERO", "US_DIV", "US_DIV2", "US_DIV3",
     "US_DIVGROW", "US_MOMENTUM", "US_MINVOL", "US_EW",
-    "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS"];
+    "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS",
+    "MSCI_SPAIN", "MSCI_ITALY", "MSCI_GERMANY", "MSCI_UK"];
   const EM_BROAD = ["MSCI_EM", "FTSE_EM"];
   const EM_COUNTRY = ["MSCI_CHINA", "CHINA_NET", "MSCI_INDIA", "MSCI_TAIWAN",
     "MSCI_HK", "MSCI_KOREA", "MSCI_BRAZIL"];
@@ -506,11 +507,15 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       const nq = CAT.find(a => a.dedup === "NASDAQ100" && supOk(a) && (!esgStrict || a.esg));
       if (sp && !pool2.find(a => a.dedup === "SP500")) pool2.push(sp);
       if (nq && !pool2.find(a => a.dedup === "NASDAQ100")) pool2.push(nq);
-      // Add EM for geographic diversity
+      // Add EM for geographic diversity + 1 Europe ETF
       const em = CAT.find(a => EM_BROAD.includes(a.dedup) && supOk(a) && (!esgStrict || a.esg));
       if (em && !pool2.find(a => EM_BROAD.includes(a.dedup))) pool2.push(em);
-      // Remove developed ex-US (VEA/EFA) since countries (EWJ, EWC) and Europe are already separate
-      pool2 = pool2.filter(a => !["MSCI_EAFE", "FTSE_DEV"].includes(a.dedup));
+      const euETF = CAT.find(a => ["EUROSTOXX50","MSCI_EUROPE"].includes(a.dedup) && supOk(a) && (!esgStrict || a.esg));
+      if (euETF && !pool2.find(a => ["EUROSTOXX50","MSCI_EUROPE"].includes(a.dedup))) pool2.push(euETF);
+      // For aggressive monde: remove developed sub-regions and country ETFs (keep only SP500+NASDAQ+EM+EU broad)
+      const AGGRESSIVE_REMOVE = ["MSCI_EAFE", "FTSE_DEV", "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS",
+        "MSCI_SPAIN", "MSCI_ITALY", "MSCI_GERMANY", "MSCI_UK", "FTSE_EUR", "MSCI_EMU", "CAC_MID60", "MSCI_EU_SMALL"];
+      pool2 = pool2.filter(a => !AGGRESSIVE_REMOVE.includes(a.dedup));
     } else if (risk === "balanced") {
       // DYNAMIQUE: ETF monde + satellite SP500
       if (wETFsM.length > 1) {
