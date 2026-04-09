@@ -512,10 +512,19 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (em && !pool2.find(a => EM_BROAD.includes(a.dedup))) pool2.push(em);
       const euETF = CAT.find(a => ["EUROSTOXX50","MSCI_EUROPE"].includes(a.dedup) && supOk(a) && (!esgStrict || a.esg));
       if (euETF && !pool2.find(a => ["EUROSTOXX50","MSCI_EUROPE"].includes(a.dedup))) pool2.push(euETF);
-      // For aggressive monde: remove developed sub-regions and country ETFs (keep only SP500+NASDAQ+EM+EU broad)
+      // For aggressive monde: remove overlapping sub-regions, keep diversifiers
       const AGGRESSIVE_REMOVE = ["MSCI_EAFE", "FTSE_DEV", "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS",
-        "MSCI_SPAIN", "MSCI_ITALY", "MSCI_GERMANY", "MSCI_UK", "FTSE_EUR", "MSCI_EMU", "CAC_MID60", "MSCI_EU_SMALL"];
+        "MSCI_SPAIN", "MSCI_ITALY", "MSCI_GERMANY", "MSCI_UK", "FTSE_EUR", "MSCI_EMU"];
       pool2 = pool2.filter(a => !AGGRESSIVE_REMOVE.includes(a.dedup));
+      // Add non-overlapping diversifiers to reach 8+ assets
+      const AGG_DIVERSIFIERS = ["SGLD.L", "IGLN.L", "EPRE.PA", "IPRP.L"];
+      for (const sym of AGG_DIVERSIFIERS) {
+        if (pool2.length >= 10) break;
+        const asset = CAT.find(a => a.s === sym);
+        if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym || a.dedup === asset.dedup)) continue;
+        if (!supOk(asset)) continue;
+        pool2.push(asset);
+      }
     } else if (risk === "balanced") {
       // DYNAMIQUE: ETF monde + satellite SP500
       if (wETFsM.length > 1) {
