@@ -141,7 +141,7 @@ let CAT_CACHE: Asset[] | null = null;
 let CAT_CACHE_TIME = 0;
 
 async function loadCatalogue(): Promise<Asset[]> {
-  if (CAT_CACHE && Date.now() - CAT_CACHE_TIME < 180000) return CAT_CACHE; // 3min cache
+  if (CAT_CACHE && Date.now() - CAT_CACHE_TIME < 60000) return CAT_CACHE; // 60s cache
   const client = await pool.connect();
   try {
     // Only load curated assets (those in dedup_groups) with sufficient data
@@ -584,7 +584,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   // AV with small pool: add av-eligible diversifiers by dedup key
-  if (wAV && pool2.length < 6 && !onlyBonds && !onlyCrypto) {
+  console.log(`[AV-CHECK] wAV=${wAV} pool=${pool2.length} onlyBonds=${onlyBonds} onlyCrypto=${onlyCrypto} wPEA=${wPEA} risk=${risk}`);
+  if (wAV && pool2.length < 8 && !onlyBonds && !onlyCrypto) { // Raised threshold to 8
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
       ? ["GOLD_EU", "EUR_GOV", "EUR_GOV_ST", "EU_REITS"]  // Safe diversifiers
       : ["GOLD_EU", "EU_REITS"];
