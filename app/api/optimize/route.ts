@@ -50,6 +50,9 @@ const CAT_STATIC: Asset[] = [
   {s:"SMEA.PA",  n:"Amundi MSCI Europe PEA",        zone:"europe",type:"etf",dedup:"MSCI_EUROPE", ter:0.15,pea:true, cto:true, av:true },
   {s:"EXW1.DE",  n:"iShares MSCI Europe",           zone:"europe",type:"etf",dedup:"MSCI_EUROPE", ter:0.12,pea:false,cto:true, av:false},
   {s:"EPRE.PA",  n:"AXA Europe Real Estate PEA",    zone:"europe",type:"reit",dedup:"EU_REITS",   ter:0.40,pea:true, cto:true, av:true },
+  {s:"SMC.PA",   n:"ETF CAC Mid 60 PEA",            zone:"europe",type:"etf",dedup:"CAC_MID60",   ter:0.35,pea:true, cto:true, av:true },
+  {s:"EESM.PA",  n:"ETF MSCI Europe Small Cap PEA",  zone:"europe",type:"etf",dedup:"MSCI_EU_SMALL",ter:0.28,pea:true, cto:true, av:true },
+  {s:"LCWD.PA",  n:"Lyxor MSCI World PEA",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",   ter:0.12,pea:true, cto:true, av:true },
   {s:"IPRP.L",   n:"iShares Europe Property",       zone:"europe",type:"reit",dedup:"EU_REITS",   ter:0.40,pea:false,cto:true, av:false},
   // ETF EM
   {s:"PAEEM.PA", n:"Amundi MSCI EM PEA",            zone:"em",type:"etf",dedup:"MSCI_EM",         ter:0.20,pea:true, cto:true, av:true },
@@ -77,6 +80,7 @@ const CAT_STATIC: Asset[] = [
   {s:"VWOB",   n:"Vanguard EM Gov Bond",            zone:"em",    type:"bond",dedup:"EM_GOV",      ter:0.20,pea:false,cto:true,av:false},
   // OR & MATIERES
   {s:"SGLD.L", n:"Invesco Physical Gold EUR",       zone:"any",type:"gold",     dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true,av:true },
+  {s:"IGLN.L", n:"iShares Physical Gold ETC",      zone:"any",type:"gold",     dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true,av:true },
   {s:"GLD",    n:"SPDR Gold Shares",                zone:"any",type:"gold",     dedup:"GOLD_US",   ter:0.40,pea:false,cto:true,av:false},
   {s:"IAU",    n:"iShares Gold Trust",              zone:"any",type:"gold",     dedup:"GOLD_US",   ter:0.25,pea:false,cto:true,av:false},
   {s:"GNR",    n:"SPDR Natural Resources",          zone:"any",type:"commodity",dedup:"NAT_RES",   ter:0.46,pea:false,cto:true,av:false},
