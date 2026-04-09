@@ -399,22 +399,35 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     };
   }
 
+  // ── Constants ──
+  const WDEDUPS = ["MSCI_WORLD", "FTSE_ALLWORLD", "MSCI_ACWI"];
+  // ALL sub-indices contained in MSCI_WORLD
+  const WORLD_SUBS = ["SP500", "NASDAQ100", "EUROSTOXX50", "MSCI_EUROPE",
+    "FTSE_EUR", "MSCI_EMU", "MSCI_EAFE", "FTSE_DEV",
+    "US_VALUE", "US_GROWTH", "US_SMALL", "US_SMALL2", "US_MID",
+    "US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
+    "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D",
+    "US_CONS_S", "US_DEFENSE", "US_AERO", "US_DIV", "US_DIV2", "US_DIV3",
+    "US_DIVGROW", "US_MOMENTUM", "US_MINVOL", "US_EW",
+    "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS"];
+  const EM_BROAD = ["MSCI_EM", "FTSE_EM"];
+  const EM_COUNTRY = ["MSCI_CHINA", "CHINA_NET", "MSCI_INDIA", "MSCI_TAIWAN",
+    "MSCI_HK", "MSCI_KOREA", "MSCI_BRAZIL"];
+
   /* ═══════════════════════════════════════════════════════
-     ETAPE 1 : Filtre de base
+     ETAPE 1 : Filtre de base + dedup strict
      ═══════════════════════════════════════════════════════ */
-  const baseFilter = (relaxTypes: boolean) => CAT.filter(a => {
+  const baseFilter = (useZone: boolean) => CAT.filter(a => {
     if (!supOk(a)) return false;
-    if (!zoneFilter(a)) return false;
+    if (useZone && !zoneFilter(a)) return false;
     if (blocked.has(a.s)) return false;
     if (onlyBonds && a.type !== "bond") return false;
     if (a.type === "crypto" && !wCrypto) return false;
-    if (!relaxTypes) {
-      if (!wETF && a.type === "etf") return false;
-      if (!wStocks && a.type === "stock") return false;
-      if (!wGold && a.type === "gold") return false;
-      if (!wGold && a.type === "commodity") return false;
-      if (!wReits && a.type === "reit") return false;
-    }
+    if (!wETF && a.type === "etf") return false;
+    if (!wStocks && a.type === "stock") return false;
+    if (!wGold && a.type === "gold" && a.type === "gold") return false;
+    if (!wGold && a.type === "commodity") return false;
+    if (!wReits && a.type === "reit") return false;
     if (!wBonds && a.type === "bond" && risk === "aggressive") return false;
     if (esgStrict && !a.esg) return false;
     if (esgPartial && a.excl_esg) return false;
@@ -422,31 +435,38 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     return true;
   });
 
-  let pool2 = dedupFilter(baseFilter(false));
+  // Dedup strict: 1 asset per dedup group (lowest TER, prefer PEA/AV if needed)
+  const smartDedup = (assets: Asset[]): Asset[] => {
+    const m = new Map<string, Asset>();
+    for (const a of assets) {
+      const ex = m.get(a.dedup);
+      if (!ex) { m.set(a.dedup, a); continue; }
+      // Prefer PEA-eligible if user has PEA
+      if (wPEA && a.pea && !ex.pea) { m.set(a.dedup, a); continue; }
+      if (wPEA && !a.pea && ex.pea) continue;
+      // Prefer AV-eligible if user has AV
+      if (wAV && a.av && !ex.av) { m.set(a.dedup, a); continue; }
+      if (wAV && !a.av && ex.av) continue;
+      // Lowest TER wins
+      if (a.ter < ex.ter) m.set(a.dedup, a);
+    }
+    return [...m.values()];
+  };
+
+  let pool2 = smartDedup(baseFilter(true));
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 2 : Anti-doublon MSCI_WORLD
+     Si ETF monde present → retirer TOUS les sous-indices
      ═══════════════════════════════════════════════════════ */
-  const WDEDUPS = ["MSCI_WORLD", "FTSE_ALLWORLD", "MSCI_ACWI"];
-  // Sub-regions already covered by MSCI_WORLD
-  const WORLD_SUBSETS_US = ["SP500", "NASDAQ100"];
-  const WORLD_SUBSETS_EU = ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"];
-  const WORLD_SUBSETS_DEV = ["MSCI_EAFE", "FTSE_DEV", "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS"];
   const hasWorld = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
   if (hasWorld && risk !== "aggressive") {
     const hasWorldPEA = pool2.some(a => WDEDUPS.includes(a.dedup) && a.pea && a.type === "etf");
     pool2 = pool2.filter(a => {
-      // Remove all US sub-indices (SP500, NASDAQ)
-      if (WORLD_SUBSETS_US.includes(a.dedup)) {
-        if (wPEA && !hasWorldPEA && a.pea) return true;
+      if (WORLD_SUBS.includes(a.dedup)) {
+        // Exception: keep PEA SP500 if user needs PEA and no PEA world ETF
+        if (wPEA && !hasWorldPEA && a.pea && a.dedup === "SP500") return true;
         return false;
-      }
-      // Remove all developed market sub-regions (VEA, EFA, EWJ, EWC, etc.)
-      if (WORLD_SUBSETS_DEV.includes(a.dedup)) return false;
-      // For defensive/moderate: keep 1 EU ETF as complement
-      if (WORLD_SUBSETS_EU.includes(a.dedup)) {
-        if (risk === "defensive" || risk === "moderate") return true;
-        return false; // balanced: remove
       }
       return true;
     });
@@ -455,111 +475,48 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   /* ═══════════════════════════════════════════════════════
      ETAPE 3 : Anti-doublon EM
      ═══════════════════════════════════════════════════════ */
-  const EM_BROAD = ["MSCI_EM", "FTSE_EM"];
-  const EM_COUNTRY = ["MSCI_CHINA", "CHINA_NET", "MSCI_INDIA", "MSCI_TAIWAN", "MSCI_HK", "MSCI_KOREA", "MSCI_BRAZIL"];
   const hasBroadEM = pool2.some(a => EM_BROAD.includes(a.dedup) && a.type === "etf");
   if (hasBroadEM) {
     if (risk === "aggressive") {
-      // Keep max 2 single-country
       const emCtry = pool2.filter(a => EM_COUNTRY.includes(a.dedup));
       if (emCtry.length > 2) {
         const keep = emCtry.sort((a, b) => a.ter - b.ter).slice(0, 2).map(a => a.dedup);
         pool2 = pool2.filter(a => !EM_COUNTRY.includes(a.dedup) || keep.includes(a.dedup));
       }
     } else {
-      // Remove all single-country
       pool2 = pool2.filter(a => !EM_COUNTRY.includes(a.dedup));
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════
-     ETAPE 3b : Anti-doublon overlaps
-     ═══════════════════════════════════════════════════════ */
-  const US_SECTOR_DEDUPS = ["US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
-    "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D", "US_CONS_S", "US_DEFENSE", "US_AERO"];
-  const US_FACTOR_DEDUPS = ["US_SMALL", "US_SMALL2", "US_MID", "US_DIV", "US_DIV2", "US_DIV3",
-    "US_DIVGROW", "US_MOMENTUM", "US_MINVOL", "US_VALUE", "US_GROWTH", "US_EW"];
-
-  // Overlap groups: dedups that track similar universes — keep only 1 per group
-  const OVERLAP_EU = ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"];
-  const OVERLAP_DEV_EX_US = ["MSCI_EAFE", "FTSE_DEV"];
-  const OVERLAP_US_TOTAL = ["US_VALUE", "US_GROWTH"]; // VTV + VUG ≈ total US
-  const OVERLAP_EM_BROAD = ["MSCI_EM", "FTSE_EM"]; // PAEEM.PA vs VWO
-  const OVERLAP_US_BONDS = ["US_AGG", "US_TOTAL"]; // AGG vs BND
-
-  const keepBestFromGroup = (group: string[]) => {
-    const inGroup = pool2.filter(a => group.includes(a.dedup));
-    if (inGroup.length > 1) {
-      // Keep the best (prefer PEA if needed, then lowest TER)
-      const best = inGroup.reduce((b, a) => {
-        if (wPEA && a.pea && !b.pea) return a;
-        if (wPEA && !a.pea && b.pea) return b;
-        if (wAV && a.av && !b.av) return a;
-        if (wAV && !a.av && b.av) return b;
-        return a.ter < b.ter ? a : b;
-      });
-      pool2 = pool2.filter(a => !group.includes(a.dedup) || a.s === best.s);
-    }
-  };
-
-  // Apply overlap dedup
-  keepBestFromGroup(OVERLAP_EU);
-  keepBestFromGroup(OVERLAP_DEV_EX_US);
-  keepBestFromGroup(OVERLAP_EM_BROAD);
-  keepBestFromGroup(OVERLAP_US_BONDS);
-
-  // Anti-doublon US sectors/factors
-  const hasUSBroad = pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup));
-  if (hasUSBroad) {
-    // Always remove sector ETFs (subsets of SP500/World)
-    pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
-    // Always remove factor ETFs for non-aggressive
-    if (risk !== "aggressive") {
-      pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
-    } else {
-      // Aggressive with SP500: VUG+VTV together ≈ total US, keep at most 1
-      if (pool2.some(a => a.dedup === "SP500")) {
-        keepBestFromGroup(OVERLAP_US_TOTAL);
-      }
-      // Keep max 2 factor ETFs total
-      const factorETFs = pool2.filter(a => US_FACTOR_DEDUPS.includes(a.dedup));
-      if (factorETFs.length > 2) {
-        const keep = factorETFs.sort((a, b) => a.ter - b.ter).slice(0, 2).map(a => a.dedup);
-        pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup) || keep.includes(a.dedup));
-      }
     }
   }
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 4 : Core-satellite par profil (zone monde)
      ═══════════════════════════════════════════════════════ */
-  if (zMonde || (!zUSA && !zEU && !zEM)) {
+  const isZoneMonde = zMonde || (!zUSA && !zEU && !zEM);
+  if (isZoneMonde) {
     const wETFsM = pool2.filter(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     if (risk === "aggressive") {
-      // Remove ETF monde -> keep SP500 + NASDAQ
+      // AGRESSIF: SP500 + NASDAQ (pas d'ETF monde broad)
       pool2 = pool2.filter(a => !WDEDUPS.includes(a.dedup) || a.type !== "etf");
-      // Ensure SP500 and NASDAQ are present
       const sp = CAT.find(a => a.dedup === "SP500" && supOk(a) && (!esgStrict || a.esg));
       const nq = CAT.find(a => a.dedup === "NASDAQ100" && supOk(a) && (!esgStrict || a.esg));
       if (sp && !pool2.find(a => a.dedup === "SP500")) pool2.push(sp);
       if (nq && !pool2.find(a => a.dedup === "NASDAQ100")) pool2.push(nq);
-      // Also add EM ETF for geographic diversity
+      // Add EM for geographic diversity
       const em = CAT.find(a => EM_BROAD.includes(a.dedup) && supOk(a) && (!esgStrict || a.esg));
       if (em && !pool2.find(a => EM_BROAD.includes(a.dedup))) pool2.push(em);
-    } else {
-      // Defensive/Moderate/Balanced: 1 single world ETF
+    } else if (risk === "balanced") {
+      // DYNAMIQUE: ETF monde + satellite SP500
       if (wETFsM.length > 1) {
-        const best = wETFsM.reduce((b, a) => {
-          if (wPEA && a.pea && !b.pea) return a;
-          if (wPEA && !a.pea && b.pea) return b;
-          return a.ter < b.ter ? a : b;
-        });
+        const best = wETFsM.reduce((b, a) => { if (wPEA && a.pea && !b.pea) return a; if (wPEA && !a.pea && b.pea) return b; return a.ter < b.ter ? a : b; });
         pool2 = pool2.filter(a => !WDEDUPS.includes(a.dedup) || a.s === best.s);
       }
-      if (risk === "balanced") {
-        // Dynamic: add satellite SP500
-        const sp = CAT.find(a => a.dedup === "SP500" && supOk(a) && (!esgStrict || a.esg));
-        if (sp && !pool2.find(a => a.dedup === "SP500")) pool2.push(sp);
+      const sp = CAT.find(a => a.dedup === "SP500" && supOk(a) && (!esgStrict || a.esg));
+      if (sp && !pool2.find(a => a.dedup === "SP500")) pool2.push(sp);
+    } else {
+      // DEFENSIF/MODERE: 1 seul ETF monde, pas de SP500/NASDAQ
+      if (wETFsM.length > 1) {
+        const best = wETFsM.reduce((b, a) => { if (wPEA && a.pea && !b.pea) return a; if (wPEA && !a.pea && b.pea) return b; return a.ter < b.ter ? a : b; });
+        pool2 = pool2.filter(a => !WDEDUPS.includes(a.dedup) || a.s === best.s);
       }
     }
   }
@@ -568,78 +525,59 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
-    // For aggressive: don't re-add world ETFs; for non-aggressive: don't add dev sub-regions
-    const CTO_CORE_NON_AGG = ["VWO", "VWCE.DE"]; // Only EM + world if missing
-    const CTO_CORE_AGG_ONLY = ["SXR8.DE", "EQQQ.DE", "EXW1.DE", "VWO", "MCHI", "EWY", "EWT", "INDA"];
-    const CTO_CORE = risk === "aggressive" ? CTO_CORE_AGG_ONLY : CTO_CORE_NON_AGG;
-    const hasW2 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
-    const hasSP2 = pool2.some(a => a.dedup === "SP500");
-    for (const sym of CTO_CORE) {
+    const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+    const CTO_ADD = risk === "aggressive"
+      ? ["SXR8.DE", "EQQQ.DE", "VWO", "EXW1.DE", "MCHI", "EWY"]
+      : ["VWO"]; // For non-aggressive, only add EM (world already covers rest)
+    for (const sym of CTO_ADD) {
       const asset = CAT.find(a => a.s === sym);
-      if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym)) continue;
+      if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym || a.dedup === asset.dedup)) continue;
       if (wCTO && !asset.cto) continue;
       if (wAV && !wCTO && !asset.av) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
-      // Don't add world ETF duplicate
-      if (hasW2 && WDEDUPS.includes(asset.dedup) && asset.type === "etf") continue;
-      // For aggressive: don't add world ETFs at all
       if (risk === "aggressive" && WDEDUPS.includes(asset.dedup)) continue;
-      // Don't add SP500/NASDAQ if world ETF present (except aggressive)
-      if (hasW2 && risk !== "aggressive" && ["SP500", "NASDAQ100"].includes(asset.dedup)) continue;
-      // Don't add US sector/factor ETFs if broad US already present
-      if ((hasW2 || hasSP2) && (US_SECTOR_DEDUPS.includes(asset.dedup) || (risk !== "aggressive" && US_FACTOR_DEDUPS.includes(asset.dedup)))) continue;
+      if (hasW5 && risk !== "aggressive" && WORLD_SUBS.includes(asset.dedup)) continue;
       pool2.push(asset);
     }
-    pool2 = dedupFilter(pool2);
+    pool2 = smartDedup(pool2);
   }
 
-  // AV enrichment: if pool too small, add av-eligible assets
-  // For defensive/moderate: prioritize bonds/gold, then ETFs, then stocks
+  // AV with small pool: add av-eligible diversifiers
   if (wAV && pool2.length < 6 && !onlyBonds && !onlyCrypto) {
-    const AV_EXTRA_SAFE = ["SGLD.L", "XGLE.DE", "EPRE.PA"]; // bonds/gold/reit first
-    const AV_EXTRA_STOCKS = (risk === "defensive" || risk === "moderate")
-      ? [] // No individual stocks for defensive/moderate AV
-      : ["MC.PA", "RMS.PA", "AIR.PA", "SAN.PA", "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "SIE.DE", "NOVO-B.CO", "NESN.SW", "ROG.SW"];
-    const AV_EXTRA = [...AV_EXTRA_SAFE, ...AV_EXTRA_STOCKS];
-    for (const sym of AV_EXTRA) {
+    const AV_ADD = risk === "defensive"
+      ? ["SGLD.L", "XGLE.DE", "EPRE.PA"]  // Safe diversifiers only
+      : risk === "moderate"
+        ? ["SGLD.L", "XGLE.DE", "EPRE.PA"] // Same for moderate
+        : ["SGLD.L", "EPRE.PA", "MC.PA", "RMS.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
+    for (const sym of AV_ADD) {
       const asset = CAT.find(a => a.s === sym);
-      if (!asset || !asset.av || pool2.find(a => a.s === sym) || blocked.has(sym)) continue;
+      if (!asset || !asset.av || pool2.find(a => a.s === sym || a.dedup === asset.dedup) || blocked.has(sym)) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
-      // Skip gold/reit if not requested (but allow SGLD.L for defensive diversification)
-      if (asset.type === "gold" && !wGold && risk !== "defensive") continue;
-      if (asset.type === "reit" && !wReits) continue;
-      // Skip bonds if already have one EUR_GOV
-      if (asset.type === "bond" && pool2.filter(a => a.type === "bond").length >= 1
-        && (asset.dedup === "EUR_GOV" || asset.dedup === "EUR_GOV_ST")) {
-        const existing = pool2.find(a => a.dedup === "EUR_GOV" || a.dedup === "EUR_GOV_ST");
-        if (existing) continue;
-      }
       pool2.push(asset);
     }
-    pool2 = dedupFilter(pool2);
+    pool2 = smartDedup(pool2);
   }
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 6 : Enrichissement PEA
      ═══════════════════════════════════════════════════════ */
   if (wPEA) {
-    const PEA_ETF_EXTRA = ["PAEEM.PA", "C50.PA", "MEUD.PA", "SMEA.PA", "EPRE.PA"];
-    const hasWorldInPool = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
-    for (const sym of PEA_ETF_EXTRA) {
+    const hasW6 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+    const PEA_ETF = ["PAEEM.PA", "C50.PA", "MEUD.PA", "EPRE.PA"];
+    for (const sym of PEA_ETF) {
       const asset = CAT.find(a => a.s === sym);
-      if (!asset || !asset.pea || pool2.find(a => a.s === sym) || blocked.has(sym)) continue;
+      if (!asset || !asset.pea || pool2.find(a => a.s === sym || a.dedup === asset.dedup) || blocked.has(sym)) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
-      if (hasWorldInPool && risk !== "aggressive" && ["SP500", "NASDAQ100"].includes(asset.dedup)) continue;
+      if (hasW6 && risk !== "aggressive" && WORLD_SUBS.includes(asset.dedup)) continue;
       pool2.push(asset);
     }
-    pool2 = dedupFilter(pool2);
+    pool2 = smartDedup(pool2);
 
-    // Actions PEA only if pool very small AND not defensive/moderate (stocks too volatile)
-    const needPEAStocks = pool2.length < 5 || (wStocks && pool2.length < 8 && risk !== "defensive");
-    if (needPEAStocks) {
+    // Actions PEA if pool < 6
+    if (pool2.length < 6) {
       const PEA_STOCKS = ["MC.PA", "RMS.PA", "AIR.PA", "SAN.PA", "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
       for (const sym of PEA_STOCKS) {
         const asset = CAT.find(a => a.s === sym);
@@ -649,16 +587,16 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
         if (!zoneFilter(asset)) continue;
         pool2.push(asset);
       }
-      pool2 = dedupFilter(pool2);
+      pool2 = smartDedup(pool2);
     }
   }
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 7 : Obligations auto-add
+     PEA ne peut pas avoir d'obligations (reglementaire)
      ═══════════════════════════════════════════════════════ */
-  if ((risk === "defensive" || risk === "moderate") && !onlyBonds && !onlyCrypto) {
-    const bondCount = pool2.filter(a => a.type === "bond").length;
-    if (bondCount < 1) {
+  if ((risk === "defensive" || risk === "moderate") && !onlyBonds && !onlyCrypto && !wPEA) {
+    if (pool2.filter(a => a.type === "bond").length < 1) {
       const bondCandidates = CAT.filter(a =>
         a.type === "bond" && !blocked.has(a.s) && supOk(a) && zoneFilter(a)
       ).sort((a, b) => {
@@ -666,71 +604,43 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
         if (wAV && !a.av && b.av) return 1;
         return a.ter - b.ter;
       });
-      const added = new Set<string>();
+      // Add max 1 EUR_GOV + 1 other bond
+      let eurGovAdded = false;
+      let bondsAdded = 0;
       for (const b of bondCandidates) {
-        if (added.size >= 2) break;
-        if ((b.dedup === "EUR_GOV" || b.dedup === "EUR_GOV_ST") && added.has("EUR_GOV_GROUP")) continue;
-        if (!pool2.find(a => a.dedup === b.dedup)) {
-          pool2.push(b);
-          if (b.dedup === "EUR_GOV" || b.dedup === "EUR_GOV_ST") added.add("EUR_GOV_GROUP");
-          added.add(b.dedup);
-        }
+        if (bondsAdded >= (risk === "defensive" ? 3 : 2)) break;
+        if ((b.dedup === "EUR_GOV" || b.dedup === "EUR_GOV_ST") && eurGovAdded) continue;
+        if (pool2.find(a => a.dedup === b.dedup)) continue;
+        pool2.push(b);
+        if (b.dedup === "EUR_GOV" || b.dedup === "EUR_GOV_ST") eurGovAdded = true;
+        bondsAdded++;
       }
     }
   }
 
-  // EUR_GOV dedup: max 1 EUR_GOV-type bond
+  // EUR_GOV strict: max 1 (XGLE.DE or IBGS.L, never both)
   if (!onlyBonds) {
-    const eurGovBonds = pool2.filter(a => a.type === "bond" && (a.dedup === "EUR_GOV" || a.dedup === "EUR_GOV_ST"));
-    if (eurGovBonds.length > 1) {
-      const best = eurGovBonds.reduce((b, a) => {
-        if (wAV && a.av && !b.av) return a;
-        if (wAV && !a.av && b.av) return b;
-        return a.ter < b.ter ? a : b;
-      });
+    const eurGov = pool2.filter(a => a.type === "bond" && (a.dedup === "EUR_GOV" || a.dedup === "EUR_GOV_ST"));
+    if (eurGov.length > 1) {
+      const best = eurGov.reduce((b, a) => { if (wAV && a.av && !b.av) return a; if (wAV && !a.av && b.av) return b; return a.ter < b.ter ? a : b; });
       pool2 = pool2.filter(a => !(a.type === "bond" && (a.dedup === "EUR_GOV" || a.dedup === "EUR_GOV_ST")) || a.s === best.s);
     }
   }
 
   /* ═══════════════════════════════════════════════════════
-     ETAPE 7b : Final overlap cleanup (after all enrichment)
-     Re-run overlap dedup since enrichment steps may have added duplicates
-     ═══════════════════════════════════════════════════════ */
-  keepBestFromGroup(OVERLAP_EU);
-  keepBestFromGroup(OVERLAP_DEV_EX_US);
-  keepBestFromGroup(OVERLAP_EM_BROAD);
-  keepBestFromGroup(OVERLAP_US_BONDS);
-  // Re-apply developed sub-region cleanup when world ETF present
-  const hasW7b = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
-  if (hasW7b && risk !== "aggressive") {
-    pool2 = pool2.filter(a => !WORLD_SUBSETS_DEV.includes(a.dedup));
-  }
-  if (pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup))) {
-    pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
-    if (risk !== "aggressive") {
-      pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
-    } else if (pool2.some(a => a.dedup === "SP500")) {
-      pool2 = pool2.filter(a => !["US_VALUE", "US_GROWTH"].includes(a.dedup));
-    }
-  }
-
-  /* ═══════════════════════════════════════════════════════
      ETAPE 8 : Verification finale + fallback
+     Si pool < 4 → relax zone filter
      ═══════════════════════════════════════════════════════ */
   if (pool2.length < 4) {
-    pool2 = dedupFilter(baseFilter(true));
-    const hasFbW = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
-    if (hasFbW && risk !== "aggressive") {
-      pool2 = pool2.filter(a => !["SP500", "NASDAQ100"].includes(a.dedup));
-    }
-    // Remove US sector/factor ETFs in fallback too
-    if (pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup))) {
-      pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
-      if (risk !== "aggressive") pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
+    // Re-run with relaxed zone filter
+    pool2 = smartDedup(baseFilter(false));
+    // Re-apply world anti-doublon
+    const hasW8 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+    if (hasW8 && risk !== "aggressive") {
+      pool2 = pool2.filter(a => !WORLD_SUBS.includes(a.dedup));
     }
     if (pool2.length < 4) {
-      // Last resort: no zone filter
-      pool2 = dedupFilter(CAT.filter(a => {
+      pool2 = smartDedup(CAT.filter(a => {
         if (a.type === "crypto" && !wCrypto) return false;
         if (esgStrict && !a.esg) return false;
         if (!supOk(a)) return false;
@@ -743,7 +653,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   // ── Only bonds mode ──
   if (onlyBonds) {
     let bp = pool2.filter(a => a.type === "bond");
-    if (bp.length < 2) bp = dedupFilter(CAT.filter(a => a.type === "bond" && supOk(a) && !blocked.has(a.s)));
+    if (bp.length < 2) bp = smartDedup(CAT.filter(a => a.type === "bond" && supOk(a) && !blocked.has(a.s)));
     pool2 = bp;
   }
 
@@ -752,24 +662,14 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   if (wGold) {
     const g = pool2.find(a => a.type === "gold" || a.type === "commodity");
     if (g) mandatory.push(g);
-    else {
-      // Fallback: add best gold
-      const gf = CAT.find(a => (a.type === "gold") && supOk(a) && !blocked.has(a.s));
-      if (gf) mandatory.push(gf);
-    }
+    else { const gf = CAT.find(a => a.type === "gold" && supOk(a) && !blocked.has(a.s)); if (gf) mandatory.push(gf); }
   }
-  if (wReits) {
-    const r = pool2.find(a => a.type === "reit");
-    if (r) mandatory.push(r);
-  }
-  if (wBonds || risk === "defensive" || risk === "moderate") {
+  if (wReits) { const r = pool2.find(a => a.type === "reit"); if (r) mandatory.push(r); }
+  if (wBonds || ((risk === "defensive" || risk === "moderate") && !wPEA)) {
     const bonds = pool2.filter(a => a.type === "bond").slice(0, risk === "defensive" ? 3 : 2);
     bonds.forEach(b => { if (!mandatory.find(m => m.s === b.s)) mandatory.push(b); });
   }
-  if (wCrypto) {
-    const cr = pool2.find(a => a.type === "crypto");
-    if (cr) mandatory.push(cr);
-  }
+  if (wCrypto) { const cr = pool2.find(a => a.type === "crypto"); if (cr) mandatory.push(cr); }
 
   const mandSet = new Set(mandatory.map(a => a.s));
   const rest = pool2.filter(a => !mandSet.has(a.s)).sort((a, b) => {
@@ -780,7 +680,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const universe = [...mandatory, ...rest].slice(0, maxAssets);
   const symbols = universe.map(a => a.s);
 
-  const minBondPct = onlyBonds ? 80 : risk === "defensive" && wBonds ? 30 : risk === "defensive" ? 15 : wBonds ? 12 : 0;
+  // minBondPct: 0 for PEA (can't have bonds)
+  const minBondPct = wPEA ? 0 : onlyBonds ? 80 : risk === "defensive" && wBonds ? 30 : risk === "defensive" ? 15 : wBonds ? 12 : 0;
   const minGoldPct = wGold ? 6 : 0;
   const minReitPct = wReits ? 5 : 0;
   const minCryptoPct = wCrypto && !onlyCrypto ? 5 : 0;
@@ -789,7 +690,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const maxWt = n7.includes("concentre") || n7.includes("5 actifs") ? 0.35
     : n7.includes("large") || n7.includes("15") ? 0.30 : 0.22;
 
-  console.log(`[v6] risk=${risk} zone=${zMonde ? "monde" : zUSA ? "usa" : zEU ? "eu" : zEM ? "em" : "mix"} support=${comptes.map(c => c.type).join("+")} pool=${pool2.length} universe=${symbols.length} maxWt=${maxWt}`);
+  console.log(`[v7] risk=${risk} zone=${zMonde ? "monde" : zUSA ? "usa" : zEU ? "eu" : zEM ? "em" : "mix"} sup=${comptes.map(c => c.type).join("+")} pool=${pool2.length} uni=${symbols.length} maxWt=${maxWt}`);
 
   return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt };
 }
