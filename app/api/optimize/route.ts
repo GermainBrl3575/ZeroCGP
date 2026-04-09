@@ -428,21 +428,25 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 2 : Anti-doublon MSCI_WORLD
      ═══════════════════════════════════════════════════════ */
   const WDEDUPS = ["MSCI_WORLD", "FTSE_ALLWORLD", "MSCI_ACWI"];
+  // Sub-regions already covered by MSCI_WORLD
+  const WORLD_SUBSETS_US = ["SP500", "NASDAQ100"];
+  const WORLD_SUBSETS_EU = ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"];
+  const WORLD_SUBSETS_DEV = ["MSCI_EAFE", "FTSE_DEV", "MSCI_JAPAN", "MSCI_CAN", "MSCI_AUS"];
   const hasWorld = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
   if (hasWorld && risk !== "aggressive") {
     const hasWorldPEA = pool2.some(a => WDEDUPS.includes(a.dedup) && a.pea && a.type === "etf");
     pool2 = pool2.filter(a => {
-      if (["SP500", "NASDAQ100"].includes(a.dedup)) {
-        // Keep PEA SP500 if user has PEA and no PEA world ETF
+      // Remove all US sub-indices (SP500, NASDAQ)
+      if (WORLD_SUBSETS_US.includes(a.dedup)) {
         if (wPEA && !hasWorldPEA && a.pea) return true;
         return false;
       }
-      if (risk === "defensive" || risk === "moderate") {
-        // Keep EU ETFs for defensive/moderate as complement
-        if (["EUROSTOXX50", "MSCI_EUROPE"].includes(a.dedup)) return true;
-      } else {
-        // balanced: also remove EU sub-indices
-        if (["EUROSTOXX50", "MSCI_EUROPE"].includes(a.dedup)) return false;
+      // Remove all developed market sub-regions (VEA, EFA, EWJ, EWC, etc.)
+      if (WORLD_SUBSETS_DEV.includes(a.dedup)) return false;
+      // For defensive/moderate: keep 1 EU ETF as complement
+      if (WORLD_SUBSETS_EU.includes(a.dedup)) {
+        if (risk === "defensive" || risk === "moderate") return true;
+        return false; // balanced: remove
       }
       return true;
     });
@@ -480,6 +484,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const OVERLAP_EU = ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"];
   const OVERLAP_DEV_EX_US = ["MSCI_EAFE", "FTSE_DEV"];
   const OVERLAP_US_TOTAL = ["US_VALUE", "US_GROWTH"]; // VTV + VUG ≈ total US
+  const OVERLAP_EM_BROAD = ["MSCI_EM", "FTSE_EM"]; // PAEEM.PA vs VWO
+  const OVERLAP_US_BONDS = ["US_AGG", "US_TOTAL"]; // AGG vs BND
 
   const keepBestFromGroup = (group: string[]) => {
     const inGroup = pool2.filter(a => group.includes(a.dedup));
@@ -496,9 +502,11 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   };
 
-  // Apply overlap dedup for EU ETFs and Dev ex-US ETFs
+  // Apply overlap dedup
   keepBestFromGroup(OVERLAP_EU);
   keepBestFromGroup(OVERLAP_DEV_EX_US);
+  keepBestFromGroup(OVERLAP_EM_BROAD);
+  keepBestFromGroup(OVERLAP_US_BONDS);
 
   // Anti-doublon US sectors/factors
   const hasUSBroad = pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup));
@@ -560,8 +568,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
-    // For aggressive: don't re-add world ETFs (they were intentionally removed in step 4)
-    const CTO_CORE_NON_AGG = ["SXR8.DE", "EQQQ.DE", "VWCE.DE", "EXW1.DE", "VWO"];
+    // For aggressive: don't re-add world ETFs; for non-aggressive: don't add dev sub-regions
+    const CTO_CORE_NON_AGG = ["VWO", "VWCE.DE"]; // Only EM + world if missing
     const CTO_CORE_AGG_ONLY = ["SXR8.DE", "EQQQ.DE", "EXW1.DE", "VWO", "MCHI", "EWY", "EWT", "INDA"];
     const CTO_CORE = risk === "aggressive" ? CTO_CORE_AGG_ONLY : CTO_CORE_NON_AGG;
     const hasW2 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
@@ -617,7 +625,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 6 : Enrichissement PEA
      ═══════════════════════════════════════════════════════ */
   if (wPEA) {
-    const PEA_ETF_EXTRA = ["PAEEM.PA", "C50.PA", "EPRE.PA"];
+    const PEA_ETF_EXTRA = ["PAEEM.PA", "C50.PA", "MEUD.PA", "SMEA.PA", "EPRE.PA"];
     const hasWorldInPool = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     for (const sym of PEA_ETF_EXTRA) {
       const asset = CAT.find(a => a.s === sym);
@@ -690,15 +698,19 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ═══════════════════════════════════════════════════════ */
   keepBestFromGroup(OVERLAP_EU);
   keepBestFromGroup(OVERLAP_DEV_EX_US);
+  keepBestFromGroup(OVERLAP_EM_BROAD);
+  keepBestFromGroup(OVERLAP_US_BONDS);
+  // Re-apply developed sub-region cleanup when world ETF present
+  const hasW7b = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+  if (hasW7b && risk !== "aggressive") {
+    pool2 = pool2.filter(a => !WORLD_SUBSETS_DEV.includes(a.dedup));
+  }
   if (pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup))) {
     pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
     if (risk !== "aggressive") {
       pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
-    } else {
-      // For aggressive: remove VTV and VUG when SP500 present (they are subsets)
-      if (pool2.some(a => a.dedup === "SP500")) {
-        pool2 = pool2.filter(a => !["US_VALUE", "US_GROWTH"].includes(a.dedup));
-      }
+    } else if (pool2.some(a => a.dedup === "SP500")) {
+      pool2 = pool2.filter(a => !["US_VALUE", "US_GROWTH"].includes(a.dedup));
     }
   }
 
