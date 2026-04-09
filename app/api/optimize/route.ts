@@ -469,24 +469,51 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   /* ═══════════════════════════════════════════════════════
-     ETAPE 3b : Anti-doublon US Sectors/Factors
-     When SP500 is in pool, remove US sector ETFs (they are subsets)
-     Keep factor ETFs (VUG, VTV, VYM) only for aggressive
+     ETAPE 3b : Anti-doublon overlaps
      ═══════════════════════════════════════════════════════ */
   const US_SECTOR_DEDUPS = ["US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
     "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D", "US_CONS_S", "US_DEFENSE", "US_AERO"];
   const US_FACTOR_DEDUPS = ["US_SMALL", "US_SMALL2", "US_MID", "US_DIV", "US_DIV2", "US_DIV3",
     "US_DIVGROW", "US_MOMENTUM", "US_MINVOL", "US_VALUE", "US_GROWTH", "US_EW"];
-  // Trigger when SP500 OR MSCI_WORLD is present (both cover US market)
+
+  // Overlap groups: dedups that track similar universes — keep only 1 per group
+  const OVERLAP_EU = ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"];
+  const OVERLAP_DEV_EX_US = ["MSCI_EAFE", "FTSE_DEV"];
+  const OVERLAP_US_TOTAL = ["US_VALUE", "US_GROWTH"]; // VTV + VUG ≈ total US
+
+  const keepBestFromGroup = (group: string[]) => {
+    const inGroup = pool2.filter(a => group.includes(a.dedup));
+    if (inGroup.length > 1) {
+      // Keep the best (prefer PEA if needed, then lowest TER)
+      const best = inGroup.reduce((b, a) => {
+        if (wPEA && a.pea && !b.pea) return a;
+        if (wPEA && !a.pea && b.pea) return b;
+        if (wAV && a.av && !b.av) return a;
+        if (wAV && !a.av && b.av) return b;
+        return a.ter < b.ter ? a : b;
+      });
+      pool2 = pool2.filter(a => !group.includes(a.dedup) || a.s === best.s);
+    }
+  };
+
+  // Apply overlap dedup for EU ETFs and Dev ex-US ETFs
+  keepBestFromGroup(OVERLAP_EU);
+  keepBestFromGroup(OVERLAP_DEV_EX_US);
+
+  // Anti-doublon US sectors/factors
   const hasUSBroad = pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup));
   if (hasUSBroad) {
-    // Always remove sector ETFs (they are subsets of SP500/World)
+    // Always remove sector ETFs (subsets of SP500/World)
     pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
-    // For non-aggressive, also remove factor ETFs
+    // Always remove factor ETFs for non-aggressive
     if (risk !== "aggressive") {
       pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
     } else {
-      // Aggressive: keep max 2 factor ETFs
+      // Aggressive with SP500: VUG+VTV together ≈ total US, keep at most 1
+      if (pool2.some(a => a.dedup === "SP500")) {
+        keepBestFromGroup(OVERLAP_US_TOTAL);
+      }
+      // Keep max 2 factor ETFs total
       const factorETFs = pool2.filter(a => US_FACTOR_DEDUPS.includes(a.dedup));
       if (factorETFs.length > 2) {
         const keep = factorETFs.sort((a, b) => a.ter - b.ter).slice(0, 2).map(a => a.dedup);
@@ -559,10 +586,14 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     pool2 = dedupFilter(pool2);
   }
 
-  // AV enrichment: if pool too small, add av-eligible stocks
+  // AV enrichment: if pool too small, add av-eligible assets
+  // For defensive/moderate: prioritize bonds/gold, then ETFs, then stocks
   if (wAV && pool2.length < 6 && !onlyBonds && !onlyCrypto) {
-    const AV_EXTRA = ["SGLD.L", "XGLE.DE", "EPRE.PA", "MC.PA", "RMS.PA", "AIR.PA", "SAN.PA",
-      "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "SIE.DE", "NOVO-B.CO", "NESN.SW", "ROG.SW"];
+    const AV_EXTRA_SAFE = ["SGLD.L", "XGLE.DE", "EPRE.PA"]; // bonds/gold/reit first
+    const AV_EXTRA_STOCKS = (risk === "defensive" || risk === "moderate")
+      ? [] // No individual stocks for defensive/moderate AV
+      : ["MC.PA", "RMS.PA", "AIR.PA", "SAN.PA", "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "SIE.DE", "NOVO-B.CO", "NESN.SW", "ROG.SW"];
+    const AV_EXTRA = [...AV_EXTRA_SAFE, ...AV_EXTRA_STOCKS];
     for (const sym of AV_EXTRA) {
       const asset = CAT.find(a => a.s === sym);
       if (!asset || !asset.av || pool2.find(a => a.s === sym) || blocked.has(sym)) continue;
@@ -598,8 +629,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
     pool2 = dedupFilter(pool2);
 
-    // Actions PEA if pool < 6 OR if stocks requested
-    if (pool2.length < 6 || (wStocks && pool2.filter(a => a.type === "stock").length === 0)) {
+    // Actions PEA only if pool very small AND not defensive/moderate (stocks too volatile)
+    const needPEAStocks = pool2.length < 5 || (wStocks && pool2.length < 8 && risk !== "defensive");
+    if (needPEAStocks) {
       const PEA_STOCKS = ["MC.PA", "RMS.PA", "AIR.PA", "SAN.PA", "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
       for (const sym of PEA_STOCKS) {
         const asset = CAT.find(a => a.s === sym);
