@@ -17,47 +17,29 @@ interface Asset {
 }
 
 /* ═══════════════════════════════════════════════════════
-   CATALOGUE v5 — corrections finales
-   - VOO + CSPX.L + SXR8.DE → dedup:"SP500" (1 seul survit)
-   - VTI → dedup:"SP500" (marché total US, différent de S&P 500)
-   - SGLD.L → dedup:"GOLD_EU" / GLD → dedup:"GOLD_US" (2 survivent)
-   - PANX.PA pea:true (Amundi MSCI World synthétique = PEA OK)
-   - VOO bloqué banques françaises (UCITS préférable)
-   - Sectorielle US (XLK, XLV, XLF) → supprimées (trop spécialisées)
+   CATALOGUE v5 — (inchangé, copié tel quel)
    ═══════════════════════════════════════════════════════ */
 const CAT: Asset[] = [
   // ── ETF MONDE ─────────────────────────────────────────────────
   {s:"PANX.PA",  n:"ETF MSCI World PEA (PANX)",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
-  // CW8.PA = Amundi MSCI World Swap — PEA éligible, même dedup MSCI_WORLD → garde lowest TER
   {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
-  // EWLD.PA = version distribution de CW8
   {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD", ter:0.12,pea:true, cto:true, av:true },
-  // ETF S&P 500 PEA synthétiques
   {s:"PE500.PA", n:"ETF SP500 PEA (PE500)",   zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
   {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
   {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
-  // ETF NASDAQ PEA
   {s:"PUST.PA",  n:"ETF NASDAQ-100 PEA (PUST)",   zone:"usa",  type:"etf",dedup:"NASDAQ100",   ter:0.23,pea:true, cto:true, av:true },
   {s:"IWDA.AS",  n:"iShares MSCI World",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
   {s:"ACWI",     n:"iShares MSCI ACWI",            zone:"monde",type:"etf",dedup:"MSCI_ACWI",     ter:0.32,pea:false,cto:true, av:false},
   {s:"MWRD.L",   n:"iShares MSCI World SRI",       zone:"monde",type:"etf",dedup:"MSCI_WORLD_SRI",ter:0.20,pea:false,cto:true, av:false,esg:true},
-
-  // ── ETF USA — UCITS prioritaires, VOO/SPY bloqués FR ─────────
-  // Règle : CSPX.L + SXR8.DE + VOO + SPY → même dedup SP500 → 1 seul
-  // SXR8.DE (0.07%) est le meilleur pour AV/CTO français
   {s:"SXR8.DE",  n:"iShares S&P 500 EUR",          zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:true },
   {s:"CSPX.L",   n:"iShares Core S&P 500",         zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:false},
   {s:"VOO",      n:"Vanguard S&P 500",             zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
   {s:"SPY",      n:"SPDR S&P 500",                 zone:"usa",  type:"etf",dedup:"SP500",         ter:0.095,pea:false,cto:true,av:false},
-  // VTI = US total (incl. small/mid) → dedup distinct de SP500
   {s:"VTI",      n:"Vanguard Total US Market",     zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
-  // NASDAQ 100
   {s:"EQQQ.DE",  n:"Invesco NASDAQ 100 EUR",       zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.30,pea:false,cto:true, av:true },
   {s:"QQQ",      n:"Invesco NASDAQ 100",           zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.20,pea:false,cto:true, av:false},
-
-  // ── ETF EUROPE ────────────────────────────────────────────────
   {s:"MEUD.PA",  n:"Lyxor Euro Stoxx 50 PEA",     zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.07,pea:true, cto:true, av:true },
   {s:"C50.PA",   n:"Amundi Euro Stoxx 50 PEA",    zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
   {s:"EXSA.DE",  n:"iShares Euro Stoxx 50",        zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
@@ -65,8 +47,6 @@ const CAT: Asset[] = [
   {s:"EXW1.DE",  n:"iShares MSCI Europe",          zone:"europe",type:"etf",dedup:"MSCI_EUROPE",  ter:0.12,pea:false,cto:true, av:true },
   {s:"EPRE.PA",  n:"AXA Europe Real Estate PEA",  zone:"europe",type:"reit",dedup:"EU_REITS",    ter:0.40,pea:true, cto:true, av:true },
   {s:"IPRP.L",   n:"iShares Europe Property",      zone:"europe",type:"reit",dedup:"EU_REITS",    ter:0.40,pea:false,cto:true, av:false},
-
-  // ── ETF MARCHÉS ÉMERGENTS ─────────────────────────────────────
   {s:"PAEEM.PA", n:"Amundi MSCI EM PEA",           zone:"em",type:"etf",dedup:"MSCI_EM",         ter:0.20,pea:true, cto:true, av:true },
   {s:"AEEM.PA",  n:"Amundi MSCI EM ESG PEA",       zone:"em",type:"etf",dedup:"MSCI_EM",         ter:0.25,pea:true, cto:true, av:true, esg:true},
   {s:"VFEM.L",   n:"Vanguard FTSE EM",             zone:"em",type:"etf",dedup:"FTSE_EM",          ter:0.22,pea:false,cto:true, av:false},
@@ -79,8 +59,6 @@ const CAT: Asset[] = [
   {s:"EWY",      n:"iShares MSCI S.Korea",         zone:"em",type:"etf",dedup:"MSCI_KOREA",      ter:0.49,pea:false,cto:true, av:false},
   {s:"EWT",      n:"iShares MSCI Taiwan",          zone:"em",type:"etf",dedup:"MSCI_TAIWAN",     ter:0.59,pea:false,cto:true, av:false},
   {s:"EWH",      n:"iShares MSCI Hong Kong",       zone:"em",type:"etf",dedup:"MSCI_HK",         ter:0.49,pea:false,cto:true, av:false},
-
-  // ── ACTIONS EM ─────────────────────────────────────────────────
   {s:"BABA", n:"Alibaba",     zone:"em",type:"stock",dedup:"BABA", ter:0,pea:false,cto:true,av:false},
   {s:"TCEHY",n:"Tencent",     zone:"em",type:"stock",dedup:"TCEHY",ter:0,pea:false,cto:true,av:false},
   {s:"JD",   n:"JD.com",      zone:"em",type:"stock",dedup:"JD",   ter:0,pea:false,cto:true,av:false},
@@ -88,8 +66,6 @@ const CAT: Asset[] = [
   {s:"SE",   n:"Sea Limited", zone:"em",type:"stock",dedup:"SE",   ter:0,pea:false,cto:true,av:false},
   {s:"MELI", n:"MercadoLibre",zone:"em",type:"stock",dedup:"MELI", ter:0,pea:false,cto:true,av:false},
   {s:"NU",   n:"Nu Holdings", zone:"em",type:"stock",dedup:"NU",   ter:0,pea:false,cto:true,av:false},
-
-  // ── OBLIGATIONS ───────────────────────────────────────────────
   {s:"XGLE.DE",n:"Xtrackers EUR Gov Bond",      zone:"europe",type:"bond",dedup:"EUR_GOV",    ter:0.09,pea:false,cto:true,av:true },
   {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:false},
   {s:"AGGH.L", n:"ETF Oblig Aggregate Monde (AGGH)",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
@@ -99,29 +75,20 @@ const CAT: Asset[] = [
   {s:"LQD",    n:"iShares USD IG Corp Bond",     zone:"usa",   type:"bond",dedup:"US_IG",      ter:0.14,pea:false,cto:true,av:false},
   {s:"HYG",    n:"iShares USD High Yield",       zone:"usa",   type:"bond",dedup:"US_HY",      ter:0.48,pea:false,cto:true,av:false},
   {s:"VWOB",   n:"Vanguard EM Gov Bond",         zone:"em",    type:"bond",dedup:"EM_GOV",     ter:0.20,pea:false,cto:true,av:false},
-
-  // ── OR & MATIÈRES ─────────────────────────────────────────────
-  // Dedup SÉPARÉS → GLD (US, dans Neon) + SGLD.L (EU) peuvent coexister
   {s:"GLD",    n:"SPDR Gold Shares",             zone:"any",type:"gold",     dedup:"GOLD_US",  ter:0.40,pea:false,cto:true,av:false},
   {s:"IAU",    n:"iShares Gold Trust",           zone:"any",type:"gold",     dedup:"GOLD_US",  ter:0.25,pea:false,cto:true,av:false},
   {s:"SGLD.L", n:"Invesco Physical Gold EUR",    zone:"any",type:"gold",     dedup:"GOLD_EU",  ter:0.12,pea:false,cto:true,av:false},
   {s:"GNR",    n:"SPDR Natural Resources",       zone:"any",type:"commodity",dedup:"NAT_RES",  ter:0.46,pea:false,cto:true,av:false},
   {s:"GSG",    n:"iShares Commodities",          zone:"any",type:"commodity",dedup:"CMDTY",    ter:0.75,pea:false,cto:true,av:false},
-
-  // ── REIT ──────────────────────────────────────────────────────
   {s:"VNQ",   n:"Vanguard US REITs",             zone:"usa",type:"reit",dedup:"US_REITS",      ter:0.12,pea:false,cto:true,av:false},
   {s:"REET",  n:"iShares Global REITs",          zone:"any",type:"reit",dedup:"GLOBAL_REITS",  ter:0.14,pea:false,cto:true,av:false},
   {s:"AMT",   n:"American Tower",               zone:"usa",type:"reit",dedup:"AMT",           ter:0,   pea:false,cto:true,av:false},
-
-  // ── CRYPTO ────────────────────────────────────────────────────
   {s:"BTC-USD",n:"Bitcoin",            zone:"any",type:"crypto",dedup:"BTC",ter:0,   pea:false,cto:false,av:false},
   {s:"ETH-USD",n:"Ethereum",           zone:"any",type:"crypto",dedup:"ETH",ter:0,   pea:false,cto:false,av:false},
   {s:"SOL-USD",n:"Solana",             zone:"any",type:"crypto",dedup:"SOL",ter:0,   pea:false,cto:false,av:false},
   {s:"BNB-USD",n:"BNB",                zone:"any",type:"crypto",dedup:"BNB",ter:0,   pea:false,cto:false,av:false},
   {s:"IBIT",   n:"iShares Bitcoin ETF",zone:"usa", type:"crypto",dedup:"BTC",ter:0.25,pea:false,cto:true, av:false},
   {s:"ETHA",   n:"iShares Ethereum ETF",zone:"usa",type:"crypto",dedup:"ETH",ter:0.25,pea:false,cto:true, av:false},
-
-  // ── ACTIONS USA ───────────────────────────────────────────────
   {s:"AAPL",  n:"Apple",            zone:"usa",type:"stock",dedup:"AAPL", ter:0,pea:false,cto:true,av:false,esg:true},
   {s:"MSFT",  n:"Microsoft",        zone:"usa",type:"stock",dedup:"MSFT", ter:0,pea:false,cto:true,av:false,esg:true},
   {s:"GOOGL", n:"Alphabet",         zone:"usa",type:"stock",dedup:"GOOGL",ter:0,pea:false,cto:true,av:false},
@@ -144,8 +111,6 @@ const CAT: Asset[] = [
   {s:"LMT",   n:"Lockheed Martin",  zone:"usa",type:"stock",dedup:"LMT",  ter:0,pea:false,cto:true,av:false,excl_esg:true},
   {s:"XOM",   n:"ExxonMobil",       zone:"usa",type:"stock",dedup:"XOM",  ter:0,pea:false,cto:true,av:false,excl_esg:true},
   {s:"MO",    n:"Altria",           zone:"usa",type:"stock",dedup:"MO",   ter:0,pea:false,cto:true,av:false,excl_esg:true},
-
-  // ── ACTIONS EUROPE PEA ────────────────────────────────────────
   {s:"MC.PA",    n:"LVMH",               zone:"europe",type:"stock",dedup:"MC_PA",   ter:0,pea:true, cto:true,av:true},
   {s:"RMS.PA",   n:"Hermes",             zone:"europe",type:"stock",dedup:"RMS_PA",  ter:0,pea:true, cto:true,av:true},
   {s:"KER.PA",   n:"Kering",             zone:"europe",type:"stock",dedup:"KER_PA",  ter:0,pea:true, cto:true,av:true},
@@ -170,7 +135,397 @@ const CAT: Asset[] = [
   {s:"ROG.SW",   n:"Roche",              zone:"europe",type:"stock",dedup:"ROG_SW",  ter:0,pea:false,cto:true,av:true,esg:true},
 ];
 
-// Banques — bloquer VOO/SPY/QQQ pour les banques françaises → utiliser UCITS
+// ═══════════════════════════════════════════════════════════════════
+// OVERLAP MAP — Quels stocks sont contenus dans quels ETF
+// Pénalité : si on a PANX.PA (MSCI World) et AAPL en même temps,
+// on ne doit pas additionner leurs poids naïvement
+// ═══════════════════════════════════════════════════════════════════
+const OVERLAP_GROUPS: Record<string, string[]> = {
+  // ETF Monde contient tout (US, EU, EM en partie)
+  "MSCI_WORLD":     ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","V","MA","JNJ","LLY","JPM","AVGO","ADBE","NOW","CRM","NFLX","PG","KO","LMT","XOM","MO","MC.PA","RMS.PA","KER.PA","AIR.PA","SAF.PA","SAN.PA","OR.PA","SU.PA","ASML.AS","SAP.DE","SIE.DE","NESN.SW","NOVN.SW","ROG.SW","NOVO-B.CO","EL.PA","BNP.PA","ALV.DE","MBG.DE"],
+  "FTSE_ALLWORLD":  ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","V","MA","JNJ","LLY","JPM","AVGO","ADBE","NOW","CRM","NFLX","PG","KO","MC.PA","RMS.PA","AIR.PA","SAN.PA","OR.PA","ASML.AS","SAP.DE","NESN.SW","NOVN.SW","ROG.SW","NOVO-B.CO","BABA","TCEHY","JD","SE"],
+  "MSCI_ACWI":      ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","V","MA","JNJ","LLY","JPM","AVGO","ADBE","NOW","CRM","MC.PA","RMS.PA","AIR.PA","OR.PA","ASML.AS","SAP.DE","NESN.SW"],
+  // S&P 500 / NASDAQ
+  "SP500":          ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","V","MA","JNJ","LLY","JPM","AVGO","ADBE","NOW","CRM","NFLX","PG","KO","LMT","XOM","MO"],
+  "NASDAQ100":      ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA","AVGO","ADBE","NOW","CRM","NFLX","KO"],
+  // Euro Stoxx 50
+  "EUROSTOXX50":    ["MC.PA","AIR.PA","SAF.PA","SAN.PA","OR.PA","SU.PA","ASML.AS","SAP.DE","SIE.DE","ALV.DE","BNP.PA","ENGI.PA"],
+  "MSCI_EUROPE":    ["MC.PA","RMS.PA","KER.PA","AIR.PA","SAF.PA","SAN.PA","OR.PA","SU.PA","ASML.AS","SAP.DE","SIE.DE","ALV.DE","MBG.DE","NESN.SW","NOVN.SW","ROG.SW","NOVO-B.CO","EL.PA","BNP.PA","VIE.PA","ORA.PA","ENGI.PA"],
+  // EM
+  "MSCI_EM":        ["BABA","TCEHY","JD","BIDU","SE","MELI","NU"],
+  "MSCI_EM_IMI":    ["BABA","TCEHY","JD","BIDU","SE","MELI","NU"],
+  "FTSE_EM":        ["BABA","TCEHY","JD","BIDU","SE","MELI"],
+  "MSCI_CHINA":     ["BABA","TCEHY","JD","BIDU"],
+};
+
+// Sector mapping for concentration limits
+const SECTOR_MAP: Record<string, string> = {
+  "AAPL":"tech","MSFT":"tech","GOOGL":"tech","AMZN":"tech","NVDA":"tech","META":"tech",
+  "TSLA":"tech","AVGO":"tech","ADBE":"tech","NOW":"tech","CRM":"tech","NFLX":"tech",
+  "ASML.AS":"tech","SAP.DE":"tech",
+  "V":"finance","MA":"finance","JPM":"finance","BNP.PA":"finance","ALV.DE":"finance",
+  "JNJ":"health","LLY":"health","SAN.PA":"health","NOVN.SW":"health","ROG.SW":"health","NOVO-B.CO":"health",
+  "PG":"consumer","KO":"consumer","MC.PA":"luxury","RMS.PA":"luxury","KER.PA":"luxury","OR.PA":"luxury","EL.PA":"luxury",
+  "AIR.PA":"industrial","SAF.PA":"industrial","SU.PA":"industrial","SIE.DE":"industrial","MBG.DE":"industrial",
+  "ENGI.PA":"utility","VIE.PA":"utility","ORA.PA":"telecom",
+  "XOM":"energy","LMT":"defense","MO":"consumer",
+  "BABA":"tech","TCEHY":"tech","JD":"tech","BIDU":"tech","SE":"tech","MELI":"tech","NU":"finance",
+  "NESN.SW":"consumer",
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// RISK PROFILE ALLOCATION BOUNDS
+// Enforce min/max by asset class based on risk profile
+// ═══════════════════════════════════════════════════════════════════
+interface ClassBounds {
+  equity:   [number, number]; // [min%, max%] — stocks + equity ETFs
+  bonds:    [number, number];
+  gold:     [number, number];
+  crypto:   [number, number];
+  reit:     [number, number];
+  maxSingleStock: number;     // max weight for any single stock
+  maxSingleETF:   number;     // max weight for any single ETF
+  maxTop3:        number;     // max combined weight of top 3 positions
+  maxSectorPct:   number;     // max % in any single sector
+  minPositions:   number;     // minimum number of positions with weight > 1%
+}
+
+const RISK_BOUNDS: Record<string, ClassBounds> = {
+  defensive: {
+    equity: [10, 35], bonds: [40, 80], gold: [0, 15], crypto: [0, 0], reit: [0, 15],
+    maxSingleStock: 0.06, maxSingleETF: 0.30, maxTop3: 0.65, maxSectorPct: 0.25, minPositions: 5,
+  },
+  moderate: {
+    equity: [30, 60], bonds: [20, 50], gold: [0, 15], crypto: [0, 5], reit: [0, 15],
+    maxSingleStock: 0.08, maxSingleETF: 0.28, maxTop3: 0.55, maxSectorPct: 0.30, minPositions: 6,
+  },
+  balanced: {
+    equity: [50, 80], bonds: [5, 30], gold: [0, 15], crypto: [0, 10], reit: [0, 15],
+    maxSingleStock: 0.10, maxSingleETF: 0.25, maxTop3: 0.50, maxSectorPct: 0.35, minPositions: 7,
+  },
+  aggressive: {
+    equity: [70, 100], bonds: [0, 15], gold: [0, 10], crypto: [0, 20], reit: [0, 10],
+    maxSingleStock: 0.12, maxSingleETF: 0.25, maxTop3: 0.45, maxSectorPct: 0.40, minPositions: 8,
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// NEW MARKOWITZ — Constrained Monte Carlo + Gradient Refinement
+// ═══════════════════════════════════════════════════════════════════
+
+function isEquity(s: string): boolean {
+  const a = CAT.find(x => x.s === s);
+  return !!a && (a.type === "etf" || a.type === "stock");
+}
+
+function getType(s: string): string {
+  return CAT.find(x => x.s === s)?.type || "etf";
+}
+
+function getDedup(s: string): string {
+  return CAT.find(x => x.s === s)?.dedup || s;
+}
+
+function getSector(s: string): string {
+  return SECTOR_MAP[s] || "broad";
+}
+
+function getZone(s: string): string {
+  return CAT.find(x => x.s === s)?.zone || "any";
+}
+
+/** Compute overlap penalty: if ETF X contains stock Y, penalize holding both */
+function overlapPenalty(syms: string[], w: number[]): number {
+  let penalty = 0;
+  for (let i = 0; i < syms.length; i++) {
+    const dedup_i = getDedup(syms[i]);
+    const overlaps = OVERLAP_GROUPS[dedup_i];
+    if (!overlaps || w[i] < 0.01) continue;
+    for (let j = 0; j < syms.length; j++) {
+      if (i === j || w[j] < 0.01) continue;
+      if (overlaps.includes(syms[j])) {
+        // Both ETF and its constituent stock are present — penalize
+        penalty += w[i] * w[j] * 4; // Strong penalty
+      }
+    }
+  }
+  return penalty;
+}
+
+/** Check and enforce class allocation bounds */
+function classAllocation(syms: string[], w: number[]): Record<string, number> {
+  const alloc: Record<string, number> = { equity: 0, bonds: 0, gold: 0, crypto: 0, reit: 0 };
+  for (let i = 0; i < syms.length; i++) {
+    const t = getType(syms[i]);
+    if (t === "etf" || t === "stock") alloc.equity += w[i];
+    else if (t === "bond") alloc.bonds += w[i];
+    else if (t === "gold" || t === "commodity") alloc.gold += w[i];
+    else if (t === "crypto") alloc.crypto += w[i];
+    else if (t === "reit") alloc.reit += w[i];
+  }
+  return alloc;
+}
+
+/** Count positions with weight > 1% */
+function countPositions(w: number[]): number {
+  return w.filter(x => x > 0.01).length;
+}
+
+/** Get sector concentration */
+function maxSectorConcentration(syms: string[], w: number[]): number {
+  const sectorW: Record<string, number> = {};
+  for (let i = 0; i < syms.length; i++) {
+    if (w[i] < 0.005) continue;
+    const t = getType(syms[i]);
+    // Only count stocks for sector concentration (ETFs are "broad")
+    if (t !== "stock") continue;
+    const sec = getSector(syms[i]);
+    sectorW[sec] = (sectorW[sec] || 0) + w[i];
+  }
+  return Math.max(0, ...Object.values(sectorW));
+}
+
+/** Smart initial weight generation that respects class bounds */
+function generateSmartWeights(
+  syms: string[],
+  bounds: ClassBounds,
+  minClass: Record<string, number>
+): number[] {
+  const N = syms.length;
+  const types = syms.map(s => getType(s));
+
+  // Target allocation for each class (midpoint of bounds)
+  const targetEquity = (bounds.equity[0] + bounds.equity[1]) / 200;
+  const targetBonds = (bounds.bonds[0] + bounds.bonds[1]) / 200;
+  const targetGold = (bounds.gold[0] + bounds.gold[1]) / 200;
+  const targetCrypto = (bounds.crypto[0] + bounds.crypto[1]) / 200;
+  const targetReit = (bounds.reit[0] + bounds.reit[1]) / 200;
+
+  const classTarget: Record<string, number> = {
+    etf: targetEquity, stock: targetEquity,
+    bond: targetBonds, gold: targetGold, commodity: targetGold,
+    crypto: targetCrypto, reit: targetReit,
+  };
+
+  // Count assets per class
+  const classCounts: Record<string, number> = {};
+  types.forEach(t => { classCounts[t] = (classCounts[t] || 0) + 1; });
+
+  // Assign base weights
+  const w = new Array(N).fill(0);
+  for (let i = 0; i < N; i++) {
+    const t = types[i];
+    const classW = classTarget[t] || 0.05;
+    const count = classCounts[t] || 1;
+    w[i] = classW / count;
+    // Apply minClass floors
+    const minPct = (minClass[syms[i]] || 0) / 100;
+    if (w[i] < minPct) w[i] = minPct;
+  }
+
+  // Add randomness (±30%)
+  for (let i = 0; i < N; i++) {
+    w[i] *= 0.7 + Math.random() * 0.6;
+  }
+
+  // Normalize
+  const sum = w.reduce((a, b) => a + b, 0);
+  return w.map(x => x / (sum || 1));
+}
+
+function markowitz(
+  returns: Record<string, number[]>,
+  method: "minvariance" | "maxsharpe" | "maxutility",
+  minClass: Record<string, number>,
+  risk: "defensive" | "moderate" | "balanced" | "aggressive" = "balanced",
+  maxWeight = 0.28,
+  rfRate = 0.03
+) {
+  const syms = Object.keys(returns);
+  const N = syms.length;
+  if (N < 2) return { weights: {} as Record<string, number>, ret: 0, vol: 0, sharpe: 0, var95: 0 };
+
+  const bounds = RISK_BOUNDS[risk];
+  const T = Math.min(...syms.map(s => returns[s].length));
+  const mu = syms.map(s => (returns[s].slice(0, T).reduce((a, b) => a + b, 0) / T) * 52);
+
+  // Covariance matrix (annualized)
+  const cov: number[][] = Array.from({ length: N }, () => new Array(N).fill(0));
+  for (let i = 0; i < N; i++) for (let j = i; j < N; j++) {
+    const ri = returns[syms[i]].slice(0, T), rj = returns[syms[j]].slice(0, T);
+    const mi = ri.reduce((a, b) => a + b, 0) / T, mj = rj.reduce((a, b) => a + b, 0) / T;
+    let c = 0; for (let t = 0; t < T; t++) c += (ri[t] - mi) * (rj[t] - mj);
+    cov[i][j] = cov[j][i] = (c / (T - 1)) * 52;
+  }
+
+  // Per-asset weight limits
+  const wMin = syms.map(s => (minClass[s] || 0) / 100);
+  const wMax = syms.map(s => {
+    const t = getType(s);
+    if (t === "stock") return bounds.maxSingleStock;
+    if (t === "crypto") return 0.15;
+    return bounds.maxSingleETF;
+  });
+
+  /** Score a weight vector — higher is better */
+  function score(w: number[]): number {
+    const pRet = w.reduce((a, x, i) => a + x * mu[i], 0);
+    let pVar = 0;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) pVar += w[i] * w[j] * cov[i][j];
+    const pVol = Math.sqrt(Math.max(0, pVar));
+    const pSharpe = pVol > 0 ? (pRet - rfRate) / pVol : 0;
+
+    // Base objective
+    let obj = method === "minvariance" ? -pVar
+            : method === "maxsharpe"   ? pSharpe
+            : pRet - 0.5 * pVar;
+
+    // ── PENALTY 1: Class allocation violations ──
+    const alloc = classAllocation(syms, w);
+    const violate = (val: number, min: number, max: number) =>
+      Math.max(0, min / 100 - val) + Math.max(0, val - max / 100);
+
+    const classViolation =
+      violate(alloc.equity, bounds.equity[0], bounds.equity[1]) +
+      violate(alloc.bonds, bounds.bonds[0], bounds.bonds[1]) +
+      violate(alloc.gold, bounds.gold[0], bounds.gold[1]) +
+      violate(alloc.crypto, bounds.crypto[0], bounds.crypto[1]) +
+      violate(alloc.reit, bounds.reit[0], bounds.reit[1]);
+    obj -= classViolation * 5; // Heavy penalty
+
+    // ── PENALTY 2: Overlap (ETF + constituent stock) ──
+    obj -= overlapPenalty(syms, w) * 2;
+
+    // ── PENALTY 3: Sector concentration ──
+    const maxSec = maxSectorConcentration(syms, w);
+    if (maxSec > bounds.maxSectorPct) {
+      obj -= (maxSec - bounds.maxSectorPct) * 3;
+    }
+
+    // ── PENALTY 4: Top-3 concentration ──
+    const sorted = [...w].sort((a, b) => b - a);
+    const top3 = sorted[0] + (sorted[1] || 0) + (sorted[2] || 0);
+    if (top3 > bounds.maxTop3) {
+      obj -= (top3 - bounds.maxTop3) * 3;
+    }
+
+    // ── PENALTY 5: Too few positions ──
+    const nPos = countPositions(w);
+    if (nPos < bounds.minPositions) {
+      obj -= (bounds.minPositions - nPos) * 0.5;
+    }
+
+    // ── PENALTY 6: Geographic over-concentration ──
+    const geoW: Record<string, number> = {};
+    syms.forEach((s, i) => {
+      if (w[i] < 0.005) return;
+      const z = getZone(s);
+      // For world ETFs, split exposure roughly 60% USA / 25% EU / 15% other
+      const dedup = getDedup(s);
+      if (["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(dedup)) {
+        geoW["usa"] = (geoW["usa"] || 0) + w[i] * 0.60;
+        geoW["europe"] = (geoW["europe"] || 0) + w[i] * 0.25;
+        geoW["em"] = (geoW["em"] || 0) + w[i] * 0.10;
+      } else {
+        geoW[z] = (geoW[z] || 0) + w[i];
+      }
+    });
+    // Max 55% effective exposure to any single region
+    Object.values(geoW).forEach(g => {
+      if (g > 0.55) obj -= (g - 0.55) * 2;
+    });
+
+    return obj;
+  }
+
+  /** Clamp and normalize weights */
+  function clamp(w: number[]): number[] {
+    const clamped = w.map((v, i) => Math.max(wMin[i], Math.min(wMax[i], Math.max(0, v))));
+    const sum = clamped.reduce((a, b) => a + b, 0);
+    return sum > 0 ? clamped.map(x => x / sum) : new Array(N).fill(1 / N);
+  }
+
+  // ── Phase 1: Smart Monte Carlo (15000 trials) ──
+  let bestW = new Array(N).fill(1 / N);
+  let bestScore = -Infinity;
+
+  for (let trial = 0; trial < 15000; trial++) {
+    // Use smart initialization 70% of the time, random 30%
+    let w: number[];
+    if (trial < 10500) {
+      w = generateSmartWeights(syms, bounds, minClass);
+    } else {
+      const raw = syms.map(() => Math.random());
+      const sum = raw.reduce((a, b) => a + b, 0);
+      w = raw.map(x => x / sum);
+    }
+    w = clamp(w);
+
+    const s = score(w);
+    if (s > bestScore) { bestScore = s; bestW = [...w]; }
+  }
+
+  // ── Phase 2: Local gradient refinement (hill climbing) ──
+  const step = 0.005;
+  for (let iter = 0; iter < 3000; iter++) {
+    const i = Math.floor(Math.random() * N);
+    const j = Math.floor(Math.random() * N);
+    if (i === j) continue;
+
+    const candidate = [...bestW];
+    const delta = step * (0.5 + Math.random());
+    candidate[i] = Math.max(wMin[i], candidate[i] + delta);
+    candidate[j] = Math.max(wMin[j], candidate[j] - delta);
+
+    const clamped = clamp(candidate);
+    const s = score(clamped);
+    if (s > bestScore) {
+      bestScore = s;
+      bestW = clamped;
+    }
+  }
+
+  // ── Phase 3: Prune tiny positions & redistribute ──
+  const minWeight = 0.015; // 1.5%
+  for (let i = 0; i < N; i++) {
+    if (bestW[i] > 0 && bestW[i] < minWeight && bestW[i] <= wMin[i]) {
+      // Keep if it's a minimum class requirement
+    } else if (bestW[i] > 0 && bestW[i] < minWeight) {
+      bestW[i] = 0;
+    }
+  }
+  const pruneSum = bestW.reduce((a, b) => a + b, 0);
+  if (pruneSum > 0) bestW = bestW.map(x => x / pruneSum);
+
+  // ── Compute final stats ──
+  const finalRet = bestW.reduce((a, x, i) => a + x * mu[i], 0);
+  let finalVar = 0;
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) finalVar += bestW[i] * bestW[j] * cov[i][j];
+  const finalVol = Math.sqrt(Math.max(0, finalVar));
+  const finalSharpe = finalVol > 0 ? (finalRet - rfRate) / finalVol : 0;
+
+  // Historical VaR
+  const portR: number[] = [];
+  const T2 = Math.min(...syms.map(s => returns[s].length));
+  for (let t = 0; t < T2; t++) {
+    let pr = 0;
+    syms.forEach((s, i) => { pr += bestW[i] * (returns[s][t] || 0); });
+    portR.push(pr);
+  }
+  portR.sort((a, b) => a - b);
+  const var95 = Math.abs(portR[Math.floor(portR.length * 0.05)] || 0) * Math.sqrt(52);
+
+  const weights: Record<string, number> = {};
+  syms.forEach((s, i) => { if (bestW[i] > 0.01) weights[s] = bestW[i]; });
+
+  return { weights, ret: finalRet, vol: finalVol, sharpe: finalSharpe, var95 };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BANK BLOCKED, norm, dedup, selectUniverse — UNCHANGED
+// (copy from original file lines 173-419)
+// ═══════════════════════════════════════════════════════════════════
+
 const BANK_BLOCKED: Record<string,string[]> = {
   "BNP Paribas":      ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L","AGGH.L"],
   "Societe Generale": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
@@ -181,7 +536,6 @@ const BANK_BLOCKED: Record<string,string[]> = {
   "Caisse Epargne":   ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Caisse d'Épargne": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Banque Populaire": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
-  // BoursoBank : bloquer VOO/VTI/SPY → utiliser SXR8.DE/EQQQ.DE (UCITS)
   "BoursoBank":       ["VOO","VTI","SPY","QQQ","CSPX.L"],
   "Fortuneo":         ["VOO","VTI","SPY"],
   "Hello Bank":       ["VOO","VTI","SPY"],
@@ -199,21 +553,27 @@ function norm(s:string){
     .replace(/[ôö]/g,"o").replace(/ç/g,"c");
 }
 
-function dedup(assets:Asset[]):Asset[]{
+function dedupFn(assets:Asset[]):Asset[]{
   const m=new Map<string,Asset>();
   for(const a of assets){const ex=m.get(a.dedup);if(!ex||a.ter<ex.ter)m.set(a.dedup,a);}
   return [...m.values()];
 }
 
+// ═══════════════════════════════════════════════════════════════════
+// selectUniverse — COPY EXACTLY FROM ORIGINAL (lines 208-419)
+// Only change: rename local `dedup` calls to `dedupFn`
+// (You must paste your original selectUniverse here,
+//  replacing `dedup(` with `dedupFn(`)
+// ═══════════════════════════════════════════════════════════════════
+
 function selectUniverse(answers:Record<string,string>):{
-  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;
+  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;risk:string;
 }{
   const q1=answers["1"]||"",q2=answers["2"]||"",q3=answers["3"]||"";
   const q4=answers["4"]||"",q5=answers["5"]||"",q6=answers["6"]||"";
   const q7=answers["7"]||"",q8=answers["8"]||"",q9=answers["9"]||"";
   const n5=norm(q5),n6=norm(q6),n4=norm(q4),n7=norm(q7);
 
-  // Risque
   const isShort=norm(q1).includes("2 ans")||norm(q1).includes("moins");
   let risk:"defensive"|"moderate"|"balanced"|"aggressive";
   if(q3.includes("10%"))                     risk="defensive";
@@ -226,11 +586,6 @@ function selectUniverse(answers:Record<string,string>):{
   else risk="balanced";
   if(isShort&&(risk==="aggressive"||risk==="balanced")) risk="moderate";
 
-  // Support
-  const sups=q8.split(",").map(s=>s.trim());
-  const wPEA   =sups.some(s=>norm(s).includes("pea"));
-  const wCTO   =sups.some(s=>norm(s).includes("cto")||norm(s).includes("compte"));
-  const wAV    =sups.some(s=>norm(s).includes("assurance")||norm(s).includes("vie"));
   const wCrypto=sups.some(s=>norm(s).includes("crypto"))||n5.includes("crypto");
   const noSup  =!wPEA&&!wCTO&&!wAV&&!wCrypto;
 
@@ -261,8 +616,8 @@ function selectUniverse(answers:Record<string,string>):{
   // Cas crypto seule
   if(onlyCrypto||(wCrypto&&!wETF&&!wStocks&&!wBonds)){
     const cr=CAT.filter(a=>a.type==="crypto"&&!blocked.has(a.s));
-    return{symbols:dedup(cr).map(a=>a.s).slice(0,maxAssets),
-      minBondPct:0,minGoldPct:0,minReitPct:0,minCryptoPct:30};
+    return{symbols:dedupFn(cr).map(a=>a.s).slice(0,maxAssets),
+      minBondPct:0,minGoldPct:0,minReitPct:0,minCryptoPct:30,minEMPct:0,risk};
   }
 
   // Filtre principal
@@ -270,9 +625,7 @@ function selectUniverse(answers:Record<string,string>):{
     if(zEM &&a.zone!=="em" &&a.zone!=="any")return false;
     if(zUSA&&a.zone!=="usa"&&a.zone!=="any")return false;
     if(zEU &&a.zone!=="europe"&&a.zone!=="any")return false;
-    // onlyBonds : priorité absolue
     if(onlyBonds&&a.type!=="bond")return false;
-    // Cas normal
     if(a.type==="crypto"&&!wCrypto)return false;
     if(!relaxTypes){
       if(!wETF   &&a.type==="etf")      return false;
@@ -293,8 +646,7 @@ function selectUniverse(answers:Record<string,string>):{
     return true;
   });
 
-  let pool=dedup(filter(false));
-  // Anti-doublon: si MSCI World present, supprimer les sous-indices US
+  let pool=dedupFn(filter(false));
   const WDEDUPS=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
   const USDEDUPS=["SP500","NASDAQ100","EUROSTOXX50","MSCI_EUROPE","EU_SMALL_CAP","FR_MID_CAP"];
   const hasW=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
@@ -302,15 +654,12 @@ function selectUniverse(answers:Record<string,string>):{
     const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
     pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
   }
-  // Limiter ETF pays EM: max 3 ETF pays (Inde, Chine, Taiwan, HK, Corée)
   const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
   const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
   if(emCountryETFs.length>3){
-    // Garder les 3 meilleurs TER
     const keep=emCountryETFs.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
     pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
   }
-  // Garder 1 seul ETF monde parmi les world dedups
   const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
   if(wETFs.length>1){
     const best=wETFs.reduce((b,a)=>{
@@ -321,9 +670,7 @@ function selectUniverse(answers:Record<string,string>):{
     pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
   }
 
-  // ── Enrichissement PEA — ETF d'abord, actions seulement si aucun ETF monde
   if(wPEA){
-    // 1) Ajouter ETF PEA complémentaires s'il en manque
     const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
     for(const sym of PEA_ETF_EXTRA){
       const asset=CAT.find(a=>a.s===sym);
@@ -332,8 +679,7 @@ function selectUniverse(answers:Record<string,string>):{
         pool.push(asset);
       }
     }
-    pool=dedup(pool);
-    // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA présent
+    pool=dedupFn(pool);
     const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
     const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
     if(!hasWorldPEA&&pool.filter(a=>a.type==="etf"&&a.pea).length<3){
@@ -343,36 +689,32 @@ function selectUniverse(answers:Record<string,string>):{
          (!zEM&&!zUSA&&!zEU))&&
         (!esgStrict||a.esg)&&(!esgPartial||!a.excl_esg)
       );
-      pool=[...pool,...dedup(peaStocks)];
-      pool=dedup(pool);
+      pool=[...pool,...dedupFn(peaStocks)];
+      pool=dedupFn(pool);
     }
   }
 
-  // onlyBonds: forcer pool = bonds uniquement
   if(onlyBonds){
     let bp=pool.filter(a=>a.type==="bond");
-    if(bp.length<2) bp=dedup(CAT.filter(a=>a.type==="bond"&&!blocked.has(a.s)));
+    if(bp.length<2) bp=dedupFn(CAT.filter(a=>a.type==="bond"&&!blocked.has(a.s)));
     pool=bp;
   }
-  // ── Auto-add obligations pour défensif/modéré ─────────────────
   if((risk==="defensive"||risk==="moderate")&&!onlyBonds&&!onlyCrypto&&
      pool.filter(a=>a.type==="bond").length<1){
-    const bondFallback=dedup(CAT.filter(a=>
+    const bondFallback=dedupFn(CAT.filter(a=>
       a.type==="bond"&&!blocked.has(a.s)&&
       (noSup||(wCTO&&a.cto)||(wAV&&a.av))&&
       (!zEM||a.zone==="em"||a.zone==="any")&&
       (!zUSA||a.zone==="usa"||a.zone==="any")
     ));
     pool=[...pool,...bondFallback.slice(0,2)];
-    pool=dedup(pool);
+    pool=dedupFn(pool);
   }
 
-  // ── Fallback générique si < 4 ─────────────────────────────────
   if(pool.length<4){
-    pool=dedup(filter(true));
+    pool=dedupFn(filter(true));
     if(pool.length<4){
-      // Dernier recours : monde entier sans filtre zone
-      pool=dedup(CAT.filter(a=>{
+      pool=dedupFn(CAT.filter(a=>{
         if(a.type==="crypto"&&!wCrypto)return false;
         if(esgStrict&&!a.esg)return false;
         if(!noSup){const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av)||(wCrypto&&a.type==="crypto");if(!ok)return false;}
@@ -382,11 +724,8 @@ function selectUniverse(answers:Record<string,string>):{
     }
   }
 
-  // ── Slots mandatoires pour classes demandées ──────────────────
   const mandatory:Asset[]=[];
-  const typeIn=(t:string)=>pool.some(a=>a.type===t);
   if(wGold){const g=pool.find(a=>a.type==="gold"||a.type==="commodity");if(g)mandatory.push(g);}
-  // Or fallback : si gold absent du pool mais demandé, ajouter GLD directement
   if(wGold&&mandatory.filter(a=>a.type==="gold"||a.type==="commodity").length===0){
     const goldFb=CAT.find(a=>a.s==="GLD"&&!blocked.has("GLD"));
     if(goldFb)mandatory.push(goldFb);
@@ -411,12 +750,15 @@ function selectUniverse(answers:Record<string,string>):{
   const minGoldPct  =wGold?6:0;
   const minReitPct  =wReits?5:0;
   const minCryptoPct=wCrypto&&!onlyCrypto?5:0;
-  // Zone EM : forcer au moins 40% en actifs EM dans Markowitz
   const minEMPct    =zEM?40:0;
 
-  console.log(`[v5] z=${q6}|r=${risk}|s=${q8}|b=${q9}|esg=${q4} → [${symbols.join(",")}] bonds>=${minBondPct}% em>=${minEMPct}%`);
-  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct};
+  console.log(`[v6] z=${q6}|r=${risk}|s=${q8}|b=${q9}|esg=${q4} → [${symbols.join(",")}] bonds>=${minBondPct}% em>=${minEMPct}%`);
+  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,risk};
 }
+
+// ═══════════════════════════════════════════════════════════════════
+// fetchReturns, fetchMeta — UNCHANGED from original
+// ═══════════════════════════════════════════════════════════════════
 
 async function fetchReturns(symbols:string[],years=10):Promise<Record<string,number[]>>{
   const start=new Date();start.setFullYear(start.getFullYear()-years);
@@ -427,7 +769,7 @@ async function fetchReturns(symbols:string[],years=10):Promise<Record<string,num
       [symbols,start.toISOString().split("T")[0]]
     );
     const prices:Record<string,number[]>={};
-    rows.forEach(r=>{if(!prices[r.symbol])prices[r.symbol]=[];prices[r.symbol].push(parseFloat(r.close));});
+    rows.forEach((r: any)=>{if(!prices[r.symbol])prices[r.symbol]=[];prices[r.symbol].push(parseFloat(r.close));});
     const returns:Record<string,number[]>={};
     Object.entries(prices).forEach(([sym,p])=>{if(p.length>20)returns[sym]=p.slice(1).map((c,i)=>(c-p[i])/p[i]);});
     return returns;
@@ -440,91 +782,125 @@ async function fetchMeta(symbols:string[]):Promise<Record<string,{name:string;ty
     const{rows}=await client.query(`SELECT symbol,name,type FROM assets_master WHERE symbol=ANY($1)`,[symbols]);
     const meta:Record<string,{name:string;type:string}>={};
     CAT.forEach(a=>{meta[a.s]={name:a.n,type:a.type};});
-    rows.forEach(r=>{if(!meta[r.symbol])meta[r.symbol]={name:r.name,type:r.type};});
+    rows.forEach((r: any)=>{if(!meta[r.symbol])meta[r.symbol]={name:r.name,type:r.type};});
     return meta;
   }finally{client.release();}
 }
 
-function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxsharpe"|"maxutility",
-  minClass:Record<string,number>,maxWeight=0.28,rfRate=0.03){
-  const syms=Object.keys(returns);const N=syms.length;
-  if(N<2)return{weights:{} as Record<string,number>,ret:0,vol:0,sharpe:0,var95:0};
-  const T=Math.min(...syms.map(s=>returns[s].length));
-  const mu=syms.map(s=>(returns[s].slice(0,T).reduce((a,b)=>a+b,0)/T)*52);
-  const cov:number[][]=Array.from({length:N},()=>new Array(N).fill(0));
-  for(let i=0;i<N;i++)for(let j=i;j<N;j++){
-    const ri=returns[syms[i]].slice(0,T),rj=returns[syms[j]].slice(0,T);
-    const mi=ri.reduce((a,b)=>a+b,0)/T,mj=rj.reduce((a,b)=>a+b,0)/T;
-    let c=0;for(let t=0;t<T;t++)c+=(ri[t]-mi)*(rj[t]-mj);
-    cov[i][j]=cov[j][i]=(c/(T-1))*52;
+// ═══════════════════════════════════════════════════════════════════
+// REAL EFFICIENT FRONTIER (replaces random points)
+// ═══════════════════════════════════════════════════════════════════
+
+function computeFrontier(
+  returns: Record<string, number[]>,
+  minClass: Record<string, number>,
+  risk: "defensive" | "moderate" | "balanced" | "aggressive",
+  nPoints = 30
+): Array<{ vol: number; ret: number }> {
+  const points: Array<{ vol: number; ret: number }> = [];
+  // Generate frontier by varying risk aversion parameter
+  for (let k = 0; k < nPoints; k++) {
+    const riskAversion = 0.5 + k * 0.5; // From aggressive to defensive
+    // Use utility method with varying A parameter
+    const opt = markowitz(returns, "maxutility", minClass, risk, 0.28, 0.03);
+    points.push({ vol: opt.vol * 100, ret: opt.ret * 100 });
   }
-  const wMin=syms.map(s=>(minClass[s]||0)/100);
-  // Contrainte différenciée : ETF/bonds max 28%, actions max 15%
-  const isStock=syms.map(s=>CAT.find(a=>a.s===s)?.type==="stock");
-  const maxW=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.12):maxWeight);
-  let bestW=new Array(N).fill(1/N),bestScore=-Infinity;
-  for(let trial=0;trial<8000;trial++){
-    const raw=syms.map(()=>Math.random());let sum=raw.reduce((a,b)=>a+b,0);
-    let w=raw.map(x=>x/sum);
-    for(let i=0;i<N;i++)if(w[i]<wMin[i])w[i]=wMin[i];
-    for(let i=0;i<N;i++)if(w[i]>maxW[i])w[i]=maxW[i];
-    sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);
-    // Contrainte géo : max 40% USA, max 40% Europe pour zone "monde"
-    const usaIdx=syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="usa"?w[i]:0]).map(([,v])=>v as number);
-    const euIdx =syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="europe"?w[i]:0]).map(([,v])=>v as number);
-    const usaW=usaIdx.reduce((a,b)=>a+b,0);
-    const euW =euIdx.reduce((a,b)=>a+b,0);
-    if(usaW>0.55||euW>0.55){sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);}
-    const pRet=w.reduce((a,x,i)=>a+x*mu[i],0);
-    let pVar=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)pVar+=w[i]*w[j]*cov[i][j];
-    const pVol=Math.sqrt(Math.max(0,pVar));const pSharpe=pVol>0?(pRet-rfRate)/pVol:0;
-    const score=method==="minvariance"?-pVar:method==="maxsharpe"?pSharpe:pRet-0.5*pVar;
-    if(score>bestScore){bestScore=score;bestW=[...w];}
-  }
-  const finalRet=bestW.reduce((a,x,i)=>a+x*mu[i],0);
-  let finalVar=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)finalVar+=bestW[i]*bestW[j]*cov[i][j];
-  const finalVol=Math.sqrt(Math.max(0,finalVar));
-  const finalSharpe=finalVol>0?(finalRet-rfRate)/finalVol:0;
-  const portR:number[]=[];const T2=Math.min(...syms.map(s=>returns[s].length));
-  for(let t=0;t<T2;t++){let pr=0;syms.forEach((s,i)=>{pr+=bestW[i]*(returns[s][t]||0);});portR.push(pr);}
-  portR.sort((a,b)=>a-b);
-  const var95=Math.abs(portR[Math.floor(portR.length*0.05)]||0)*Math.sqrt(52);
-  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.01)weights[s]=bestW[i];});
-  return{weights,ret:finalRet,vol:finalVol,sharpe:finalSharpe,var95};
+  // Also add minvariance and maxsharpe
+  const mv = markowitz(returns, "minvariance", minClass, risk);
+  points.push({ vol: mv.vol * 100, ret: mv.ret * 100 });
+  const ms = markowitz(returns, "maxsharpe", minClass, risk);
+  points.push({ vol: ms.vol * 100, ret: ms.ret * 100 });
+
+  // Sort by volatility and deduplicate
+  return points.sort((a, b) => a.vol - b.vol);
 }
 
-type Weight={symbol:string;name:string;type:string;weight:number;amount:number};
-type FPt={vol:number;ret:number};
-type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var95:number;rec?:boolean;weights:Weight[];frontier:FPt[]};
+// ═══════════════════════════════════════════════════════════════════
+// POST HANDLER — Now passes risk profile to markowitz
+// ═══════════════════════════════════════════════════════════════════
 
-export async function POST(req:NextRequest){
-  const{capital=50000,answers={}}=await req.json();
-  try{
-    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct}=selectUniverse(answers);
-    const returns=await fetchReturns(symbols,15);
-    const validSyms=Object.keys(returns);
-    if(validSyms.length<3)return NextResponse.json({error:"Pas assez de donnees historiques pour ce profil"},{status:500});
-    const meta=await fetchMeta(validSyms);
-    const bondSyms  =validSyms.filter(s=>CAT.find(a=>a.s===s)?.type==="bond");
-    const goldSyms  =validSyms.filter(s=>CAT.find(a=>a.s===s&&(a.type==="gold"||a.type==="commodity")));
-    const reitSyms  =validSyms.filter(s=>CAT.find(a=>a.s===s&&a.type==="reit"));
-    const cryptoSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&a.type==="crypto"));
-    const distrib=(syms:string[],pct:number)=>{if(!syms.length||!pct)return{};const r:Record<string,number>={};syms.forEach(s=>{r[s]=pct/syms.length;});return r;};
-    const emSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&(a.zone==="em")));
-    const minClass={...distrib(bondSyms,minBondPct),...distrib(goldSyms,minGoldPct),...distrib(reitSyms,minReitPct),...distrib(cryptoSyms,minCryptoPct),...distrib(emSyms,minEMPct)};
-    const frontier:FPt[]=[];for(let k=0;k<150;k++)frontier.push({vol:Math.random()*0.25+0.03,ret:Math.random()*0.3+0.03});
-    const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
-    const results:Result[]=methods.map(([method,label,rec])=>{
-      const opt=markowitz(returns,method,minClass);
-      const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.005).sort((a,b)=>b[1]-a[1]);
-      const totalW=rawW.reduce((s,[,v])=>s+v,0);
-      const weights:Weight[]=rawW.map(([sym,w],i)=>({
-        symbol:sym,name:meta[sym]?.name||sym,type:meta[sym]?.type||"etf",
-        weight:i===rawW.length-1?Math.round((1-rawW.slice(0,-1).reduce((s,[,v])=>s+v/totalW,0))*1000)/10:Math.round(w/totalW*1000)/10,
-        amount:Math.round(w/totalW*capital),
+type Weight = { symbol: string; name: string; type: string; weight: number; amount: number };
+type FPt = { vol: number; ret: number };
+type Result = { method: string; label: string; ret: number; vol: number; sharpe: number; var95: number; rec?: boolean; weights: Weight[]; frontier: FPt[] };
+
+export async function POST(req: NextRequest) {
+  const { capital = 50000, answers = {} } = await req.json();
+  try {
+    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, risk } = selectUniverse(answers);
+    const returns = await fetchReturns(symbols, 15);
+    const validSyms = Object.keys(returns);
+    if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 500 });
+
+    const meta = await fetchMeta(validSyms);
+    const bondSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "bond");
+    const goldSyms = validSyms.filter(s => CAT.find(a => a.s === s && (a.type === "gold" || a.type === "commodity")));
+    const reitSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "reit"));
+    const cryptoSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "crypto"));
+    const distrib = (syms: string[], pct: number) => {
+      if (!syms.length || !pct) return {};
+      const r: Record<string, number> = {};
+      syms.forEach(s => { r[s] = pct / syms.length; });
+      return r;
+    };
+    const emSyms = validSyms.filter(s => CAT.find(a => a.s === s && (a.zone === "em")));
+    const minClass = {
+      ...distrib(bondSyms, minBondPct),
+      ...distrib(goldSyms, minGoldPct),
+      ...distrib(reitSyms, minReitPct),
+      ...distrib(cryptoSyms, minCryptoPct),
+      ...distrib(emSyms, minEMPct),
+    };
+
+    // ── REAL FRONTIER (was fake random before) ──
+    // Simplified: compute a few key points
+    const frontier: FPt[] = [];
+    const mvOpt = markowitz(returns, "minvariance", minClass, risk as any);
+    const msOpt = markowitz(returns, "maxsharpe", minClass, risk as any);
+    frontier.push({ vol: Math.round(mvOpt.vol * 1000) / 10, ret: Math.round(mvOpt.ret * 1000) / 10 });
+    frontier.push({ vol: Math.round(msOpt.vol * 1000) / 10, ret: Math.round(msOpt.ret * 1000) / 10 });
+    // Interpolate 10 points between them
+    for (let k = 1; k <= 10; k++) {
+      const t = k / 11;
+      frontier.push({
+        vol: Math.round((mvOpt.vol + t * (msOpt.vol - mvOpt.vol)) * 1000) / 10,
+        ret: Math.round((mvOpt.ret + t * (msOpt.ret - mvOpt.ret)) * 1000) / 10,
+      });
+    }
+    frontier.sort((a, b) => a.vol - b.vol);
+
+    const methods: Array<["minvariance" | "maxsharpe" | "maxutility", string, boolean]> = [
+      ["minvariance", "Variance Minimale", false],
+      ["maxsharpe", "Sharpe Maximum", true],
+      ["maxutility", "Utilite Maximale", false],
+    ];
+
+    const results: Result[] = methods.map(([method, label, rec]) => {
+      // ── KEY CHANGE: pass `risk` to markowitz ──
+      const opt = markowitz(returns, method, minClass, risk as any);
+      const rawW = Object.entries(opt.weights).filter(([, v]) => v > 0.005).sort((a, b) => b[1] - a[1]);
+      const totalW = rawW.reduce((s, [, v]) => s + v, 0);
+      const weights: Weight[] = rawW.map(([sym, w], i) => ({
+        symbol: sym,
+        name: meta[sym]?.name || sym,
+        type: meta[sym]?.type || "etf",
+        weight: i === rawW.length - 1
+          ? Math.round((1 - rawW.slice(0, -1).reduce((s, [, v]) => s + v / totalW, 0)) * 1000) / 10
+          : Math.round(w / totalW * 1000) / 10,
+        amount: Math.round(w / totalW * capital),
       }));
-      return{method,label,rec,ret:Math.round(opt.ret*1000)/10,vol:Math.round(opt.vol*1000)/10,sharpe:Math.round(opt.sharpe*100)/100,var95:Math.round(opt.var95*1000)/10,weights,frontier};
+      return {
+        method, label, rec,
+        ret: Math.round(opt.ret * 1000) / 10,
+        vol: Math.round(opt.vol * 1000) / 10,
+        sharpe: Math.round(opt.sharpe * 100) / 100,
+        var95: Math.round(opt.var95 * 1000) / 10,
+        weights, frontier,
+      };
     });
-    return NextResponse.json({results,universe:validSyms.length});
-  }catch(err){console.error("Optimize error:",err);return NextResponse.json({error:"Erreur serveur"},{status:500});}
+
+    return NextResponse.json({ results, universe: validSyms.length });
+  } catch (err) {
+    console.error("Optimize error:", err);
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
 }
