@@ -477,9 +477,10 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D", "US_CONS_S", "US_DEFENSE", "US_AERO"];
   const US_FACTOR_DEDUPS = ["US_SMALL", "US_SMALL2", "US_MID", "US_DIV", "US_DIV2", "US_DIV3",
     "US_DIVGROW", "US_MOMENTUM", "US_MINVOL", "US_VALUE", "US_GROWTH", "US_EW"];
-  const hasSP500 = pool2.some(a => a.dedup === "SP500");
-  if (hasSP500) {
-    // Always remove sector ETFs when SP500 present (they are subsets)
+  // Trigger when SP500 OR MSCI_WORLD is present (both cover US market)
+  const hasUSBroad = pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup));
+  if (hasUSBroad) {
+    // Always remove sector ETFs (they are subsets of SP500/World)
     pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
     // For non-aggressive, also remove factor ETFs
     if (risk !== "aggressive") {
@@ -532,10 +533,12 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
-    const CTO_CORE_BASE = ["SXR8.DE", "EQQQ.DE", "VWCE.DE", "EXW1.DE", "VWO"];
-    const CTO_CORE_AGG = ["MCHI", "EWY", "EWT", "INDA"];
-    const CTO_CORE = [...CTO_CORE_BASE, ...(risk === "aggressive" ? CTO_CORE_AGG : [])];
+    // For aggressive: don't re-add world ETFs (they were intentionally removed in step 4)
+    const CTO_CORE_NON_AGG = ["SXR8.DE", "EQQQ.DE", "VWCE.DE", "EXW1.DE", "VWO"];
+    const CTO_CORE_AGG_ONLY = ["SXR8.DE", "EQQQ.DE", "EXW1.DE", "VWO", "MCHI", "EWY", "EWT", "INDA"];
+    const CTO_CORE = risk === "aggressive" ? CTO_CORE_AGG_ONLY : CTO_CORE_NON_AGG;
     const hasW2 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+    const hasSP2 = pool2.some(a => a.dedup === "SP500");
     for (const sym of CTO_CORE) {
       const asset = CAT.find(a => a.s === sym);
       if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym)) continue;
@@ -543,10 +546,14 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (wAV && !wCTO && !asset.av) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
-      // Don't add world duplicate
+      // Don't add world ETF duplicate
       if (hasW2 && WDEDUPS.includes(asset.dedup) && asset.type === "etf") continue;
+      // For aggressive: don't add world ETFs at all
+      if (risk === "aggressive" && WDEDUPS.includes(asset.dedup)) continue;
       // Don't add SP500/NASDAQ if world ETF present (except aggressive)
       if (hasW2 && risk !== "aggressive" && ["SP500", "NASDAQ100"].includes(asset.dedup)) continue;
+      // Don't add US sector/factor ETFs if broad US already present
+      if ((hasW2 || hasSP2) && (US_SECTOR_DEDUPS.includes(asset.dedup) || (risk !== "aggressive" && US_FACTOR_DEDUPS.includes(asset.dedup)))) continue;
       pool2.push(asset);
     }
     pool2 = dedupFilter(pool2);
@@ -561,8 +568,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (!asset || !asset.av || pool2.find(a => a.s === sym) || blocked.has(sym)) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
-      // Skip gold/reit if not requested
-      if (asset.type === "gold" && !wGold) continue;
+      // Skip gold/reit if not requested (but allow SGLD.L for defensive diversification)
+      if (asset.type === "gold" && !wGold && risk !== "defensive") continue;
       if (asset.type === "reit" && !wReits) continue;
       // Skip bonds if already have one EUR_GOV
       if (asset.type === "bond" && pool2.filter(a => a.type === "bond").length >= 1
@@ -655,7 +662,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       pool2 = pool2.filter(a => !["SP500", "NASDAQ100"].includes(a.dedup));
     }
     // Remove US sector/factor ETFs in fallback too
-    if (pool2.some(a => a.dedup === "SP500")) {
+    if (pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup))) {
       pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
       if (risk !== "aggressive") pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
     }
