@@ -195,9 +195,9 @@ const BANK_BLOCKED: Record<string,string[]> = {
 
 function norm(s:string){
   return s.toLowerCase()
-    .replace(/[????]/g,"e").replace(/[???]/g,"a")
-    .replace(/[???]/g,"u").replace(/[??]/g,"i")
-    .replace(/[??]/g,"o").replace(/?/g,"c");
+    .replace(/[eéèêë]/g,"e").replace(/[aàâä]/g,"a")
+    .replace(/[uùûü]/g,"u").replace(/[iîï]/g,"i")
+    .replace(/[oôö]/g,"o").replace(/[cç]/g,"c");
 }
 
 function dedup(assets:Asset[]):Asset[]{
