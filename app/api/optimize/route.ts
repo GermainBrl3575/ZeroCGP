@@ -39,8 +39,8 @@ const CAT: Asset[] = [
   // ETF NASDAQ PEA
   {s:"PUST.PA",  n:"ETF NASDAQ-100 PEA (PUST)",   zone:"usa",  type:"etf",dedup:"NASDAQ100",   ter:0.23,pea:true, cto:true, av:true },
   {s:"IWDA.AS",  n:"iShares MSCI World",           zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
-  {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
-  {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
+  {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:false},
+  {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:false},
   {s:"ACWI",     n:"iShares MSCI ACWI",            zone:"monde",type:"etf",dedup:"MSCI_ACWI",     ter:0.32,pea:false,cto:true, av:false},
   {s:"SUWS.L",   n:"iShares MSCI World ESG Screened",zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true,av:false,esg:true},
 
@@ -54,15 +54,15 @@ const CAT: Asset[] = [
   // VTI = US total (incl. small/mid) -> dedup distinct de SP500
   {s:"VTI",      n:"Vanguard Total US Market",     zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
   // NASDAQ 100
-  {s:"EQQQ.DE",  n:"Invesco NASDAQ 100 EUR",       zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.30,pea:false,cto:true, av:true },
+  {s:"EQQQ.DE",  n:"Invesco NASDAQ 100 EUR",       zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.30,pea:false,cto:true, av:false},
   {s:"QQQ",      n:"Invesco NASDAQ 100",           zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.20,pea:false,cto:true, av:false},
 
   // ?? ETF EUROPE ????????????????????????????????????????????????
   {s:"MEUD.PA",  n:"Lyxor Euro Stoxx 50 PEA",     zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.11,pea:true, cto:true, av:true },
   {s:"C50.PA",   n:"Amundi Euro Stoxx 50 PEA",    zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
-  {s:"EXSA.DE",  n:"iShares Euro Stoxx 50",        zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
+  {s:"EXSA.DE",  n:"iShares Euro Stoxx 50",        zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:false},
   {s:"SMEA.PA",  n:"Amundi MSCI Europe PEA",       zone:"europe",type:"etf",dedup:"MSCI_EUROPE",  ter:0.15,pea:true, cto:true, av:true },
-  {s:"EXW1.DE",  n:"iShares MSCI Europe",          zone:"europe",type:"etf",dedup:"MSCI_EUROPE",  ter:0.12,pea:false,cto:true, av:true },
+  {s:"EXW1.DE",  n:"iShares MSCI Europe",          zone:"europe",type:"etf",dedup:"MSCI_EUROPE",  ter:0.12,pea:false,cto:true, av:false},
   {s:"EPRE.PA",  n:"AXA Europe Real Estate PEA",  zone:"europe",type:"reit",dedup:"EU_REITS",    ter:0.40,pea:true, cto:true, av:true },
   {s:"IPRP.L",   n:"iShares Europe Property",      zone:"europe",type:"reit",dedup:"EU_REITS",    ter:0.40,pea:false,cto:true, av:false},
 
@@ -105,7 +105,7 @@ const CAT: Asset[] = [
   // Dedup S?PAR?S -> GLD (US, dans Neon) + SGLD.L (EU) peuvent coexister
   {s:"GLD",    n:"SPDR Gold Shares",             zone:"any",type:"gold",     dedup:"GOLD_US",  ter:0.40,pea:false,cto:true,av:false},
   {s:"IAU",    n:"iShares Gold Trust",           zone:"any",type:"gold",     dedup:"GOLD_US",  ter:0.25,pea:false,cto:true,av:false},
-  {s:"SGLD.L", n:"Invesco Physical Gold EUR",    zone:"any",type:"gold",     dedup:"GOLD_EU",  ter:0.12,pea:false,cto:true,av:false},
+  {s:"SGLD.L", n:"Invesco Physical Gold EUR",    zone:"any",type:"gold",     dedup:"GOLD_EU",  ter:0.12,pea:false,cto:true,av:true },
   {s:"GNR",    n:"SPDR Natural Resources",       zone:"any",type:"commodity",dedup:"NAT_RES",  ter:0.46,pea:false,cto:true,av:false},
   {s:"GSG",    n:"iShares Commodities",          zone:"any",type:"commodity",dedup:"CMDTY",    ter:0.75,pea:false,cto:true,av:false},
 
@@ -375,7 +375,9 @@ function selectUniverse(answers:Record<string,string>):{
   // Enrichissement CTO/AV: garantir pool suffisant apres core-satellite
   if(!wPEA&&(wCTO||wAV||noSup)&&!onlyBonds&&!onlyCrypto){
     // Actifs UCITS avec bonnes donnees Neon, toujours disponibles CTO/AV
-    const CTO_CORE=["SXR8.DE","EQQQ.DE","VWCE.DE","EXW1.DE","VWO","MCHI","EWY","EWT","INDA"];
+    const CTO_CORE_BASE=["SXR8.DE","EQQQ.DE","VWCE.DE","EXW1.DE","VWO"];
+    const CTO_CORE_AGG=["MCHI","EWY","EWT","INDA"]; // EM countries only for aggressive
+    const CTO_CORE=[...CTO_CORE_BASE,...(risk==="aggressive"?CTO_CORE_AGG:[])];
     for(const sym of CTO_CORE){
       const asset=CAT.find(a=>a.s===sym);
       if(!asset||blocked.has(sym)||pool.find(a=>a.s===sym))continue;
@@ -421,7 +423,7 @@ function selectUniverse(answers:Record<string,string>):{
     // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA pr?sent
     const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
     const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
-    if(pool.length<8){
+    if(pool.length<6){
       const peaStocks=CAT.filter(a=>
         a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
         (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
@@ -518,7 +520,7 @@ function selectUniverse(answers:Record<string,string>):{
 
   // maxWt: pour Equilibre (8-10), plafonner a 0.20 pour forcer diversification
   const maxWt=n7.includes("concentre")||n7.includes("5 actifs")?0.35
-             :n7.includes("large")||n7.includes("15")?0.30:0.25;
+             :n7.includes("large")||n7.includes("15")?0.30:0.22;
   console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"% maxWt="+maxWt);
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,maxWt};
 }
