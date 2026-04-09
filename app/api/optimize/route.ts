@@ -42,7 +42,7 @@ const CAT: Asset[] = [
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
   {s:"ACWI",     n:"iShares MSCI ACWI",            zone:"monde",type:"etf",dedup:"MSCI_ACWI",     ter:0.32,pea:false,cto:true, av:false},
-  {s:"SUWS.L",   n:"iShares MSCI World ESG Screened",zone:"monde",type:"etf",dedup:"MSCI_WORLD_SRI",ter:0.20,pea:false,cto:true,av:false,esg:true},
+  {s:"SUWS.L",   n:"iShares MSCI World ESG Screened",zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true,av:false,esg:true},
 
   // ?? ETF USA -- UCITS prioritaires, VOO/SPY bloqu?s FR ?????????
   // R?gle : CSPX.L + SXR8.DE + VOO + SPY -> m?me dedup SP500 -> 1 seul
@@ -92,7 +92,7 @@ const CAT: Asset[] = [
   // ?? OBLIGATIONS ???????????????????????????????????????????????
   {s:"XGLE.DE",n:"Xtrackers EUR Gov Bond",      zone:"europe",type:"bond",dedup:"EUR_GOV",    ter:0.09,pea:false,cto:true,av:true },
   {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y",   zone:"europe",type:"bond",dedup:"EUR_GOV", ter:0.09,pea:false,cto:true,av:true },
-  {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:true },
+  {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:false},
   {s:"AGGH.L", n:"ETF Oblig Aggregate Monde (AGGH)",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
   {s:"TLT",    n:"iShares 20Y US Treasury",      zone:"usa",   type:"bond",dedup:"US_20Y",     ter:0.15,pea:false,cto:true,av:false},
   {s:"IEF",    n:"iShares 7-10Y Treasury",       zone:"usa",   type:"bond",dedup:"US_7_10Y",   ter:0.15,pea:false,cto:true,av:false},
@@ -303,9 +303,16 @@ function selectUniverse(answers:Record<string,string>):{
   const EM_BROAD_DEDUPS=["MSCI_EM","FTSE_EM"];
   const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
   const hasBroadEM=pool.some(a=>EM_BROAD_DEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(hasBroadEM&&!zEM){
-    // Broad EM couvre deja les pays -> supprimer single-country pour eviter triple doublon Chine
+  if(hasBroadEM&&!zEM&&risk!=="aggressive"){
+    // Broad EM couvre deja les pays -> supprimer single-country (sauf profil agressif qui veut concentrer)
     pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup));
+  } else if(hasBroadEM&&!zEM&&risk==="aggressive"){
+    // Agressif: garder max 2 single-country pour diversifier
+    const emCtry=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
+    if(emCtry.length>2){
+      const keep=emCtry.sort((a,b)=>a.ter-b.ter).slice(0,2).map(a=>a.dedup);
+      pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
+    }
   } else {
     // Pas de broad EM ou zone=EM: garder max 3 single-country (les moins chers)
     const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
@@ -360,20 +367,46 @@ function selectUniverse(answers:Record<string,string>):{
     }
   }
 
+  // Enrichissement CTO/AV: garantir pool suffisant apres core-satellite
+  if(!wPEA&&(wCTO||wAV||noSup)&&!onlyBonds&&!onlyCrypto){
+    // Actifs UCITS avec bonnes donnees Neon, toujours disponibles CTO/AV
+    const CTO_CORE=["SXR8.DE","EQQQ.DE","VWCE.DE","EXW1.DE","VWO","MCHI","EWY"];
+    for(const sym of CTO_CORE){
+      const asset=CAT.find(a=>a.s===sym);
+      if(!asset||blocked.has(sym)||pool.find(a=>a.s===sym))continue;
+      if(wCTO&&!asset.cto)continue;
+      if(wAV&&!wCTO&&!asset.av)continue;
+      if(esgStrict&&!asset.esg)continue;
+      if(zEU&&asset.zone!=="europe"&&asset.zone!=="any")continue;
+      if(zUSA&&asset.zone!=="usa"&&asset.zone!=="any")continue;
+      if(zEM&&asset.zone!=="em"&&asset.zone!=="any")continue;
+      // Ne pas ajouter SP500/NASDAQ si ETF monde present (non-agressif)
+      const hasW=pool.some(a=>["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(a.dedup)&&a.type==="etf");
+      if(hasW&&risk!=="aggressive"&&["SP500","NASDAQ100"].includes(asset.dedup))continue;
+      pool.push(asset);
+    }
+    pool=dedup(pool);
+  }
+
   // ?? Enrichissement PEA -- ETF d'abord, actions seulement si aucun ETF monde
   if(wPEA){
     // 1) Ajouter ETF PEA compl?mentaires s'il en manque
     const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
+    const WDEDUPS_CHECK=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"];
+    const hasWorldInPool=pool.some(a=>WDEDUPS_CHECK.includes(a.dedup)&&a.type==="etf");
     for(const sym of PEA_ETF_EXTRA){
       const asset=CAT.find(a=>a.s===sym);
       if(!asset||!asset.pea||pool.find(a=>a.s===sym)||blocked.has(sym))continue;
       if(esgStrict&&!asset.esg)continue;
       if(esgPartial&&asset.excl_esg)continue;
       // Respecter la zone demandee
-      if(zEU&&asset.zone==="usa")continue;  // pas d ETF US si zone=Europe
-      if(zEU&&asset.zone==="em")continue;   // pas d ETF EM si zone=Europe
-      if(zUSA&&asset.zone==="em")continue;  // pas d ETF EM si zone=USA
-      if(zUSA&&asset.zone==="europe")continue; // pas d ETF EU si zone=USA
+      if(zEU&&asset.zone==="usa")continue;
+      if(zEU&&asset.zone==="em")continue;
+      if(zUSA&&asset.zone==="em")continue;
+      if(zUSA&&asset.zone==="europe")continue;
+      // Ne pas ajouter SP500/NASDAQ si ETF monde deja present (sauf agressif)
+      // Evite CW8.PA + PE500.PA + PUST.PA = triple doublon USA
+      if(hasWorldInPool&&risk!=="aggressive"&&["SP500","NASDAQ100"].includes(asset.dedup))continue;
       pool.push(asset);
     }
     pool=dedup(pool);
@@ -436,6 +469,8 @@ function selectUniverse(answers:Record<string,string>):{
         if(esgStrict&&!a.esg)return false;
         if(!noSup){const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av)||(wCrypto&&a.type==="crypto");if(!ok)return false;}
         if(blocked.has(a.s))return false;
+        if(a.type==="gold"&&wAV&&!a.av)return false;
+        if(a.type==="bond"&&wAV&&!a.av)return false;
         return true;
       }));
     }
