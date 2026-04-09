@@ -663,9 +663,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  // Cap bonds: max 2 for non-defensive, max 3 for defensive (per MASTER_PROMPT)
+  // Cap bonds: max 3 when obligations requested, max 2 otherwise, max 4 for defensive
   if (!onlyBonds) {
-    const maxBonds = risk === "defensive" ? 3 : 2;
+    const maxBonds = risk === "defensive" ? 4 : wBonds ? 3 : 2;
     const bonds = pool2.filter(a => a.type === "bond");
     if (bonds.length > maxBonds) {
       // Keep best bonds (prefer av-eligible, then lowest TER)
@@ -952,7 +952,12 @@ export async function POST(req: NextRequest) {
     const cryptoSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "crypto"));
     const emSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.zone === "em"));
     const distrib = (syms: string[], pct: number) => { if (!syms.length || !pct) return {}; const r: Record<string, number> = {}; syms.forEach(s => { r[s] = pct / syms.length; }); return r; };
-    const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(cryptoSyms, minCryptoPct), ...distrib(emSyms, minEMPct) };
+    // Force minimum ETF weight when ETF class requested alongside stocks
+    const etfSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "etf");
+    const stockSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "stock");
+    const q5n = (answers["5"] || "").toLowerCase();
+    const minETFPct = (q5n.includes("etf") && etfSyms.length > 0 && stockSyms.length > 0) ? 15 : 0;
+    const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(cryptoSyms, minCryptoPct), ...distrib(emSyms, minEMPct), ...distrib(etfSyms, minETFPct) };
 
     const frontier: FPt[] = [];
     const methods: Array<["minvariance" | "maxsharpe" | "maxutility", string, boolean]> = [
