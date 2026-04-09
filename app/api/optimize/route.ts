@@ -512,7 +512,7 @@ function selectUniverse(answers:Record<string,string>):{
 
   // maxWt: pour Equilibre (8-10), plafonner a 0.20 pour forcer diversification
   const maxWt=n7.includes("concentre")||n7.includes("5 actifs")?0.35
-             :n7.includes("large")||n7.includes("15")?0.25:0.20;
+             :n7.includes("large")||n7.includes("15")?0.25:0.15;
   console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"% maxWt="+maxWt);
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,maxWt};
 }
