@@ -522,6 +522,40 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   /* ═══════════════════════════════════════════════════════
+     ETAPE 4b : Anti-doublon SP500 sub-indices (for aggressive)
+     When SP500 present, remove US sector/factor ETFs (subsets)
+     ═══════════════════════════════════════════════════════ */
+  const SP500_SUBS = ["US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
+    "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D", "US_CONS_S",
+    "US_DEFENSE", "US_AERO", "US_VALUE", "US_GROWTH", "US_EW",
+    "US_DIV", "US_DIV2", "US_DIV3", "US_DIVGROW", "US_MOMENTUM", "US_MINVOL",
+    "US_SMALL", "US_SMALL2", "US_MID"];
+  if (pool2.some(a => a.dedup === "SP500")) {
+    pool2 = pool2.filter(a => !SP500_SUBS.includes(a.dedup));
+  }
+
+  // Overlap dedup: keep 1 from each overlap group
+  const OVERLAP_GROUPS = [
+    ["MSCI_EM", "FTSE_EM"],          // PAEEM.PA vs VWO
+    ["US_AGG", "US_TOTAL"],           // AGG vs BND
+    ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"],
+    ["MSCI_EAFE", "FTSE_DEV"],
+  ];
+  for (const group of OVERLAP_GROUPS) {
+    const inGroup = pool2.filter(a => group.includes(a.dedup));
+    if (inGroup.length > 1) {
+      const best = inGroup.reduce((b, a) => {
+        if (wPEA && a.pea && !b.pea) return a;
+        if (wPEA && !a.pea && b.pea) return b;
+        if (wAV && a.av && !b.av) return a;
+        if (wAV && !a.av && b.av) return b;
+        return a.ter < b.ter ? a : b;
+      });
+      pool2 = pool2.filter(a => !group.includes(a.dedup) || a.s === best.s);
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
@@ -625,6 +659,28 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       const best = eurGov.reduce((b, a) => { if (wAV && a.av && !b.av) return a; if (wAV && !a.av && b.av) return b; return a.ter < b.ter ? a : b; });
       pool2 = pool2.filter(a => !(a.type === "bond" && (a.dedup === "EUR_GOV" || a.dedup === "EUR_GOV_ST")) || a.s === best.s);
     }
+  }
+
+  // Final overlap dedup (after all enrichment)
+  for (const group of OVERLAP_GROUPS) {
+    const inGroup = pool2.filter(a => group.includes(a.dedup));
+    if (inGroup.length > 1) {
+      const best = inGroup.reduce((b, a) => {
+        if (wPEA && a.pea && !b.pea) return a; if (wPEA && !a.pea && b.pea) return b;
+        if (wAV && a.av && !b.av) return a; if (wAV && !a.av && b.av) return b;
+        return a.ter < b.ter ? a : b;
+      });
+      pool2 = pool2.filter(a => !group.includes(a.dedup) || a.s === best.s);
+    }
+  }
+  // Final SP500 sub-cleanup
+  if (pool2.some(a => a.dedup === "SP500")) {
+    pool2 = pool2.filter(a => !SP500_SUBS.includes(a.dedup));
+  }
+  // Final world sub-cleanup
+  const hasWFinal = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+  if (hasWFinal && risk !== "aggressive") {
+    pool2 = pool2.filter(a => !WORLD_SUBS.includes(a.dedup));
   }
 
   /* ═══════════════════════════════════════════════════════
