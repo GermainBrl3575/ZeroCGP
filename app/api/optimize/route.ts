@@ -250,7 +250,7 @@ function selectUniverse(answers:Record<string,string>):{
 
   // MaxAssets
   let maxAssets=n7.includes("concentre")||n7.includes("5 actifs")?7
-               :n7.includes("large")||n7.includes("15")?24:14;
+               :n7.includes("large")||n7.includes("15")?24:10;
 
   const blocked=new Set(BANK_BLOCKED[q9]||[]);
 
@@ -307,9 +307,14 @@ function selectUniverse(answers:Record<string,string>):{
     // Broad EM couvre deja les pays -> supprimer single-country (sauf profil agressif qui veut concentrer)
     pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup));
   } else if(hasBroadEM&&!zEM&&risk==="aggressive"){
-    // Agressif: garder max 3 single-country pour diversifier
+    // Agressif: garder max 2 single-country, retirer broad EM si countries presentes
     const emCtry=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
-    if(emCtry.length>3){
+    if(emCtry.length>=2){
+      // Retirer broad EM (VWO) pour eviter overlap avec countries
+      pool=pool.filter(a=>!EM_BROAD_DEDUPS.includes(a.dedup));
+      const keep=emCtry.sort((a,b)=>a.ter-b.ter).slice(0,2).map(a=>a.dedup);
+      pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
+    } else if(emCtry.length>3){
       const keep=emCtry.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
       pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
     }
@@ -380,11 +385,12 @@ function selectUniverse(answers:Record<string,string>):{
       if(zEU&&asset.zone!=="europe"&&asset.zone!=="any")continue;
       if(zUSA&&asset.zone!=="usa"&&asset.zone!=="any")continue;
       if(zEM&&asset.zone!=="em"&&asset.zone!=="any")continue;
-      // Ne pas ajouter SP500/NASDAQ si ETF monde present (non-agressif)
-      const hasW=pool.some(a=>["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(a.dedup)&&a.type==="etf");
+      // Ne pas ajouter de doublon monde
+      const WDEDUPS_CTO=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"];
+      const hasW=pool.some(a=>WDEDUPS_CTO.includes(a.dedup)&&a.type==="etf");
       if(hasW&&risk!=="aggressive"&&["SP500","NASDAQ100"].includes(asset.dedup))continue;
-      // Ne pas re-ajouter ETF monde pour agressif (core-satellite les a retires)
-      if(risk==="aggressive"&&["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(asset.dedup)&&asset.type==="etf")continue;
+      // Ne pas ajouter un 2e ETF monde (evite CW8+VWCE doublon)
+      if(hasW&&WDEDUPS_CTO.includes(asset.dedup)&&asset.type==="etf")continue;
       pool.push(asset);
     }
     pool=dedup(pool);
@@ -415,7 +421,7 @@ function selectUniverse(answers:Record<string,string>):{
     // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA pr?sent
     const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
     const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
-    if(!hasWorldPEA&&pool.filter(a=>a.type==="etf"&&a.pea).length<3){
+    if(pool.length<8){
       const peaStocks=CAT.filter(a=>
         a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
         (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
@@ -512,7 +518,7 @@ function selectUniverse(answers:Record<string,string>):{
 
   // maxWt: pour Equilibre (8-10), plafonner a 0.20 pour forcer diversification
   const maxWt=n7.includes("concentre")||n7.includes("5 actifs")?0.35
-             :n7.includes("large")||n7.includes("15")?0.25:0.15;
+             :n7.includes("large")||n7.includes("15")?0.30:0.25;
   console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"% maxWt="+maxWt);
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,maxWt};
 }
