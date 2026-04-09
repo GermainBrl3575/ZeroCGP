@@ -140,10 +140,11 @@ async function loadCatalogue(): Promise<Asset[]> {
   if (CAT_CACHE && Date.now() - CAT_CACHE_TIME < 300000) return CAT_CACHE;
   const client = await pool.connect();
   try {
+    // Only load curated assets (those in dedup_groups) with sufficient data
     const { rows } = await client.query(`
       SELECT
         am.symbol as s, am.name as n, am.type,
-        COALESCE(dg.dedup_key, am.dedup, am.symbol) as dedup,
+        dg.dedup_key as dedup,
         COALESCE(dg.ter, am.ter, 0) as ter,
         COALESCE(am.pea, false) as pea,
         COALESCE(am.cto, true) as cto,
@@ -152,7 +153,7 @@ async function loadCatalogue(): Promise<Asset[]> {
         COALESCE(am.excl_esg, false) as excl_esg,
         CASE WHEN er.esg_score >= 7 THEN true ELSE false END as esg
       FROM assets_master am
-      LEFT JOIN dedup_groups dg ON dg.symbol = am.symbol
+      INNER JOIN dedup_groups dg ON dg.symbol = am.symbol
       LEFT JOIN esg_ratings er ON er.symbol = am.symbol
       WHERE am.symbol IN (
         SELECT symbol FROM assets_history
