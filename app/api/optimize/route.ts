@@ -70,7 +70,7 @@ const CAT: Asset[] = [
   {s:"PAEEM.PA", n:"Amundi MSCI EM PEA",           zone:"em",type:"etf",dedup:"MSCI_EM",         ter:0.20,pea:true, cto:true, av:true },
   {s:"AEEM.PA",  n:"Amundi MSCI EM ESG PEA",       zone:"em",type:"etf",dedup:"MSCI_EM",         ter:0.25,pea:true, cto:true, av:true, esg:true},
   {s:"VFEM.L",   n:"Vanguard FTSE EM",             zone:"em",type:"etf",dedup:"FTSE_EM",          ter:0.22,pea:false,cto:true, av:false},
-  {s:"IEMG",     n:"iShares Core MSCI EM",         zone:"em",type:"etf",dedup:"MSCI_EM_IMI",     ter:0.11,pea:false,cto:true, av:false},
+  {s:"IEMG",     n:"iShares Core MSCI EM",         zone:"em",type:"etf",dedup:"FTSE_EM",          ter:0.11,pea:false,cto:true, av:false},
   {s:"VWO",      n:"Vanguard FTSE EM",             zone:"em",type:"etf",dedup:"FTSE_EM",          ter:0.08,pea:false,cto:true, av:false},
   {s:"MCHI",     n:"iShares MSCI China",           zone:"em",type:"etf",dedup:"MSCI_CHINA",      ter:0.19,pea:false,cto:true, av:false},
   {s:"KWEB",     n:"KraneShares China Internet",   zone:"em",type:"etf",dedup:"CHINA_NET",        ter:0.70,pea:false,cto:true, av:false},
@@ -195,9 +195,9 @@ const BANK_BLOCKED: Record<string,string[]> = {
 
 function norm(s:string){
   return s.toLowerCase()
-    .replace(/[eéèêë]/g,"e").replace(/[aàâä]/g,"a")
-    .replace(/[uùûü]/g,"u").replace(/[iîï]/g,"i")
-    .replace(/[oôö]/g,"o").replace(/[cç]/g,"c");
+    .replace(/[????]/g,"e").replace(/[???]/g,"a")
+    .replace(/[???]/g,"u").replace(/[??]/g,"i")
+    .replace(/[??]/g,"o").replace(/?/g,"c");
 }
 
 function dedup(assets:Asset[]):Asset[]{
@@ -305,7 +305,7 @@ function selectUniverse(answers:Record<string,string>):{
   }
   // Regle EM: si ETF broad EM present (IEMG/VWO), les single-country sont redondants
   // Exception: zone=EM explicite -> garder les single-country pour diversifier
-  const EM_BROAD_DEDUPS=["MSCI_EM","MSCI_EM_IMI","FTSE_EM"];
+  const EM_BROAD_DEDUPS=["MSCI_EM","FTSE_EM"];
   const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
   const hasBroadEM=pool.some(a=>EM_BROAD_DEDUPS.includes(a.dedup)&&a.type==="etf");
   if(hasBroadEM&&!zEM){
@@ -319,15 +319,50 @@ function selectUniverse(answers:Record<string,string>):{
       pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
     }
   }
-  // Garder 1 seul ETF monde parmi les world dedups
-  const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(wETFs.length>1){
-    const best=wETFs.reduce((b,a)=>{
-      if(wPEA&&a.pea&&!b.pea)return a;
-      if(wPEA&&!a.pea&&b.pea)return b;
-      return a.ter<b.ter?a:b;
-    });
-    pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
+  // Core-satellite par profil pour zone monde
+  // Defensif/Modere : ETF monde pur, sous-indices supprimes (deja couverts)
+  // Dynamique       : ETF monde + satellite SP500
+  // Agressif        : SP500 + NASDAQ directement (plus concentre = plus de rendement potentiel)
+  const zMonde=!zEM&&!zUSA&&!zEU;
+  if(zMonde){
+    const wETFsM=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+    if(risk==="aggressive"){
+      // Supprimer ETF monde -> laisser SP500+NASDAQ du filtre initial ou les ajouter
+      pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.type!=="etf");
+      // S assurer que SP500 et NASDAQ sont presents
+      const supOk=(a:Asset)=>!blocked.has(a.s)&&(noSup||(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av));
+      const sp=CAT.find(a=>a.dedup==="SP500"&&supOk(a)&&(!esgStrict||a.esg));
+      const nq=CAT.find(a=>a.dedup==="NASDAQ100"&&supOk(a)&&(!esgStrict||a.esg));
+      if(sp&&!pool.find(a=>a.s===sp.s))pool.push(sp);
+      if(nq&&!pool.find(a=>a.s===nq.s))pool.push(nq);
+    } else {
+      // Defensif/Modere/Dynamique: 1 seul ETF monde (meilleur TER, PEA si besoin)
+      if(wETFsM.length>1){
+        const best=wETFsM.reduce((b,a)=>{
+          if(wPEA&&a.pea&&!b.pea)return a;
+          if(wPEA&&!a.pea&&b.pea)return b;
+          return a.ter<b.ter?a:b;
+        });
+        pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
+      }
+      if(risk==="balanced"){
+        // Dynamique: ajouter satellite SP500 en complement
+        const supOk=(a:Asset)=>!blocked.has(a.s)&&(noSup||(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av));
+        const sp=CAT.find(a=>a.dedup==="SP500"&&supOk(a)&&(!esgStrict||a.esg));
+        if(sp&&!pool.find(a=>a.s===sp.s))pool.push(sp);
+      }
+    }
+  } else {
+    // Zone specifique (USA/EU/EM): garder 1 seul ETF monde si present
+    const wETFsZ=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+    if(wETFsZ.length>1){
+      const best=wETFsZ.reduce((b,a)=>{
+        if(wPEA&&a.pea&&!b.pea)return a;
+        if(wPEA&&!a.pea&&b.pea)return b;
+        return a.ter<b.ter?a:b;
+      });
+      pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
+    }
   }
 
   // ?? Enrichissement PEA -- ETF d'abord, actions seulement si aucun ETF monde
@@ -336,10 +371,15 @@ function selectUniverse(answers:Record<string,string>):{
     const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
     for(const sym of PEA_ETF_EXTRA){
       const asset=CAT.find(a=>a.s===sym);
-      if(asset&&asset.pea&&!pool.find(a=>a.s===sym)&&!blocked.has(sym)&&
-         (!esgStrict||asset.esg)&&(!esgPartial||!asset.excl_esg)){
-        pool.push(asset);
-      }
+      if(!asset||!asset.pea||pool.find(a=>a.s===sym)||blocked.has(sym))continue;
+      if(esgStrict&&!asset.esg)continue;
+      if(esgPartial&&asset.excl_esg)continue;
+      // Respecter la zone demandee
+      if(zEU&&asset.zone==="usa")continue;  // pas d ETF US si zone=Europe
+      if(zEU&&asset.zone==="em")continue;   // pas d ETF EM si zone=Europe
+      if(zUSA&&asset.zone==="em")continue;  // pas d ETF EM si zone=USA
+      if(zUSA&&asset.zone==="europe")continue; // pas d ETF EU si zone=USA
+      pool.push(asset);
     }
     pool=dedup(pool);
     // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA pr?sent
@@ -354,6 +394,21 @@ function selectUniverse(answers:Record<string,string>):{
       );
       pool=[...pool,...dedup(peaStocks)];
       pool=dedup(pool);
+    }
+  }
+
+  // Dedup bonds EUR: max 1 bond EUR gov + 1 bond EUR agg pour non-onlyBonds
+  // Evite le triplet XGLE.DE + IBGS.L + IEAG.L qui confuse Markowitz
+  if(!onlyBonds){
+    const eurGovBonds=pool.filter(a=>a.type==="bond"&&(a.dedup==="EUR_GOV"||a.dedup==="EUR_GOV_ST"));
+    if(eurGovBonds.length>1){
+      // Garder 1 seul EUR gov (le moins cher et av-compatible si besoin)
+      const bestGov=eurGovBonds.reduce((b,a)=>{
+        if(wAV&&a.av&&!b.av)return a;
+        if(wAV&&!a.av&&b.av)return b;
+        return a.ter<b.ter?a:b;
+      });
+      pool=pool.filter(a=>!(a.type==="bond"&&(a.dedup==="EUR_GOV"||a.dedup==="EUR_GOV_ST"))||a.s===bestGov.s);
     }
   }
 
