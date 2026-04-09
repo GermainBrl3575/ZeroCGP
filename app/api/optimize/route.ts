@@ -687,7 +687,7 @@ function markowitz(
   }
 
   // ── Pruning positions < 1.5% ─────────────────────────────────────
-  const pruned=bestW.map(x=>x<0.015?0:x);
+  const pruned=bestW.map(x=>x<0.008?0:x);
   const ps=pruned.reduce((a,b)=>a+b,0);
   const finalW=ps>0.5?projectSimplex(pruned.map(x=>x/ps),wMin,wMax):bestW;
 
@@ -723,7 +723,7 @@ export async function POST(req:NextRequest){
     const frontier:FPt[]=[];
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
-      const opt=markowitz(returns,method,minClass,0.28,0.03,riskProfile);
+      const opt=markowitz(returns,method,minClass,0.32,0.03,riskProfile);
       const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.005).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       const weights:Weight[]=rawW.map(([sym,w],i)=>({
