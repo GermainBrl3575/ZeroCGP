@@ -205,15 +205,20 @@ function dedup(assets:Asset[]):Asset[]{
   return [...m.values()];
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// SÉLECTION UNIVERS v3 — Approche Core-Satellite
+// Principe : 1 ETF flagship par zone → jamais 2 ETFs qui se chevauchent
+// ══════════════════════════════════════════════════════════════════════
 function selectUniverse(answers:Record<string,string>):{
-  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;
+  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;
+  minCryptoPct:number;minEMPct:number;riskProfile:string;
 }{
   const q1=answers["1"]||"",q2=answers["2"]||"",q3=answers["3"]||"";
   const q4=answers["4"]||"",q5=answers["5"]||"",q6=answers["6"]||"";
   const q7=answers["7"]||"",q8=answers["8"]||"",q9=answers["9"]||"";
   const n5=norm(q5),n6=norm(q6),n4=norm(q4),n7=norm(q7);
 
-  // Risque
+  // ── Risque ────────────────────────────────────────────────────────
   const isShort=norm(q1).includes("2 ans")||norm(q1).includes("moins");
   let risk:"defensive"|"moderate"|"balanced"|"aggressive";
   if(q3.includes("10%"))                     risk="defensive";
@@ -224,9 +229,9 @@ function selectUniverse(answers:Record<string,string>):{
   else if(norm(q2).includes("modere"))       risk="moderate";
   else if(norm(q2).includes("agressif"))     risk="aggressive";
   else risk="balanced";
-  if(isShort&&(risk==="aggressive"||risk==="balanced")) risk="moderate";
+  if(isShort&&(risk==="aggressive"||risk==="balanced"))risk="moderate";
 
-  // Support
+  // ── Support ───────────────────────────────────────────────────────
   const sups=q8.split(",").map(s=>s.trim());
   const wPEA   =sups.some(s=>norm(s).includes("pea"));
   const wCTO   =sups.some(s=>norm(s).includes("cto")||norm(s).includes("compte"));
@@ -234,188 +239,280 @@ function selectUniverse(answers:Record<string,string>):{
   const wCrypto=sups.some(s=>norm(s).includes("crypto"))||n5.includes("crypto");
   const noSup  =!wPEA&&!wCTO&&!wAV&&!wCrypto;
 
-  // Zone
-  const zEM   =n6.includes("emergent");
-  const zUSA  =n6.includes("usa");
-  const zEU   =n6.includes("europe");
+  // ── Zone ─────────────────────────────────────────────────────────
+  const zEM =n6.includes("emergent");
+  const zUSA=n6.includes("usa");
+  const zEU =n6.includes("europe");
+  const zMonde=!zEM&&!zUSA&&!zEU;
 
-  // Classes
-  const wETF   =n5===""||n5.includes("etf");
-  const wStocks=n5===""||n5.includes("action");
-  const wBonds =n5.includes("oblig");
-  const wGold  =n5.includes("or")||n5.includes("matier");
-  const wReits =n5.includes("immob");
+  // ── Classes ───────────────────────────────────────────────────────
+  const wETF    =n5===""||n5.includes("etf");
+  const wStocks =n5.includes("action");
+  const wBonds  =n5.includes("oblig");
+  const wGold   =n5.includes("or")||n5.includes("matier");
+  const wReits  =n5.includes("immob");
   const onlyCrypto=n5.trim()==="crypto";
-  const onlyBonds =n5.trim()==="obligation"||n5.trim()==="obligations";
+  const onlyBonds =n5.trim().startsWith("obligation");
 
-  // ESG
+  // ── ESG ───────────────────────────────────────────────────────────
   const esgStrict =n4.includes("strict");
   const esgPartial=n4.includes("armement")||n4.includes("tabac");
 
-  // MaxAssets
-  let maxAssets=n7.includes("concentre")||n7.includes("5 actifs")?6
-               :n7.includes("large")||n7.includes("15")?20:10;
+  // ── Taille cible ──────────────────────────────────────────────────
+  const targetN=n7.includes("concentre")||n7.includes("5 actifs")?5
+               :n7.includes("large")||n7.includes("15")?16:9;
 
-  const blocked=new Set(BANK_BLOCKED[q9]||[]);
+  const blocked=new Set<string>(BANK_BLOCKED[q9]||[]);
 
-  // Cas crypto seule
-  if(onlyCrypto||(wCrypto&&!wETF&&!wStocks&&!wBonds)){
-    const cr=CAT.filter(a=>a.type==="crypto"&&!blocked.has(a.s));
-    return{symbols:dedup(cr).map(a=>a.s).slice(0,maxAssets),
-      minBondPct:0,minGoldPct:0,minReitPct:0,minCryptoPct:30};
-  }
-
-  // Filtre principal
-  const filter=(relaxTypes:boolean)=>CAT.filter(a=>{
-    if(zEM &&a.zone!=="em" &&a.zone!=="any")return false;
-    if(zUSA&&a.zone!=="usa"&&a.zone!=="any")return false;
-    if(zEU &&a.zone!=="europe"&&a.zone!=="any")return false;
-    // onlyBonds : priorité absolue
-    if(onlyBonds&&a.type!=="bond")return false;
-    // Cas normal
-    if(a.type==="crypto"&&!wCrypto)return false;
-    if(!relaxTypes){
-      if(!wETF   &&a.type==="etf")      return false;
-      if(!wStocks&&a.type==="stock")    return false;
-      if(!wGold  &&a.type==="gold")     return false;
-      if(!wGold  &&a.type==="commodity")return false;
-      if(!wReits &&a.type==="reit")     return false;
+  // ── Helper : choisir le premier actif disponible ──────────────────
+  const pick=(...syms:string[]):Asset|null=>{
+    for(const s of syms){
+      const a=CAT.find(x=>x.s===s);
+      if(!a||blocked.has(s))continue;
+      if(esgStrict&&!a.esg)continue;
+      if(esgPartial&&a.excl_esg)continue;
+      if(!noSup){
+        const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av)||(wCrypto&&a.type==="crypto");
+        if(!ok)continue;
+      }
+      return a;
     }
-    if(!wBonds&&a.type==="bond"&&risk==="aggressive")return false;
-    if(esgStrict&&!a.esg)return false;
-    if(esgPartial&&a.excl_esg)return false;
-    if(!noSup){
-      const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av)||(wCrypto&&a.type==="crypto");
-      if(!ok)return false;
+    return null;
+  };
+
+  const universe:Asset[]=[];
+  const add=(a:Asset|null)=>{if(a&&!universe.find(u=>u.s===a.s))universe.push(a);};
+
+  // ══════════════════════════════════════════════════════════════════
+  // CAS 1 : CRYPTO SEULE
+  // ══════════════════════════════════════════════════════════════════
+  if(onlyCrypto||(wCrypto&&!wETF&&!wStocks&&!wBonds&&!wGold&&!wReits)){
+    const cr=dedup(CAT.filter(a=>a.type==="crypto"&&!blocked.has(a.s)));
+    const syms=cr.map(a=>a.s).slice(0,targetN);
+    return{symbols:syms,minBondPct:0,minGoldPct:0,minReitPct:0,
+           minCryptoPct:30,minEMPct:0,riskProfile:risk};
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // CAS 2 : OBLIGATIONS SEULES
+  // ══════════════════════════════════════════════════════════════════
+  if(onlyBonds){
+    // Obligations EUR prioritaires pour AV/PEA, USD si CTO seul
+    const eurBonds=["XGLE.DE","IEAG.L","IBGS.L","IEGE.L","VGOV.L","AGGH.L"];
+    const usdBonds=["AGG","IEF","TLT","LQD","VWOB"];
+    const useUSD=wCTO&&!wPEA&&!wAV&&!zEU&&!zMonde;
+    const preferred=zEM?["VWOB","IEAG.L","XGLE.DE"]:useUSD?usdBonds:eurBonds;
+    for(const s of preferred){const a=pick(s);if(a)universe.push(a);}
+    if(universe.length<3){
+      for(const s of [...eurBonds,...usdBonds]){const a=pick(s);add(a);}
     }
-    if(blocked.has(a.s))return false;
-    if(risk==="defensive"&&["TSLA","NVDA","AMD","BTC-USD","ETH-USD","SOL-USD","KWEB","MCHI"].includes(a.s))return false;
-    return true;
-  });
-
-  let pool=dedup(filter(false));
-  // Anti-doublon: si MSCI World present, supprimer les sous-indices US
-  const WDEDUPS=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
-  const USDEDUPS=["SP500","NASDAQ100","EUROSTOXX50","MSCI_EUROPE","EU_SMALL_CAP","FR_MID_CAP"];
-  const hasW=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(hasW&&!zUSA&&!zEU){
-    const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
-    pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
-  }
-  // Limiter ETF pays EM: max 3 ETF pays (Inde, Chine, Taiwan, HK, Corée)
-  const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
-  const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(emCountryETFs.length>3){
-    // Garder les 3 meilleurs TER
-    const keep=emCountryETFs.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
-    pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
-  }
-  // Garder 1 seul ETF monde parmi les world dedups
-  const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(wETFs.length>1){
-    const best=wETFs.reduce((b,a)=>{
-      if(wPEA&&a.pea&&!b.pea)return a;
-      if(wPEA&&!a.pea&&b.pea)return b;
-      return a.ter<b.ter?a:b;
-    });
-    pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
+    const syms=universe.slice(0,targetN).map(a=>a.s);
+    return{symbols:syms,minBondPct:60,minGoldPct:0,minReitPct:0,
+           minCryptoPct:0,minEMPct:0,riskProfile:risk};
   }
 
-  // ── Enrichissement PEA — ETF d'abord, actions seulement si aucun ETF monde
-  if(wPEA){
-    // 1) Ajouter ETF PEA complémentaires s'il en manque
-    const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
-    for(const sym of PEA_ETF_EXTRA){
-      const asset=CAT.find(a=>a.s===sym);
-      if(asset&&asset.pea&&!pool.find(a=>a.s===sym)&&!blocked.has(sym)&&
-         (!esgStrict||asset.esg)&&(!esgPartial||!asset.excl_esg)){
-        pool.push(asset);
+  // ══════════════════════════════════════════════════════════════════
+  // CAS 3 : PORTEFEUILLE STANDARD
+  // ══════════════════════════════════════════════════════════════════
+
+  // ── CORE : 1 ETF flagship par zone ────────────────────────────────
+  // Règle absolue : jamais deux ETFs sur le même sous-jacent
+  if(wETF||(!wStocks&&!wBonds)){
+    let flagship:Asset|null=null;
+
+    if(zEM){
+      if(esgStrict) flagship=pick("ESGE","AEEM.PA");
+      else flagship=pick(
+        wPEA?"PAEEM.PA":"x",  // PEA EM
+        "IEMG","PAEEM.PA","VWO"  // CTO EM
+      );
+    } else if(zUSA){
+      if(esgStrict) flagship=pick("SUSL");
+      else flagship=pick(
+        wPEA?"PE500.PA":"x",wPEA?"PSP5.PA":"x",wPEA?"ESE.PA":"x",
+        "SXR8.DE","CSPX.L","VOO"
+      );
+    } else if(zEU){
+      if(esgStrict) flagship=pick("IUES.L","SUWS.L");
+      else flagship=pick(
+        wPEA?"MEUD.PA":"x",wPEA?"C50.PA":"x",wPEA?"SMEA.PA":"x",
+        "EXW1.DE","MEUD.PA"
+      );
+    } else { // monde — logique core-satellite selon profil
+      if(esgStrict){
+        flagship=pick(wPEA?"PANX.PA":"x","MWRD.L","HMWO.L","SUWS.L");
+      } else if(risk==="aggressive"){
+        // Agressif : sous-indices directs, plus de rendement, moins de dilution
+        // Pas d'ETF monde — on va chercher SP500 + NASDAQ + EM
+        flagship=pick(
+          wPEA?"PE500.PA":"x",   // SP500 PEA
+          "SXR8.DE","CSPX.L","VOO" // SP500 CTO/AV
+        );
+      } else if(risk==="balanced"){
+        // Dynamique : ETF monde + 1 satellite SP500
+        flagship=pick(
+          wPEA?"PANX.PA":"x",wPEA?"CW8.PA":"x",
+          wAV?"VWCE.DE":"x","VWCE.DE","PANX.PA","EUNL.DE"
+        );
+      } else {
+        // Défensif/Modéré : ETF monde pur, large diversification, faible coût
+        flagship=pick(
+          wPEA?"PANX.PA":"x",wPEA?"CW8.PA":"x",
+          wAV?"VWCE.DE":"x","VWCE.DE","PANX.PA","EUNL.DE"
+        );
       }
     }
-    pool=dedup(pool);
-    // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA présent
-    const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
-    const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
-    if(!hasWorldPEA&&pool.filter(a=>a.type==="etf"&&a.pea).length<3){
-      const peaStocks=CAT.filter(a=>
-        a.type==="stock"&&a.pea&&!blocked.has(a.s)&&
-        (a.zone===(!zEM&&!zUSA?"europe":zEM?"em":zUSA?"usa":"europe")||
-         (!zEM&&!zUSA&&!zEU))&&
-        (!esgStrict||a.esg)&&(!esgPartial||!a.excl_esg)
-      );
-      pool=[...pool,...dedup(peaStocks)];
-      pool=dedup(pool);
+
+    add(flagship);
+
+    // ── SATELLITE 1 : Complément EM pour zone monde ────────────────
+    if(zMonde&&!esgStrict&&targetN>=8){
+      const emComp=pick(wPEA?"PAEEM.PA":"x","IEMG","PAEEM.PA","VWO");
+      if(emComp&&flagship&&emComp.dedup!==flagship.dedup)add(emComp);
+    }
+
+    // ── SATELLITE 2 : SP500 ou NASDAQ pour profil agressif monde ───
+    // Agressif : flagship=SP500, on ajoute NASDAQ comme satellite
+    if(zMonde&&risk==="aggressive"&&!esgStrict&&targetN>=8){
+      const nasdaq=pick(wPEA?"PUST.PA":"x","EQQQ.DE","QQQ");
+      if(nasdaq&&flagship&&nasdaq.dedup!==flagship.dedup)add(nasdaq);
+    }
+    // Dynamique monde : ETF monde + satellite SP500 pour surpondérer USA
+    if(zMonde&&risk==="balanced"&&!esgStrict&&targetN>=8){
+      const sp=pick(wPEA?"PE500.PA":"x","SXR8.DE","VOO");
+      if(sp&&flagship&&sp.dedup!==flagship.dedup)add(sp);
+    }
+
+    // ── SATELLITE 3 : NASDAQ pour zone USA ───────────────────────────
+    if(zUSA&&risk!=="defensive"&&risk!=="moderate"&&targetN>=8&&!esgStrict){
+      const nasdaq=pick(wPEA?"PUST.PA":"x","EQQQ.DE","QQQ");
+      if(nasdaq&&flagship&&nasdaq.dedup!==flagship.dedup)add(nasdaq);
+    }
+
+    // ── SATELLITE 3 : Compléments pour large diversification ──────
+    if(targetN>=15&&!esgStrict){
+      // Small cap Europe
+      const sc=pick(wPEA?"EESM.PA":"x","ZPRX.DE","WSML.L");
+      add(sc);
+      // Dividendes monde (seulement CTO)
+      if(!wPEA){
+        const div=pick("VHYL.L","IDVY.L","WQDV.L");
+        add(div);
+      }
     }
   }
 
-  // onlyBonds: forcer pool = bonds uniquement
-  if(onlyBonds){
-    let bp=pool.filter(a=>a.type==="bond");
-    if(bp.length<2) bp=dedup(CAT.filter(a=>a.type==="bond"&&!blocked.has(a.s)));
-    pool=bp;
-  }
-  // ── Auto-add obligations pour défensif/modéré ─────────────────
-  if((risk==="defensive"||risk==="moderate")&&!onlyBonds&&!onlyCrypto&&
-     pool.filter(a=>a.type==="bond").length<1){
-    const bondFallback=dedup(CAT.filter(a=>
-      a.type==="bond"&&!blocked.has(a.s)&&
-      (noSup||(wCTO&&a.cto)||(wAV&&a.av))&&
-      (!zEM||a.zone==="em"||a.zone==="any")&&
-      (!zUSA||a.zone==="usa"||a.zone==="any")
-    ));
-    pool=[...pool,...bondFallback.slice(0,2)];
-    pool=dedup(pool);
-  }
+  // ── OBLIGATIONS ───────────────────────────────────────────────────
+  // Ajout selon profil : defensif→3 bonds, moderate→1-2, agressif→0 sauf si demandé
+  const nBonds=onlyBonds?targetN
+    :risk==="defensive"?Math.min(3,targetN-universe.length)
+    :risk==="moderate"&&(wBonds||targetN>=8)?Math.min(2,targetN-universe.length)
+    :wBonds?Math.min(2,targetN-universe.length):0;
 
-  // ── Fallback générique si < 4 ─────────────────────────────────
-  if(pool.length<4){
-    pool=dedup(filter(true));
-    if(pool.length<4){
-      // Dernier recours : monde entier sans filtre zone
-      pool=dedup(CAT.filter(a=>{
-        if(a.type==="crypto"&&!wCrypto)return false;
-        if(esgStrict&&!a.esg)return false;
-        if(!noSup){const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av)||(wCrypto&&a.type==="crypto");if(!ok)return false;}
-        if(blocked.has(a.s))return false;
-        return true;
-      }));
+  if(nBonds>0){
+    // Sélection bonds adaptée au contexte
+    const isEurContext=wPEA||wAV||zEU||zMonde;
+    const isUSDContext=wCTO&&!wAV&&!wPEA&&(zUSA||!isEurContext);
+
+    if(zEM){
+      add(pick("VWOB"));if(universe.filter(a=>a.type==="bond").length<nBonds)add(pick("IEAG.L","XGLE.DE"));
+    } else if(isUSDContext){
+      const us=["AGG","IEF","TLT","LQD"];for(const s of us){if(universe.filter(a=>a.type==="bond").length<nBonds)add(pick(s));}
+    } else {
+      // EUR bonds prioritaires
+      const eu=risk==="defensive"
+        ?["IBGS.L","IEGE.L","XGLE.DE","IEAG.L"]
+        :["XGLE.DE","IEAG.L","IBGS.L"];
+      for(const s of eu){if(universe.filter(a=>a.type==="bond").length<nBonds)add(pick(s));}
     }
   }
 
-  // ── Slots mandatoires pour classes demandées ──────────────────
-  const mandatory:Asset[]=[];
-  const typeIn=(t:string)=>pool.some(a=>a.type===t);
-  if(wGold){const g=pool.find(a=>a.type==="gold"||a.type==="commodity");if(g)mandatory.push(g);}
-  // Or fallback : si gold absent du pool mais demandé, ajouter GLD directement
-  if(wGold&&mandatory.filter(a=>a.type==="gold"||a.type==="commodity").length===0){
-    const goldFb=CAT.find(a=>a.s==="GLD"&&!blocked.has("GLD"));
-    if(goldFb)mandatory.push(goldFb);
+  // ── OR ────────────────────────────────────────────────────────────
+  if(wGold){
+    add(pick(wPEA?"x":"SGLD.L",wCTO&&!wPEA?"IAU":"x","GLD"));
   }
-  if(wReits){const r=pool.find(a=>a.type==="reit");if(r)mandatory.push(r);}
-  if(wBonds||(risk==="defensive"||risk==="moderate")){
-    const bonds=pool.filter(a=>a.type==="bond").slice(0,risk==="defensive"?3:2);
-    bonds.forEach(b=>{if(!mandatory.find(m=>m.s===b.s))mandatory.push(b);});
+
+  // ── IMMOBILIER ────────────────────────────────────────────────────
+  if(wReits){
+    add(pick(wPEA?"EPRE.PA":"x","REET",zUSA?"VNQ":"REET"));
   }
-  if(wCrypto){const cr=pool.find(a=>a.type==="crypto");if(cr)mandatory.push(cr);}
 
-  const mandSet=new Set(mandatory.map(a=>a.s));
-  const rest=pool.filter(a=>!mandSet.has(a.s)).sort((a,b)=>{
-    const sc=(x:Asset)=>(x.type==="etf"?20:x.type==="stock"?10:5)+(x.esg?2:0)+(1-Math.min(x.ter,1))*3;
-    return sc(b)-sc(a);
-  });
+  // ── CRYPTO ────────────────────────────────────────────────────────
+  if(wCrypto){
+    const cr=dedup(CAT.filter(a=>a.type==="crypto"&&!blocked.has(a.s)));
+    cr.slice(0,2).forEach(a=>{add(a);});
+  }
 
-  const universe=[...mandatory,...rest].slice(0,maxAssets);
-  const symbols=universe.map(a=>a.s);
+  // ── ACTIONS INDIVIDUELLES ─────────────────────────────────────────
+  // Seulement si explicitement demandées ET si elles n'overlappent pas le flagship
+  if(wStocks&&universe.length<targetN){
+    // Stocks exclus car déjà dans l'ETF flagship
+    const OVERLAP:Record<string,string[]>={
+      "PANX.PA":["AAPL","MSFT","NVDA","GOOGL","AMZN","META","TSLA"],
+      "CW8.PA": ["AAPL","MSFT","NVDA","GOOGL","AMZN","META","TSLA"],
+      "VWCE.DE":["AAPL","MSFT","NVDA","GOOGL","AMZN","META"],
+      "EUNL.DE":["ASML.AS","SAP.DE","SIE.DE","NOVO-B.CO","ROG.SW"],
+      "MEUD.PA":["ASML.AS","SAP.DE","SIE.DE","AIR.PA","OR.PA","SAN.PA","ALV.DE","MC.PA"],
+      "C50.PA": ["ASML.AS","SAP.DE","SIE.DE","AIR.PA","OR.PA","SAN.PA","ALV.DE","MC.PA"],
+      "EXW1.DE":["ASML.AS","SAP.DE","SIE.DE","NOVO-B.CO","ROG.SW","NESN.SW"],
+      "SXR8.DE":["AAPL","MSFT","NVDA","GOOGL","AMZN","META"],
+      "PE500.PA":["AAPL","MSFT","NVDA","GOOGL","AMZN","META"],
+      "IEMG":   ["TCEHY","BABA","SE","BIDU","NU"],
+      "VWO":    ["TCEHY","BABA","SE"],
+      "PAEEM.PA":["TCEHY","BABA"],
+    };
+    const excluded=new Set<string>();
+    universe.forEach(a=>{(OVERLAP[a.s]||[]).forEach(s=>excluded.add(s));});
 
-  const minBondPct  =onlyBonds?80:risk==="defensive"&&wBonds?30:risk==="defensive"?15:wBonds?12:0;
-  const minGoldPct  =wGold?6:0;
-  const minReitPct  =wReits?5:0;
+    const stocks=CAT.filter(a=>{
+      if(a.type!=="stock")return false;
+      if(universe.find(u=>u.s===a.s))return false;
+      if(excluded.has(a.s))return false;
+      if(blocked.has(a.s))return false;
+      if(esgStrict&&!a.esg)return false;
+      if(esgPartial&&a.excl_esg)return false;
+      if(!noSup){const ok=(wPEA&&a.pea)||(wCTO&&a.cto)||(wAV&&a.av);if(!ok)return false;}
+      // Zone matching
+      if(zEM &&a.zone!=="em") return false;
+      if(zUSA&&a.zone!=="usa")return false;
+      if(zEU &&a.zone!=="europe")return false;
+      // Défensif : pas d'actions volatiles
+      if(risk==="defensive"&&["TSLA","NVDA","META","KWEB","BABA","SE"].includes(a.s))return false;
+      return true;
+    });
+
+    const maxStocks=Math.min(targetN-universe.length, targetN>=15?10:6);
+    stocks.slice(0,maxStocks).forEach(a=>add(a));
+  }
+
+  // ── FALLBACK si trop peu d'actifs ─────────────────────────────────
+  if(universe.length<3){
+    ["PANX.PA","VWCE.DE","SXR8.DE","MEUD.PA","XGLE.DE"].forEach(s=>{
+      const a=CAT.find(x=>x.s===s);if(a&&!blocked.has(s)&&!universe.find(u=>u.s===s))universe.push(a);
+    });
+  }
+
+  const symbols=universe.slice(0,targetN).map(a=>a.s);
+
+  // ── Contraintes Markowitz ─────────────────────────────────────────
+  const minBondPct=onlyBonds?70:risk==="defensive"?30:risk==="moderate"&&wBonds?15:wBonds?10:0;
+  const minGoldPct=wGold?6:0;
+  const minReitPct=wReits?5:0;
   const minCryptoPct=wCrypto&&!onlyCrypto?5:0;
-  // Zone EM : forcer au moins 40% en actifs EM dans Markowitz
-  const minEMPct    =zEM?40:0;
+  const minEMPct=zEM?35:0;
 
-  console.log(`[v5] z=${q6}|r=${risk}|s=${q8}|b=${q9}|esg=${q4} → [${symbols.join(",")}] bonds>=${minBondPct}% em>=${minEMPct}%`);
-  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct};
+  // ── Disclaimer ESG ──────────────────────────────────────────────
+  let disclaimer:string|undefined;
+  if(esgStrict){
+    const hasESGEtf=universe.some(a=>a.esg&&a.type==="etf");
+    if(!hasESGEtf&&wPEA){
+      disclaimer="⚠️ Aucun ETF MSCI World SRI éligible PEA n'existe à ce jour. Ce portefeuille applique un filtre ESG sur les actions individuelles PEA disponibles. Pour une exposition ETF ESG pure, un CTO avec MWRD.L ou SUWS.L serait plus adapté.";
+    } else if(!hasESGEtf){
+      disclaimer="⚠️ Le filtre ESG strict est appliqué sur les actions disponibles. Les critères ESG varient selon les émetteurs — ce portefeuille exclut les secteurs armement, tabac et combustibles fossiles.";
+    }
+  }
+  console.log(\`[v3] z=\${q6}|risk=\${risk}|sup=\${q8}|bank=\${q9}|esg=\${q4}|diversif=\${q7} → [\${symbols.join(",")}]\`);
+  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,riskProfile:risk,disclaimer};
 }
 
 async function fetchReturns(symbols:string[],years=10):Promise<Record<string,number[]>>{
@@ -445,30 +542,23 @@ async function fetchMeta(symbols:string[]):Promise<Record<string,{name:string;ty
   }finally{client.release();}
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// OPTIMISEUR MARKOWITZ v2 — Gradient + Pénalités + Contraintes profil
-// ═══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
+// OPTIMISEUR MARKOWITZ v3 — Monte Carlo + Gradient Ascent
+// Contraintes dures : bonds selon profil, stocks max 12%, geo max 55%
+// ════════════════════════════════════════════════════════════════════
 
-// ── Contraintes obligatoires par profil de risque ──────────────────
-function riskBounds(risk:string):{minBond:number;maxBond:number;maxVol:number}{
-  if(risk==="defensive")return{minBond:0.40,maxBond:0.80,maxVol:0.10};
-  if(risk==="moderate")  return{minBond:0.15,maxBond:0.40,maxVol:0.18};
-  if(risk==="balanced")  return{minBond:0.05,maxBond:0.20,maxVol:0.28};
-  return{minBond:0.00,maxBond:0.10,maxVol:0.50}; // aggressive
-}
-
-// ── Projection sur le simplexe avec contraintes min/max ───────────
 function projectSimplex(w:number[],wMin:number[],wMax:number[]):number[]{
   const N=w.length;w=[...w];
-  for(let iter=0;iter<60;iter++){
-    let excess=0;
-    for(let i=0;i<N;i++){if(w[i]<wMin[i]){excess+=wMin[i]-w[i];w[i]=wMin[i];}}
-    const free=w.map((v,i)=>v>wMin[i]?i:-1).filter(i=>i>=0);
-    if(free.length>0&&excess>0){const e=excess/free.length;free.forEach(i=>{w[i]=Math.max(wMin[i],w[i]-e);});}
-    let over=0;
-    for(let i=0;i<N;i++){if(w[i]>wMax[i]){over+=w[i]-wMax[i];w[i]=wMax[i];}}
-    const free2=w.map((v,i)=>v<wMax[i]?i:-1).filter(i=>i>=0);
-    if(free2.length>0&&over>0){const e=over/free2.length;free2.forEach(i=>{w[i]=Math.min(wMax[i],w[i]+e);});}
+  for(let iter=0;iter<80;iter++){
+    // Appliquer bornes min
+    let ex=0;for(let i=0;i<N;i++){if(w[i]<wMin[i]){ex+=wMin[i]-w[i];w[i]=wMin[i];}}
+    const f1=w.map((v,i)=>v>wMin[i]?i:-1).filter(i=>i>=0);
+    if(f1.length>0&&ex>0){const e=ex/f1.length;f1.forEach(i=>{w[i]=Math.max(wMin[i],w[i]-e);});}
+    // Appliquer bornes max
+    let ov=0;for(let i=0;i<N;i++){if(w[i]>wMax[i]){ov+=w[i]-wMax[i];w[i]=wMax[i];}}
+    const f2=w.map((v,i)=>v<wMax[i]?i:-1).filter(i=>i>=0);
+    if(f2.length>0&&ov>0){const e=ov/f2.length;f2.forEach(i=>{w[i]=Math.min(wMax[i],w[i]+e);});}
+    // Normaliser
     const s=w.reduce((a,b)=>a+b,0);if(s>0)for(let i=0;i<N;i++)w[i]/=s;
     if(Math.abs(w.reduce((a,b)=>a+b,0)-1)<1e-9)break;
   }
@@ -497,18 +587,25 @@ function markowitz(
     cov[i][j]=cov[j][i]=(cv/(T-1))*52;
   }
 
-  // ── Contraintes ──────────────────────────────────────────────────
-  const {minBond,maxBond,maxVol}=riskBounds(riskProfile);
+  // ── Contraintes de poids ─────────────────────────────────────────
   const wMin=syms.map(s=>(minClass[s]||0)/100);
-  const isStock=syms.map(s=>CAT.find(a=>a.s===s)?.type==="stock");
-  const isBond =syms.map(s=>CAT.find(a=>a.s===s)?.type==="bond");
-  const wMax=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.12):maxWeight);
+  const assetTypes=syms.map(s=>CAT.find(a=>a.s===s)?.type||"etf");
+  const wMax=syms.map((_,i)=>{
+    if(assetTypes[i]==="stock")return Math.min(maxWeight,0.12);
+    if(assetTypes[i]==="crypto")return Math.min(maxWeight,0.25);
+    return maxWeight;
+  });
 
-  // Forcer les contraintes de bonds selon profil
-  const bondIdxs=syms.map((s,i)=>isBond[i]?i:-1).filter(i=>i>=0);
+  // Contraintes bonds selon profil
+  const bondIdxs=syms.map((s,i)=>assetTypes[i]==="bond"?i:-1).filter(i=>i>=0);
   if(bondIdxs.length>0){
-    const share=minBond/bondIdxs.length;
-    bondIdxs.forEach(i=>{if(wMin[i]<share)wMin[i]=share;});
+    const minBondShare=riskProfile==="defensive"?0.30:riskProfile==="moderate"?0.12:0;
+    const sharePerBond=minBondShare/bondIdxs.length;
+    bondIdxs.forEach(i=>{if(wMin[i]<sharePerBond)wMin[i]=sharePerBond;});
+    // Cap bonds pour profil agressif
+    if(riskProfile==="aggressive"){
+      bondIdxs.forEach(i=>{wMax[i]=Math.min(wMax[i],0.08);});
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────────────
@@ -517,52 +614,13 @@ function markowitz(
   const pVol=(w:number[])=>Math.sqrt(Math.max(0,pVar(w)));
   const covW=(w:number[])=>cov.map(row=>row.reduce((a,x,j)=>a+x*w[j],0));
 
-  // ── 6 Pénalités ──────────────────────────────────────────────────
-  const penalty=(w:number[])=>{
-    let p=0;
-    // 1. Pénalité allocation bonds vs profil
-    const bondW=bondIdxs.reduce((a,i)=>a+w[i],0);
-    if(bondW>maxBond)p+=10*(bondW-maxBond);
-    if(bondW<minBond)p+=10*(minBond-bondW);
-    // 2. Pénalité overlap ETF/stocks (stock dans indice ETF déjà présent)
-    const etfIdxs=syms.map((s,i)=>(!isStock[i]&&!isBond[i])?i:-1).filter(i=>i>=0);
-    const stockIdxs=syms.map((s,i)=>isStock[i]?i:-1).filter(i=>i>=0);
-    if(etfIdxs.length>0&&stockIdxs.length>0){
-      const etfW=etfIdxs.reduce((a,i)=>a+w[i],0);
-      const stW=stockIdxs.reduce((a,i)=>a+w[i],0);
-      if(etfW>0.3&&stW>0.2)p+=3*stW*etfW;
-    }
-    // 3. Pénalité secteur tech (>50% en tech)
-    const techSyms=["NVDA","MSFT","AAPL","GOOGL","META","ADBE","NOW","CRM","NFLX","AMZN","TSLA","AVGO","QQQ","PUST.PA","EQQQ.DE"];
-    const techW=syms.reduce((a,s,i)=>a+(techSyms.includes(s)?w[i]:0),0);
-    if(techW>0.5)p+=4*(techW-0.5);
-    // 4. Pénalité concentration top-3
-    const sorted=[...w].sort((a,b)=>b-a);
-    const top3=sorted.slice(0,3).reduce((a,b)=>a+b,0);
-    if(top3>0.60)p+=5*(top3-0.60);
-    // 5. Pénalité trop peu de positions actives
-    const active=w.filter(x=>x>0.015).length;
-    if(active<3)p+=5*(3-active);
-    // 6. Pénalité géo (>60% sur une seule zone pour monde)
-    const zones=["usa","europe","em"];
-    for(const z of zones){
-      const zW=syms.reduce((a,s,i)=>a+(CAT.find(a=>a.s===s)?.zone===z?w[i]:0),0);
-      if(zW>0.60)p+=3*(zW-0.60);
-    }
-    return p;
-  };
-
-  // ── Score total ──────────────────────────────────────────────────
   const score=(w:number[])=>{
     const r=pRet(w),v=pVar(w),vol=Math.sqrt(Math.max(0,v));
-    let base:number;
-    if(method==="minvariance")base=-v;
-    else if(method==="maxsharpe")base=vol>0?(r-rfRate)/vol:-999;
-    else base=r-0.5*v;
-    return base-penalty(w);
+    if(method==="minvariance")return -v;
+    if(method==="maxsharpe")return vol>0?(r-rfRate)/vol:-999;
+    return r-0.5*v;
   };
 
-  // ── Gradient analytique ──────────────────────────────────────────
   const gradient=(w:number[])=>{
     const r=pRet(w),v=pVar(w),vol=Math.sqrt(Math.max(0,v));
     const sw=covW(w);
@@ -575,93 +633,74 @@ function markowitz(
     return mu.map((m,i)=>m-sw[i]);
   };
 
-  // ── Initialisations intelligentes selon profil ───────────────────
-  const initPoints:number[][]=[];
+  // ── Initialisations intelligentes ────────────────────────────────
+  const inits:number[][]=[];
   // 1. Uniforme
-  initPoints.push(projectSimplex(new Array(N).fill(1/N),wMin,wMax));
-  // 2. Weighted par mu (favorise haut rendement)
-  const muPos=mu.map(m=>Math.max(0,m)+0.01);
-  const muSum=muPos.reduce((a,b)=>a+b,0);
-  initPoints.push(projectSimplex(muPos.map(x=>x/muSum),wMin,wMax));
-  // 3. Weighted par 1/vol (favorise faible risque)
-  const vols=syms.map((_,i)=>Math.sqrt(Math.max(0,cov[i][i]))||0.01);
-  const invV=vols.map(v=>1/v);const invSum=invV.reduce((a,b)=>a+b,0);
-  initPoints.push(projectSimplex(invV.map(x=>x/invSum),wMin,wMax));
-  // 4. Focus bonds (pour défensif)
-  if(bondIdxs.length>0){
-    const bStart=new Array(N).fill(0.01);
-    bondIdxs.forEach(i=>{bStart[i]=0.6/bondIdxs.length;});
-    initPoints.push(projectSimplex(bStart,wMin,wMax));
-  }
+  inits.push(projectSimplex(new Array(N).fill(1/N),wMin,wMax));
+  // 2. Pondéré par mu positif
+  const muP=mu.map(m=>Math.max(m,0.01));const muS=muP.reduce((a,b)=>a+b,0);
+  inits.push(projectSimplex(muP.map(x=>x/muS),wMin,wMax));
+  // 3. Min variance (inverse vol)
+  const vols=syms.map((_,i)=>Math.sqrt(Math.max(0,cov[i][i]))||0.1);
+  const invV=vols.map(v=>1/v);const ivS=invV.reduce((a,b)=>a+b,0);
+  inits.push(projectSimplex(invV.map(x=>x/ivS),wMin,wMax));
 
-  // ── Phase 1 : Monte Carlo intelligent (15000 trials) ─────────────
-  let bestW=initPoints[0];let bestScore=score(bestW);
-  const topCandidates:Array<{w:number[];s:number}>=[];
+  // ── Monte Carlo : 5000 trials ─────────────────────────────────────
+  let bestW=inits[0],bestScore=score(bestW);
+  const topK:number[][]=[];
+  inits.forEach(w=>{const s=score(w);if(s>bestScore){bestScore=s;bestW=[...w];}topK.push([...w]);});
 
-  for(const ip of initPoints){const sc=score(ip);if(sc>bestScore){bestScore=sc;bestW=[...ip];}topCandidates.push({w:[...ip],s:sc});}
-
-  for(let trial=0;trial<15000;trial++){
+  for(let t=0;t<5000;t++){
     let w:number[];
-    if(trial<5000){
-      // Pure random
+    if(t<2500){
       const raw=syms.map(()=>Math.random());const s=raw.reduce((a,b)=>a+b,0);
       w=projectSimplex(raw.map(x=>x/s),wMin,wMax);
-    } else if(trial<10000){
-      // Perturbation d'un bon candidat
-      const base=topCandidates[trial%Math.min(topCandidates.length,20)].w;
-      const noise=base.map(x=>x+0.1*(Math.random()-0.5));
-      const s=noise.reduce((a,b)=>a+Math.abs(b),0);
-      w=projectSimplex(noise.map(x=>Math.abs(x)/s),wMin,wMax);
     } else {
-      // Mixte entre 2 bons candidats
-      const a=topCandidates[trial%Math.min(topCandidates.length,10)].w;
-      const b2=topCandidates[(trial+3)%Math.min(topCandidates.length,10)].w;
-      const alpha=Math.random();
-      w=projectSimplex(a.map((x,i)=>x*alpha+b2[i]*(1-alpha)),wMin,wMax);
+      // Perturbation des meilleurs
+      const base=topK[t%Math.min(topK.length,15)];
+      const noisy=base.map(x=>Math.max(0,x+(Math.random()-0.5)*0.15));
+      const s=noisy.reduce((a,b)=>a+b,0);
+      w=projectSimplex(noisy.map(x=>x/s),wMin,wMax);
     }
     const sc=score(w);
     if(sc>bestScore){bestScore=sc;bestW=[...w];}
-    // Garder top-30 candidats
-    if(topCandidates.length<30||sc>topCandidates[topCandidates.length-1].s){
-      topCandidates.push({w:[...w],s:sc});
-      topCandidates.sort((a,b)=>b.s-a.s);
-      if(topCandidates.length>30)topCandidates.pop();
+    if(topK.length<20||sc>score(topK[topK.length-1])){
+      topK.push([...w]);topK.sort((a,b)=>score(b)-score(a));
+      if(topK.length>20)topK.pop();
     }
   }
 
-  // ── Phase 2 : Hill Climbing depuis top-20 candidats (3000 iters) ─
-  const hillStarts=topCandidates.slice(0,20).map(c=>c.w);
-  hillStarts.push(bestW);
-
-  for(const start of hillStarts){
-    let w=[...start];let prevScore=score(w);
-    let lr=0.05;
-    for(let step=0;step<150;step++){  // 150 steps × 21 starts ≈ 3150 iters
+  // ── Gradient Ascent : 10 départs × 200 steps ─────────────────────
+  const starts=[...topK.slice(0,10),[...bestW],...inits];
+  for(const start of starts){
+    let w=[...start],lr=0.04,prev=score(w);
+    for(let s=0;s<200;s++){
       const g=gradient(w);
-      const gnorm=Math.sqrt(g.reduce((a,b)=>a+b*b,0));
-      if(gnorm<1e-10)break;
-      const gn=g.map(x=>x/gnorm);
-      const wNew=projectSimplex(w.map((x,i)=>x+lr*gn[i]),wMin,wMax);
+      const gn=Math.sqrt(g.reduce((a,b)=>a+b*b,0));
+      if(gn<1e-9)break;
+      const step=g.map(x=>x/gn);
+      const wNew=projectSimplex(w.map((x,i)=>x+lr*step[i]),wMin,wMax);
       const ns=score(wNew);
-      if(ns>prevScore){w=wNew;prevScore=ns;lr=Math.min(lr*1.05,0.2);if(ns>bestScore){bestScore=ns;bestW=[...w];}}
-      else{lr*=0.6;if(lr<1e-6)break;}
+      if(ns>prev){w=wNew;prev=ns;lr=Math.min(lr*1.05,0.25);if(ns>bestScore){bestScore=ns;bestW=[...w];}}
+      else{lr*=0.55;if(lr<1e-6)break;}
     }
   }
 
   // ── Pruning positions < 1.5% ─────────────────────────────────────
   const pruned=bestW.map(x=>x<0.015?0:x);
-  const psum=pruned.reduce((a,b)=>a+b,0);
-  const finalW=psum>0?projectSimplex(pruned.map(x=>x/psum),wMin,wMax):bestW;
+  const ps=pruned.reduce((a,b)=>a+b,0);
+  const finalW=ps>0.5?projectSimplex(pruned.map(x=>x/ps),wMin,wMax):bestW;
 
   // ── Résultats ────────────────────────────────────────────────────
-  const finalRet=pRet(finalW),finalVol=pVol(finalW);
-  const finalSharpe=finalVol>0?(finalRet-rfRate)/finalVol:0;
+  const fRet=pRet(finalW),fVol=pVol(finalW);
+  const fSharpe=fVol>0?(fRet-rfRate)/fVol:0;
   const portR:number[]=[];
   for(let t=0;t<T;t++){let pr=0;syms.forEach((s,i)=>{pr+=finalW[i]*(returns[s][t]||0);});portR.push(pr);}
   portR.sort((a,b)=>a-b);
   const var95=Math.abs(portR[Math.floor(portR.length*0.05)]||0)*Math.sqrt(52);
-  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(finalW[i]>0.005)weights[s]=finalW[i];});
-  return{weights,ret:finalRet,vol:finalVol,sharpe:finalSharpe,var95};
+  const weights:Record<string,number>={};
+  syms.forEach((s,i)=>{if(finalW[i]>0.005)weights[s]=finalW[i];});
+  return{weights,ret:fRet,vol:fVol,sharpe:fSharpe,var95};
 }
 
 type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var95:number;rec?:boolean;weights:Weight[];frontier:FPt[]};
@@ -669,7 +708,7 @@ type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var9
 export async function POST(req:NextRequest){
   const{capital=50000,answers={}}=await req.json();
   try{
-    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct}=selectUniverse(answers);
+    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,riskProfile,disclaimer}=selectUniverse(answers);
     const returns=await fetchReturns(symbols,15);
     const validSyms=Object.keys(returns);
     if(validSyms.length<3)return NextResponse.json({error:"Pas assez de donnees historiques pour ce profil"},{status:500});
@@ -682,10 +721,9 @@ export async function POST(req:NextRequest){
     const emSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&(a.zone==="em")));
     const minClass={...distrib(bondSyms,minBondPct),...distrib(goldSyms,minGoldPct),...distrib(reitSyms,minReitPct),...distrib(cryptoSyms,minCryptoPct),...distrib(emSyms,minEMPct)};
     const frontier:FPt[]=[];
-    const riskProf=(()=>{const q3=answers["3"]||"",q2=answers["2"]||"";if(q3.includes("10%"))return"defensive";if(q3.includes("20%"))return"moderate";if(q3.includes("35%"))return"balanced";if(q3.toLowerCase().includes("limite"))return"aggressive";if(q2.toLowerCase().includes("conservateur"))return"defensive";if(q2.toLowerCase().includes("modere"))return"moderate";if(q2.toLowerCase().includes("agressif"))return"aggressive";return"balanced";})();
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
-      const opt=markowitz(returns,method,minClass,0.28,0.03,riskProf);
+      const opt=markowitz(returns,method,minClass,0.28,0.03,riskProfile);
       const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.005).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       const weights:Weight[]=rawW.map(([sym,w],i)=>({
@@ -695,6 +733,6 @@ export async function POST(req:NextRequest){
       }));
       return{method,label,rec,ret:Math.round(opt.ret*1000)/10,vol:Math.round(opt.vol*1000)/10,sharpe:Math.round(opt.sharpe*100)/100,var95:Math.round(opt.var95*1000)/10,weights,frontier};
     });
-    return NextResponse.json({results,universe:validSyms.length});
+    return NextResponse.json({results,universe:validSyms.length,...(disclaimer?{disclaimer}:{})});
   }catch(err){console.error("Optimize error:",err);return NextResponse.json({error:"Erreur serveur"},{status:500});}
 }
