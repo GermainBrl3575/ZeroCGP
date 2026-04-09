@@ -220,7 +220,7 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Caisse Epargne":      ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Banque Populaire":    ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "LCL":                 ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
-  "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI"],
+  "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
   "Binance / Coinbase":  [],
@@ -529,9 +529,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ═══════════════════════════════════════════════════════ */
   const SP500_SUBS = ["US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
     "US_BIOTECH", "US_FINANCE", "US_ENERGY", "US_INDUS", "US_CONS_D", "US_CONS_S",
-    "US_DEFENSE", "US_AERO", "US_VALUE", "US_GROWTH", "US_EW",
+    "US_DEFENSE", "US_AERO", "US_VALUE", "US_GROWTH", "US_EW", "SP500_GROWTH",
     "US_DIV", "US_DIV2", "US_DIV3", "US_DIVGROW", "US_MOMENTUM", "US_MINVOL",
-    "US_SMALL", "US_SMALL2", "US_MID"];
+    "US_SMALL", "US_SMALL2", "US_MID", "US_MATERIALS"];
   if (pool2.some(a => a.dedup === "SP500")) {
     pool2 = pool2.filter(a => !SP500_SUBS.includes(a.dedup));
   }
