@@ -307,10 +307,10 @@ function selectUniverse(answers:Record<string,string>):{
     // Broad EM couvre deja les pays -> supprimer single-country (sauf profil agressif qui veut concentrer)
     pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup));
   } else if(hasBroadEM&&!zEM&&risk==="aggressive"){
-    // Agressif: garder max 2 single-country pour diversifier
+    // Agressif: garder max 3 single-country pour diversifier
     const emCtry=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
-    if(emCtry.length>2){
-      const keep=emCtry.sort((a,b)=>a.ter-b.ter).slice(0,2).map(a=>a.dedup);
+    if(emCtry.length>3){
+      const keep=emCtry.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
       pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
     }
   } else {
@@ -370,7 +370,7 @@ function selectUniverse(answers:Record<string,string>):{
   // Enrichissement CTO/AV: garantir pool suffisant apres core-satellite
   if(!wPEA&&(wCTO||wAV||noSup)&&!onlyBonds&&!onlyCrypto){
     // Actifs UCITS avec bonnes donnees Neon, toujours disponibles CTO/AV
-    const CTO_CORE=["SXR8.DE","EQQQ.DE","VWCE.DE","EXW1.DE","VWO","MCHI","EWY"];
+    const CTO_CORE=["SXR8.DE","EQQQ.DE","VWCE.DE","EXW1.DE","VWO","MCHI","EWY","EWT","INDA"];
     for(const sym of CTO_CORE){
       const asset=CAT.find(a=>a.s===sym);
       if(!asset||blocked.has(sym)||pool.find(a=>a.s===sym))continue;
