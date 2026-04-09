@@ -19,20 +19,20 @@ interface Asset {
 /* =======================================================
    CATALOGUE v5 -- corrections finales
    - VOO + CSPX.L + SXR8.DE -> dedup:"SP500" (1 seul survit)
-   - VTI -> dedup:"SP500" (marche total US, different de S&P 500)
+   - VTI -> dedup:"SP500" (march? total US, diff?rent de S&P 500)
    - SGLD.L -> dedup:"GOLD_EU" / GLD -> dedup:"GOLD_US" (2 survivent)
-   - PANX.PA pea:true (Amundi MSCI World synthetique = PEA OK)
-   - VOO bloque banques francaises (UCITS preferable)
-   - Sectorielle US (XLK, XLV, XLF) -> supprimees (trop specialisees)
+   - PANX.PA pea:true (Amundi MSCI World synth?tique = PEA OK)
+   - VOO bloqu? banques fran?aises (UCITS pr?f?rable)
+   - Sectorielle US (XLK, XLV, XLF) -> supprim?es (trop sp?cialis?es)
    ======================================================= */
 const CAT: Asset[] = [
   // ?? ETF MONDE ?????????????????????????????????????????????????
   {s:"PANX.PA",  n:"ETF MSCI World PEA (PANX)",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
-  // CW8.PA = Amundi MSCI World Swap -- PEA eligible, meme dedup MSCI_WORLD -> garde lowest TER
+  // CW8.PA = Amundi MSCI World Swap -- PEA ?ligible, m?me dedup MSCI_WORLD -> garde lowest TER
   {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
   // EWLD.PA = version distribution de CW8
   {s:"EWLD.PA",  n:"Amundi MSCI World Swap Dist PEA",zone:"monde",type:"etf",dedup:"MSCI_WORLD", ter:0.12,pea:true, cto:true, av:true },
-  // ETF S&P 500 PEA synthetiques
+  // ETF S&P 500 PEA synth?tiques
   {s:"PE500.PA", n:"ETF SP500 PEA (PE500)",   zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
   {s:"PSP5.PA",  n:"Amundi PEA S&P 500 UCITS",      zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
   {s:"ESE.PA",   n:"BNP Easy S&P 500 UCITS",        zone:"usa",  type:"etf",dedup:"SP500",    ter:0.15,pea:true, cto:true, av:true },
@@ -44,9 +44,9 @@ const CAT: Asset[] = [
   {s:"ACWI",     n:"iShares MSCI ACWI",            zone:"monde",type:"etf",dedup:"MSCI_ACWI",     ter:0.32,pea:false,cto:true, av:false},
   {s:"MWRD.L",   n:"iShares MSCI World SRI",       zone:"monde",type:"etf",dedup:"MSCI_WORLD_SRI",ter:0.20,pea:false,cto:true, av:false,esg:true},
 
-  // ?? ETF USA -- UCITS prioritaires, VOO/SPY bloques FR ?????????
-  // Regle : CSPX.L + SXR8.DE + VOO + SPY -> meme dedup SP500 -> 1 seul
-  // SXR8.DE (0.07%) est le meilleur pour AV/CTO francais
+  // ?? ETF USA -- UCITS prioritaires, VOO/SPY bloqu?s FR ?????????
+  // R?gle : CSPX.L + SXR8.DE + VOO + SPY -> m?me dedup SP500 -> 1 seul
+  // SXR8.DE (0.07%) est le meilleur pour AV/CTO fran?ais
   {s:"SXR8.DE",  n:"iShares S&P 500 EUR",          zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:true },
   {s:"CSPX.L",   n:"iShares Core S&P 500",         zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:false},
   {s:"VOO",      n:"Vanguard S&P 500",             zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
@@ -91,7 +91,7 @@ const CAT: Asset[] = [
 
   // ?? OBLIGATIONS ???????????????????????????????????????????????
   {s:"XGLE.DE",n:"Xtrackers EUR Gov Bond",      zone:"europe",type:"bond",dedup:"EUR_GOV",    ter:0.09,pea:false,cto:true,av:true },
-  {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y (IBGS)",  zone:"europe",type:"bond",dedup:"EUR_GOV_ST",  ter:0.09,pea:false,cto:true,av:true },
+  {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y",   zone:"europe",type:"bond",dedup:"EUR_GOV", ter:0.09,pea:false,cto:true,av:true },
   {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:true },
   {s:"AGGH.L", n:"ETF Oblig Aggregate Monde (AGGH)",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
   {s:"TLT",    n:"iShares 20Y US Treasury",      zone:"usa",   type:"bond",dedup:"US_20Y",     ter:0.15,pea:false,cto:true,av:false},
@@ -171,14 +171,14 @@ const CAT: Asset[] = [
   {s:"ROG.SW",   n:"Roche",              zone:"europe",type:"stock",dedup:"ROG_SW",  ter:0,pea:false,cto:true,av:true,esg:true},
 ];
 
-// Banques -- bloquer VOO/SPY/QQQ pour les banques francaises -> utiliser UCITS
+// Banques -- bloquer VOO/SPY/QQQ pour les banques fran?aises -> utiliser UCITS
 const BANK_BLOCKED: Record<string,string[]> = {
   "BNP Paribas":      ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L","AGGH.L"],
   "Societe Generale": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
-  "Societe Generale": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
+  "Soci?t? G?n?rale": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "LCL":              ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Credit Agricole":  ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
-  "Credit Agricole":  ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
+  "Cr?dit Agricole":  ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Caisse Epargne":   ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Caisse d'?pargne": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Banque Populaire": ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
@@ -195,9 +195,9 @@ const BANK_BLOCKED: Record<string,string[]> = {
 
 function norm(s:string){
   return s.toLowerCase()
-    .replace(/[eeee]/g,"e").replace(/[aa?]/g,"a")
-    .replace(/[?uu]/g,"u").replace(/[i?]/g,"i")
-    .replace(/[o?]/g,"o").replace(/c/g,"c");
+    .replace(/[????]/g,"e").replace(/[???]/g,"a")
+    .replace(/[???]/g,"u").replace(/[??]/g,"i")
+    .replace(/[??]/g,"o").replace(/?/g,"c");
 }
 
 function dedup(assets:Asset[]):Asset[]{
@@ -254,8 +254,8 @@ function selectUniverse(answers:Record<string,string>):{
   const esgPartial=n4.includes("armement")||n4.includes("tabac");
 
   // MaxAssets
-  let maxAssets=n7.includes("concentre")||n7.includes("5 actifs")?6
-               :n7.includes("large")||n7.includes("15")?20:10;
+  let maxAssets=n7.includes("concentre")||n7.includes("5 actifs")?7
+               :n7.includes("large")||n7.includes("15")?24:14;
 
   const blocked=new Set(BANK_BLOCKED[q9]||[]);
 
@@ -271,7 +271,7 @@ function selectUniverse(answers:Record<string,string>):{
     if(zEM &&a.zone!=="em" &&a.zone!=="any")return false;
     if(zUSA&&a.zone!=="usa"&&a.zone!=="any")return false;
     if(zEU &&a.zone!=="europe"&&a.zone!=="any")return false;
-    // onlyBonds : priorite absolue
+    // onlyBonds : priorit? absolue
     if(onlyBonds&&a.type!=="bond")return false;
     // Cas normal
     if(a.type==="crypto"&&!wCrypto)return false;
@@ -303,72 +303,36 @@ function selectUniverse(answers:Record<string,string>):{
     const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
     pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
   }
-  // Limiter ETF pays EM: max 3 ETF pays (Inde, Chine, Taiwan, HK, Coree)
+  // Regle EM: si ETF broad EM present (IEMG/VWO), les single-country sont redondants
+  // Exception: zone=EM explicite -> garder les single-country pour diversifier
+  const EM_BROAD_DEDUPS=["MSCI_EM","MSCI_EM_IMI","FTSE_EM"];
   const EM_COUNTRY_DEDUPS=["MSCI_CHINA","CHINA_NET","MSCI_INDIA","MSCI_TAIWAN","MSCI_HK","MSCI_KOREA","MSCI_BRAZIL"];
-  const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
-  if(emCountryETFs.length>3){
-    // Garder les 3 meilleurs TER
-    const keep=emCountryETFs.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
-    pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
-  }
-  // Core-satellite : comportement selon profil de risque
-  // Defensif/Modere -> ETF monde pur + pas de sous-indices USA
-  // Dynamique       -> ETF monde + satellite SP500
-  // Agressif        -> SP500 + NASDAQ (pas de monde, plus concentre = plus de rendement)
-  if(!zUSA&&!zEU&&!zEM){
-    const worldETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
-    if(risk==="aggressive"){
-      // Agressif : supprimer ETF monde -> garder sous-indices directs
-      pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||!a.type||a.type!=="etf");
-      // S'assurer que SP500 et NASDAQ sont dans le pool
-      const sp500=CAT.find(a=>a.dedup==="SP500"&&!blocked.has(a.s)&&(wPEA?a.pea:(wCTO?a.cto:(wAV?a.av:true))));
-      const nasdaq=CAT.find(a=>a.dedup==="NASDAQ100"&&!blocked.has(a.s)&&(wPEA?a.pea:(wCTO?a.cto:(wAV?a.av:true))));
-      if(sp500&&!pool.find(a=>a.s===sp500.s))pool.push(sp500);
-      if(nasdaq&&!pool.find(a=>a.s===nasdaq.s))pool.push(nasdaq);
-    } else if(worldETFs.length>1){
-      // Defensif/Modere/Dynamique : garder 1 seul ETF monde (meilleur TER, PEA si besoin)
-      const best=worldETFs.reduce((b,a)=>{
-        if(wPEA&&a.pea&&!b.pea)return a;
-        if(wPEA&&!a.pea&&b.pea)return b;
-        return a.ter<b.ter?a:b;
-      });
-      pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
-      if(risk==="balanced"){
-        // Dynamique : ajouter satellite SP500 en complement
-        const sp=CAT.find(a=>a.dedup==="SP500"&&!blocked.has(a.s)&&(wPEA?a.pea:(wCTO?a.cto:(wAV?a.av:true))));
-        if(sp&&!pool.find(a=>a.s===sp.s))pool.push(sp);
-      }
-      // Dans tous les cas : garder SP500/NASDAQ si PEA sans ETF monde PEA
-      if(wPEA&&!pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea)){
-        const sp=CAT.find(a=>a.dedup==="SP500"&&a.pea&&!blocked.has(a.s));
-        const nq=CAT.find(a=>a.dedup==="NASDAQ100"&&a.pea&&!blocked.has(a.s));
-        if(sp&&!pool.find(a=>a.s===sp.s))pool.push(sp);
-        if(nq&&!pool.find(a=>a.s===nq.s))pool.push(nq);
-      }
+  const hasBroadEM=pool.some(a=>EM_BROAD_DEDUPS.includes(a.dedup)&&a.type==="etf");
+  if(hasBroadEM&&!zEM){
+    // Broad EM couvre deja les pays -> supprimer single-country pour eviter triple doublon Chine
+    pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup));
+  } else {
+    // Pas de broad EM ou zone=EM: garder max 3 single-country (les moins chers)
+    const emCountryETFs=pool.filter(a=>EM_COUNTRY_DEDUPS.includes(a.dedup)&&a.type==="etf");
+    if(emCountryETFs.length>3){
+      const keep=emCountryETFs.sort((a,b)=>a.ter-b.ter).slice(0,3).map(a=>a.dedup);
+      pool=pool.filter(a=>!EM_COUNTRY_DEDUPS.includes(a.dedup)||keep.includes(a.dedup));
     }
+  }
+  // Garder 1 seul ETF monde parmi les world dedups
+  const wETFs=pool.filter(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+  if(wETFs.length>1){
+    const best=wETFs.reduce((b,a)=>{
+      if(wPEA&&a.pea&&!b.pea)return a;
+      if(wPEA&&!a.pea&&b.pea)return b;
+      return a.ter<b.ter?a:b;
+    });
+    pool=pool.filter(a=>!WDEDUPS.includes(a.dedup)||a.s===best.s);
   }
 
-  // ?? Enrichissement CTO/AV : ajouter ETFs regionaux pour avoir assez d'actifs Neon
-  if(!wPEA&&(wCTO||wAV)&&pool.filter(a=>a.type==="etf").length<5){
-    // VWCE.DE, SXR8.DE, EQQQ.DE, MEUD.PA ont des donnees Neon
-    const CTO_EXTRA=["VWCE.DE","SXR8.DE","EQQQ.DE","MEUD.PA","PAEEM.PA","IEMG"];
-    for(const sym of CTO_EXTRA){
-      const asset=CAT.find(a=>a.s===sym);
-      if(!asset||blocked.has(sym)||pool.find(a=>a.s===sym))continue;
-      if(wCTO&&!asset.cto)continue;
-      if(wAV&&!wCTO&&!asset.av)continue;
-      if(esgStrict&&!asset.esg)continue;
-      if(esgPartial&&asset.excl_esg)continue;
-      if(zUSA&&asset.zone!=="usa"&&asset.zone!=="any")continue;
-      if(zEU&&asset.zone!=="europe"&&asset.zone!=="any")continue;
-      if(zEM&&asset.zone!=="em"&&asset.zone!=="any")continue;
-      pool.push(asset);
-    }
-    pool=dedup(pool);
-  }
   // ?? Enrichissement PEA -- ETF d'abord, actions seulement si aucun ETF monde
   if(wPEA){
-    // 1) Ajouter ETF PEA complementaires s'il en manque
+    // 1) Ajouter ETF PEA compl?mentaires s'il en manque
     const PEA_ETF_EXTRA=["PAEEM.PA","PE500.PA","PUST.PA","EESM.PA","SMC.PA","EPRE.PA","C50.PA","MEUD.PA"];
     for(const sym of PEA_ETF_EXTRA){
       const asset=CAT.find(a=>a.s===sym);
@@ -378,7 +342,7 @@ function selectUniverse(answers:Record<string,string>):{
       }
     }
     pool=dedup(pool);
-    // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA present
+    // 2) Actions PEA UNIQUEMENT si pas d'ETF monde PEA pr?sent
     const WORLD_D=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
     const hasWorldPEA=pool.some(a=>WORLD_D.includes(a.dedup)&&a.pea&&a.type==="etf");
     if(!hasWorldPEA&&pool.filter(a=>a.type==="etf"&&a.pea).length<3){
@@ -399,7 +363,7 @@ function selectUniverse(answers:Record<string,string>):{
     if(bp.length<2) bp=dedup(CAT.filter(a=>a.type==="bond"&&!blocked.has(a.s)));
     pool=bp;
   }
-  // ?? Auto-add obligations pour defensif/modere ?????????????????
+  // ?? Auto-add obligations pour d?fensif/mod?r? ?????????????????
   if((risk==="defensive"||risk==="moderate")&&!onlyBonds&&!onlyCrypto&&
      pool.filter(a=>a.type==="bond").length<1){
     const bondFallback=dedup(CAT.filter(a=>
@@ -412,7 +376,7 @@ function selectUniverse(answers:Record<string,string>):{
     pool=dedup(pool);
   }
 
-  // ?? Fallback generique si < 4 ?????????????????????????????????
+  // ?? Fallback g?n?rique si < 4 ?????????????????????????????????
   if(pool.length<4){
     pool=dedup(filter(true));
     if(pool.length<4){
@@ -427,11 +391,11 @@ function selectUniverse(answers:Record<string,string>):{
     }
   }
 
-  // ?? Slots mandatoires pour classes demandees ??????????????????
+  // ?? Slots mandatoires pour classes demand?es ??????????????????
   const mandatory:Asset[]=[];
   const typeIn=(t:string)=>pool.some(a=>a.type===t);
   if(wGold){const g=pool.find(a=>a.type==="gold"||a.type==="commodity");if(g)mandatory.push(g);}
-  // Or fallback : si gold absent du pool mais demande, ajouter GLD directement
+  // Or fallback : si gold absent du pool mais demand?, ajouter GLD directement
   if(wGold&&mandatory.filter(a=>a.type==="gold"||a.type==="commodity").length===0){
     const goldFb=CAT.find(a=>a.s==="GLD"&&!blocked.has("GLD"));
     if(goldFb)mandatory.push(goldFb);
@@ -459,7 +423,7 @@ function selectUniverse(answers:Record<string,string>):{
   // Zone EM : forcer au moins 40% en actifs EM dans Markowitz
   const minEMPct    =zEM?40:0;
 
-  console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+"|esg="+q4+" bonds>="+minBondPct+"% em>="+minEMPct+"%");
+  console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"%");
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct};
 }
 
@@ -493,21 +457,21 @@ async function fetchMeta(symbols:string[]):Promise<Record<string,{name:string;ty
 // ?? Projection sur le simplexe avec contraintes min/max ??????????????
 function projectSimplex(w:number[],wMin:number[],wMax:number[]):number[]{
   const N=w.length;
-  // Clamp + renormaliser iterativement (Dykstra-like simplifie)
+  // Clamp + renormaliser it?rativement (Dykstra-like simplifi?)
   for(let iter=0;iter<50;iter++){
     // 1. Appliquer bornes min
     let excess=0;
     for(let i=0;i<N;i++){if(w[i]<wMin[i]){excess+=wMin[i]-w[i];w[i]=wMin[i];}}
-    // 2. Retirer l'exces des poids libres (> wMin)
+    // 2. Retirer l'exc?s des poids libres (> wMin)
     const free=w.map((v,i)=>v>wMin[i]?i:-1).filter(i=>i>=0);
     if(free.length>0&&excess>0){const e=excess/free.length;free.forEach(i=>{w[i]=Math.max(wMin[i],w[i]-e);});}
     // 3. Appliquer bornes max
     let over=0;
     for(let i=0;i<N;i++){if(w[i]>wMax[i]){over+=w[i]-wMax[i];w[i]=wMax[i];}}
-    // 4. Distribuer l'exces sur les poids sous le max
+    // 4. Distribuer l'exc?s sur les poids sous le max
     const free2=w.map((v,i)=>v<wMax[i]?i:-1).filter(i=>i>=0);
     if(free2.length>0&&over>0){const e=over/free2.length;free2.forEach(i=>{w[i]=Math.min(wMax[i],w[i]+e);});}
-    // 5. Normaliser a 1
+    // 5. Normaliser ? 1
     const s=w.reduce((a,b)=>a+b,0);
     if(s>0)for(let i=0;i<N;i++)w[i]/=s;
     const diff=Math.abs(w.reduce((a,b)=>a+b,0)-1);
@@ -517,12 +481,12 @@ function projectSimplex(w:number[],wMin:number[],wMax:number[]):number[]{
 }
 
 function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxsharpe"|"maxutility",
-  minClass:Record<string,number>,maxWeight=0.28,rfRate=0.03){
+  minClass:Record<string,number>,maxWeight=0.32,rfRate=0.03){
   const syms=Object.keys(returns);const N=syms.length;
   if(N<2)return{weights:{} as Record<string,number>,ret:0,vol:0,sharpe:0,var95:0};
   const T=Math.min(...syms.map(s=>returns[s].length));
 
-  // ?? Moments historiques annualises ???????????????????????????????
+  // ?? Moments historiques annualis?s ???????????????????????????????
   const mu=syms.map(s=>(returns[s].slice(0,T).reduce((a,b)=>a+b,0)/T)*52);
   const cov:number[][]=Array.from({length:N},()=>new Array(N).fill(0));
   for(let i=0;i<N;i++)for(let j=i;j<N;j++){
@@ -543,7 +507,7 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
   const portVol=(w:number[])=>Math.sqrt(Math.max(0,portVar(w)));
   const covW=(w:number[])=>cov.map(row=>row.reduce((a,x,j)=>a+x*w[j],0)); // ?w
 
-  // Score selon methode
+  // Score selon m?thode
   const score=(w:number[])=>{
     const r=portRet(w),v=portVar(w),vol=Math.sqrt(Math.max(0,v));
     if(method==="minvariance")return -v;
@@ -566,45 +530,45 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
     return mu.map((m,i)=>m-sw[i]);
   };
 
-  // ?? Phase 1 : Monte Carlo -- 3000 trials (rapide) ????????????????
+  // ?? Phase 1 : Monte Carlo (explorer l'espace) ????????????????????
   let bestW=projectSimplex(new Array(N).fill(1/N),wMin,wMax);
   let bestScore=score(bestW);
+  const STARTS=30; // points de d?part vari?s
   const candidates:number[][]=[];
-  // Initialisations intelligentes
-  candidates.push([...bestW]); // uniforme
-  const muPos=mu.map(m=>Math.max(0,m)+0.01);const muS=muPos.reduce((a,b)=>a+b,0);
-  candidates.push(projectSimplex(muPos.map(x=>x/muS),wMin,wMax)); // pondere par rendement
-  const invV=syms.map((_,i)=>1/(Math.sqrt(Math.max(0,cov[i][i]))||0.01));const ivS=invV.reduce((a,b)=>a+b,0);
-  candidates.push(projectSimplex(invV.map(x=>x/ivS),wMin,wMax)); // pondere par 1/vol
-
-  for(let trial=0;trial<3000;trial++){
+  for(let trial=0;trial<Math.max(3000,STARTS*N);trial++){
     const raw=syms.map(()=>Math.random());
-    const s=raw.reduce((a,b)=>a+b,0);
-    const w=projectSimplex(raw.map(x=>x/s),wMin,wMax);
+    let s=raw.reduce((a,b)=>a+b,0);
+    let w=projectSimplex(raw.map(x=>x/s),wMin,wMax);
     const sc=score(w);
     if(sc>bestScore){bestScore=sc;bestW=[...w];}
-    if(trial%300===0)candidates.push([...w]);
+    if(trial%Math.floor(3000/STARTS)===0)candidates.push([...w]);
   }
   candidates.push([...bestW]);
 
-  // ?? Phase 2 : Gradient Ascent -- 10 starts x 80 steps ?????????????
-  const topStarts=candidates.slice(0,10);
-  for(const start of topStarts){
-    let w=[...start];let lr=0.05;let prevScore=score(w);
-    for(let step=0;step<80;step++){
+  // ?? Phase 2 : Gradient Ascent depuis chaque candidat ?????????????
+  for(const start of candidates){
+    let w=[...start];
+    let lr=0.05; // learning rate initial
+    let prevScore=score(w);
+    for(let step=0;step<300;step++){
       const g=gradient(w);
+      // Normaliser le gradient
       const gnorm=Math.sqrt(g.reduce((a,b)=>a+b*b,0));
       if(gnorm<1e-10)break;
       const gn=g.map(x=>x/gnorm);
+      // Line search simple
       const wNew=projectSimplex(w.map((x,i)=>x+lr*gn[i]),wMin,wMax);
-      const ns=score(wNew);
-      if(ns>prevScore){w=wNew;prevScore=ns;lr=Math.min(lr*1.1,0.25);
-        if(ns>bestScore){bestScore=ns;bestW=[...w];}
-      }else{lr*=0.5;if(lr<1e-6)break;}
+      const newScore=score(wNew);
+      if(newScore>prevScore){
+        w=wNew;prevScore=newScore;lr=Math.min(lr*1.1,0.3);
+        if(newScore>bestScore){bestScore=newScore;bestW=[...w];}
+      } else {
+        lr*=0.5;if(lr<1e-6)break;
+      }
     }
   }
 
-  // ?? Resultats finaux ??????????????????????????????????????????????
+  // ?? R?sultats finaux ??????????????????????????????????????????????
   const finalRet=portRet(bestW);
   const finalVol=portVol(bestW);
   const finalSharpe=finalVol>0?(finalRet-rfRate)/finalVol:0;
@@ -612,7 +576,7 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
   for(let t=0;t<T;t++){let pr=0;syms.forEach((s,i)=>{pr+=bestW[i]*(returns[s][t]||0);});portR.push(pr);}
   portR.sort((a,b)=>a-b);
   const var95=Math.abs(portR[Math.floor(portR.length*0.05)]||0)*Math.sqrt(52);
-  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.005)weights[s]=bestW[i];});
+  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.02)weights[s]=bestW[i];});
   return{weights,ret:finalRet,vol:finalVol,sharpe:finalSharpe,var95};
 }
 
@@ -639,7 +603,7 @@ export async function POST(req:NextRequest){
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
       const opt=markowitz(returns,method,minClass);
-      const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.005).sort((a,b)=>b[1]-a[1]);
+      const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.015).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       const weights:Weight[]=rawW.map(([sym,w],i)=>({
         symbol:sym,name:meta[sym]?.name||sym,type:meta[sym]?.type||"etf",
