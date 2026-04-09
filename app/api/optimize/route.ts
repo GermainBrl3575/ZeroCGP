@@ -778,8 +778,12 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const minCryptoPct = wCrypto && !onlyCrypto ? 5 : 0;
   const minEMPct = (zEM && !zMonde) ? 40 : 0;
 
-  const maxWt = n7.includes("concentre") || n7.includes("5 actifs") ? 0.35
-    : n7.includes("large") || n7.includes("15") ? 0.30 : 0.22;
+  // maxWt adapté au nombre d'actifs dans le pool
+  const baseMaxWt = n7.includes("concentre") || n7.includes("5 actifs") ? 0.35
+    : n7.includes("large") || n7.includes("15") ? 0.28 : 0.25;
+  // If pool is small, allow higher concentration to avoid equal-weight trap
+  const maxWt = symbols.length <= 5 ? Math.max(baseMaxWt, 0.35)
+    : symbols.length <= 8 ? Math.max(baseMaxWt, 0.30) : baseMaxWt;
 
   console.log(`[v7.1] risk=${risk} zone=${zMonde ? "monde" : zUSA ? "usa" : zEU ? "eu" : zEM ? "em" : "mix"} sup=${comptes.map(c => c.type).join("+")} pool=${pool2.length} uni=${symbols.length} maxWt=${maxWt}`);
 
