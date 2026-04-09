@@ -445,56 +445,225 @@ async function fetchMeta(symbols:string[]):Promise<Record<string,{name:string;ty
   }finally{client.release();}
 }
 
-function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxsharpe"|"maxutility",
-  minClass:Record<string,number>,maxWeight=0.28,rfRate=0.03){
+// ═══════════════════════════════════════════════════════════════════
+// OPTIMISEUR MARKOWITZ v2 — Gradient + Pénalités + Contraintes profil
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Contraintes obligatoires par profil de risque ──────────────────
+function riskBounds(risk:string):{minBond:number;maxBond:number;maxVol:number}{
+  if(risk==="defensive")return{minBond:0.40,maxBond:0.80,maxVol:0.10};
+  if(risk==="moderate")  return{minBond:0.15,maxBond:0.40,maxVol:0.18};
+  if(risk==="balanced")  return{minBond:0.05,maxBond:0.20,maxVol:0.28};
+  return{minBond:0.00,maxBond:0.10,maxVol:0.50}; // aggressive
+}
+
+// ── Projection sur le simplexe avec contraintes min/max ───────────
+function projectSimplex(w:number[],wMin:number[],wMax:number[]):number[]{
+  const N=w.length;w=[...w];
+  for(let iter=0;iter<60;iter++){
+    let excess=0;
+    for(let i=0;i<N;i++){if(w[i]<wMin[i]){excess+=wMin[i]-w[i];w[i]=wMin[i];}}
+    const free=w.map((v,i)=>v>wMin[i]?i:-1).filter(i=>i>=0);
+    if(free.length>0&&excess>0){const e=excess/free.length;free.forEach(i=>{w[i]=Math.max(wMin[i],w[i]-e);});}
+    let over=0;
+    for(let i=0;i<N;i++){if(w[i]>wMax[i]){over+=w[i]-wMax[i];w[i]=wMax[i];}}
+    const free2=w.map((v,i)=>v<wMax[i]?i:-1).filter(i=>i>=0);
+    if(free2.length>0&&over>0){const e=over/free2.length;free2.forEach(i=>{w[i]=Math.min(wMax[i],w[i]+e);});}
+    const s=w.reduce((a,b)=>a+b,0);if(s>0)for(let i=0;i<N;i++)w[i]/=s;
+    if(Math.abs(w.reduce((a,b)=>a+b,0)-1)<1e-9)break;
+  }
+  return w;
+}
+
+function markowitz(
+  returns:Record<string,number[]>,
+  method:"minvariance"|"maxsharpe"|"maxutility",
+  minClass:Record<string,number>,
+  maxWeight=0.28,
+  rfRate=0.03,
+  riskProfile="balanced"
+){
   const syms=Object.keys(returns);const N=syms.length;
   if(N<2)return{weights:{} as Record<string,number>,ret:0,vol:0,sharpe:0,var95:0};
   const T=Math.min(...syms.map(s=>returns[s].length));
+
+  // ── Moments historiques annualisés ──────────────────────────────
   const mu=syms.map(s=>(returns[s].slice(0,T).reduce((a,b)=>a+b,0)/T)*52);
   const cov:number[][]=Array.from({length:N},()=>new Array(N).fill(0));
   for(let i=0;i<N;i++)for(let j=i;j<N;j++){
     const ri=returns[syms[i]].slice(0,T),rj=returns[syms[j]].slice(0,T);
     const mi=ri.reduce((a,b)=>a+b,0)/T,mj=rj.reduce((a,b)=>a+b,0)/T;
-    let c=0;for(let t=0;t<T;t++)c+=(ri[t]-mi)*(rj[t]-mj);
-    cov[i][j]=cov[j][i]=(c/(T-1))*52;
+    let cv=0;for(let t=0;t<T;t++)cv+=(ri[t]-mi)*(rj[t]-mj);
+    cov[i][j]=cov[j][i]=(cv/(T-1))*52;
   }
+
+  // ── Contraintes ──────────────────────────────────────────────────
+  const {minBond,maxBond,maxVol}=riskBounds(riskProfile);
   const wMin=syms.map(s=>(minClass[s]||0)/100);
-  // Contrainte différenciée : ETF/bonds max 28%, actions max 15%
   const isStock=syms.map(s=>CAT.find(a=>a.s===s)?.type==="stock");
-  const maxW=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.12):maxWeight);
-  let bestW=new Array(N).fill(1/N),bestScore=-Infinity;
-  for(let trial=0;trial<8000;trial++){
-    const raw=syms.map(()=>Math.random());let sum=raw.reduce((a,b)=>a+b,0);
-    let w=raw.map(x=>x/sum);
-    for(let i=0;i<N;i++)if(w[i]<wMin[i])w[i]=wMin[i];
-    for(let i=0;i<N;i++)if(w[i]>maxW[i])w[i]=maxW[i];
-    sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);
-    // Contrainte géo : max 40% USA, max 40% Europe pour zone "monde"
-    const usaIdx=syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="usa"?w[i]:0]).map(([,v])=>v as number);
-    const euIdx =syms.map((s,i)=>[i,CAT.find(a=>a.s===s)?.zone==="europe"?w[i]:0]).map(([,v])=>v as number);
-    const usaW=usaIdx.reduce((a,b)=>a+b,0);
-    const euW =euIdx.reduce((a,b)=>a+b,0);
-    if(usaW>0.55||euW>0.55){sum=w.reduce((a,b)=>a+b,0);if(sum>0)w=w.map(x=>x/sum);}
-    const pRet=w.reduce((a,x,i)=>a+x*mu[i],0);
-    let pVar=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)pVar+=w[i]*w[j]*cov[i][j];
-    const pVol=Math.sqrt(Math.max(0,pVar));const pSharpe=pVol>0?(pRet-rfRate)/pVol:0;
-    const score=method==="minvariance"?-pVar:method==="maxsharpe"?pSharpe:pRet-0.5*pVar;
-    if(score>bestScore){bestScore=score;bestW=[...w];}
+  const isBond =syms.map(s=>CAT.find(a=>a.s===s)?.type==="bond");
+  const wMax=syms.map((_,i)=>isStock[i]?Math.min(maxWeight,0.12):maxWeight);
+
+  // Forcer les contraintes de bonds selon profil
+  const bondIdxs=syms.map((s,i)=>isBond[i]?i:-1).filter(i=>i>=0);
+  if(bondIdxs.length>0){
+    const share=minBond/bondIdxs.length;
+    bondIdxs.forEach(i=>{if(wMin[i]<share)wMin[i]=share;});
   }
-  const finalRet=bestW.reduce((a,x,i)=>a+x*mu[i],0);
-  let finalVar=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)finalVar+=bestW[i]*bestW[j]*cov[i][j];
-  const finalVol=Math.sqrt(Math.max(0,finalVar));
+
+  // ── Helpers ──────────────────────────────────────────────────────
+  const pRet=(w:number[])=>w.reduce((a,x,i)=>a+x*mu[i],0);
+  const pVar=(w:number[])=>{let v=0;for(let i=0;i<N;i++)for(let j=0;j<N;j++)v+=w[i]*w[j]*cov[i][j];return v;};
+  const pVol=(w:number[])=>Math.sqrt(Math.max(0,pVar(w)));
+  const covW=(w:number[])=>cov.map(row=>row.reduce((a,x,j)=>a+x*w[j],0));
+
+  // ── 6 Pénalités ──────────────────────────────────────────────────
+  const penalty=(w:number[])=>{
+    let p=0;
+    // 1. Pénalité allocation bonds vs profil
+    const bondW=bondIdxs.reduce((a,i)=>a+w[i],0);
+    if(bondW>maxBond)p+=10*(bondW-maxBond);
+    if(bondW<minBond)p+=10*(minBond-bondW);
+    // 2. Pénalité overlap ETF/stocks (stock dans indice ETF déjà présent)
+    const etfIdxs=syms.map((s,i)=>(!isStock[i]&&!isBond[i])?i:-1).filter(i=>i>=0);
+    const stockIdxs=syms.map((s,i)=>isStock[i]?i:-1).filter(i=>i>=0);
+    if(etfIdxs.length>0&&stockIdxs.length>0){
+      const etfW=etfIdxs.reduce((a,i)=>a+w[i],0);
+      const stW=stockIdxs.reduce((a,i)=>a+w[i],0);
+      if(etfW>0.3&&stW>0.2)p+=3*stW*etfW;
+    }
+    // 3. Pénalité secteur tech (>50% en tech)
+    const techSyms=["NVDA","MSFT","AAPL","GOOGL","META","ADBE","NOW","CRM","NFLX","AMZN","TSLA","AVGO","QQQ","PUST.PA","EQQQ.DE"];
+    const techW=syms.reduce((a,s,i)=>a+(techSyms.includes(s)?w[i]:0),0);
+    if(techW>0.5)p+=4*(techW-0.5);
+    // 4. Pénalité concentration top-3
+    const sorted=[...w].sort((a,b)=>b-a);
+    const top3=sorted.slice(0,3).reduce((a,b)=>a+b,0);
+    if(top3>0.60)p+=5*(top3-0.60);
+    // 5. Pénalité trop peu de positions actives
+    const active=w.filter(x=>x>0.015).length;
+    if(active<3)p+=5*(3-active);
+    // 6. Pénalité géo (>60% sur une seule zone pour monde)
+    const zones=["usa","europe","em"];
+    for(const z of zones){
+      const zW=syms.reduce((a,s,i)=>a+(CAT.find(a=>a.s===s)?.zone===z?w[i]:0),0);
+      if(zW>0.60)p+=3*(zW-0.60);
+    }
+    return p;
+  };
+
+  // ── Score total ──────────────────────────────────────────────────
+  const score=(w:number[])=>{
+    const r=pRet(w),v=pVar(w),vol=Math.sqrt(Math.max(0,v));
+    let base:number;
+    if(method==="minvariance")base=-v;
+    else if(method==="maxsharpe")base=vol>0?(r-rfRate)/vol:-999;
+    else base=r-0.5*v;
+    return base-penalty(w);
+  };
+
+  // ── Gradient analytique ──────────────────────────────────────────
+  const gradient=(w:number[])=>{
+    const r=pRet(w),v=pVar(w),vol=Math.sqrt(Math.max(0,v));
+    const sw=covW(w);
+    if(method==="minvariance")return sw.map(x=>-2*x);
+    if(method==="maxsharpe"){
+      if(vol<1e-10)return mu.map(x=>x-rfRate);
+      const sh=(r-rfRate)/vol;
+      return mu.map((m,i)=>(m-sh*sw[i]/vol)/vol);
+    }
+    return mu.map((m,i)=>m-sw[i]);
+  };
+
+  // ── Initialisations intelligentes selon profil ───────────────────
+  const initPoints:number[][]=[];
+  // 1. Uniforme
+  initPoints.push(projectSimplex(new Array(N).fill(1/N),wMin,wMax));
+  // 2. Weighted par mu (favorise haut rendement)
+  const muPos=mu.map(m=>Math.max(0,m)+0.01);
+  const muSum=muPos.reduce((a,b)=>a+b,0);
+  initPoints.push(projectSimplex(muPos.map(x=>x/muSum),wMin,wMax));
+  // 3. Weighted par 1/vol (favorise faible risque)
+  const vols=syms.map((_,i)=>Math.sqrt(Math.max(0,cov[i][i]))||0.01);
+  const invV=vols.map(v=>1/v);const invSum=invV.reduce((a,b)=>a+b,0);
+  initPoints.push(projectSimplex(invV.map(x=>x/invSum),wMin,wMax));
+  // 4. Focus bonds (pour défensif)
+  if(bondIdxs.length>0){
+    const bStart=new Array(N).fill(0.01);
+    bondIdxs.forEach(i=>{bStart[i]=0.6/bondIdxs.length;});
+    initPoints.push(projectSimplex(bStart,wMin,wMax));
+  }
+
+  // ── Phase 1 : Monte Carlo intelligent (15000 trials) ─────────────
+  let bestW=initPoints[0];let bestScore=score(bestW);
+  const topCandidates:Array<{w:number[];s:number}>=[];
+
+  for(const ip of initPoints){const sc=score(ip);if(sc>bestScore){bestScore=sc;bestW=[...ip];}topCandidates.push({w:[...ip],s:sc});}
+
+  for(let trial=0;trial<15000;trial++){
+    let w:number[];
+    if(trial<5000){
+      // Pure random
+      const raw=syms.map(()=>Math.random());const s=raw.reduce((a,b)=>a+b,0);
+      w=projectSimplex(raw.map(x=>x/s),wMin,wMax);
+    } else if(trial<10000){
+      // Perturbation d'un bon candidat
+      const base=topCandidates[trial%Math.min(topCandidates.length,20)].w;
+      const noise=base.map(x=>x+0.1*(Math.random()-0.5));
+      const s=noise.reduce((a,b)=>a+Math.abs(b),0);
+      w=projectSimplex(noise.map(x=>Math.abs(x)/s),wMin,wMax);
+    } else {
+      // Mixte entre 2 bons candidats
+      const a=topCandidates[trial%Math.min(topCandidates.length,10)].w;
+      const b2=topCandidates[(trial+3)%Math.min(topCandidates.length,10)].w;
+      const alpha=Math.random();
+      w=projectSimplex(a.map((x,i)=>x*alpha+b2[i]*(1-alpha)),wMin,wMax);
+    }
+    const sc=score(w);
+    if(sc>bestScore){bestScore=sc;bestW=[...w];}
+    // Garder top-30 candidats
+    if(topCandidates.length<30||sc>topCandidates[topCandidates.length-1].s){
+      topCandidates.push({w:[...w],s:sc});
+      topCandidates.sort((a,b)=>b.s-a.s);
+      if(topCandidates.length>30)topCandidates.pop();
+    }
+  }
+
+  // ── Phase 2 : Hill Climbing depuis top-20 candidats (3000 iters) ─
+  const hillStarts=topCandidates.slice(0,20).map(c=>c.w);
+  hillStarts.push(bestW);
+
+  for(const start of hillStarts){
+    let w=[...start];let prevScore=score(w);
+    let lr=0.05;
+    for(let step=0;step<150;step++){  // 150 steps × 21 starts ≈ 3150 iters
+      const g=gradient(w);
+      const gnorm=Math.sqrt(g.reduce((a,b)=>a+b*b,0));
+      if(gnorm<1e-10)break;
+      const gn=g.map(x=>x/gnorm);
+      const wNew=projectSimplex(w.map((x,i)=>x+lr*gn[i]),wMin,wMax);
+      const ns=score(wNew);
+      if(ns>prevScore){w=wNew;prevScore=ns;lr=Math.min(lr*1.05,0.2);if(ns>bestScore){bestScore=ns;bestW=[...w];}}
+      else{lr*=0.6;if(lr<1e-6)break;}
+    }
+  }
+
+  // ── Pruning positions < 1.5% ─────────────────────────────────────
+  const pruned=bestW.map(x=>x<0.015?0:x);
+  const psum=pruned.reduce((a,b)=>a+b,0);
+  const finalW=psum>0?projectSimplex(pruned.map(x=>x/psum),wMin,wMax):bestW;
+
+  // ── Résultats ────────────────────────────────────────────────────
+  const finalRet=pRet(finalW),finalVol=pVol(finalW);
   const finalSharpe=finalVol>0?(finalRet-rfRate)/finalVol:0;
-  const portR:number[]=[];const T2=Math.min(...syms.map(s=>returns[s].length));
-  for(let t=0;t<T2;t++){let pr=0;syms.forEach((s,i)=>{pr+=bestW[i]*(returns[s][t]||0);});portR.push(pr);}
+  const portR:number[]=[];
+  for(let t=0;t<T;t++){let pr=0;syms.forEach((s,i)=>{pr+=finalW[i]*(returns[s][t]||0);});portR.push(pr);}
   portR.sort((a,b)=>a-b);
   const var95=Math.abs(portR[Math.floor(portR.length*0.05)]||0)*Math.sqrt(52);
-  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.01)weights[s]=bestW[i];});
+  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(finalW[i]>0.005)weights[s]=finalW[i];});
   return{weights,ret:finalRet,vol:finalVol,sharpe:finalSharpe,var95};
 }
 
-type Weight={symbol:string;name:string;type:string;weight:number;amount:number};
-type FPt={vol:number;ret:number};
 type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var95:number;rec?:boolean;weights:Weight[];frontier:FPt[]};
 
 export async function POST(req:NextRequest){
@@ -512,10 +681,11 @@ export async function POST(req:NextRequest){
     const distrib=(syms:string[],pct:number)=>{if(!syms.length||!pct)return{};const r:Record<string,number>={};syms.forEach(s=>{r[s]=pct/syms.length;});return r;};
     const emSyms=validSyms.filter(s=>CAT.find(a=>a.s===s&&(a.zone==="em")));
     const minClass={...distrib(bondSyms,minBondPct),...distrib(goldSyms,minGoldPct),...distrib(reitSyms,minReitPct),...distrib(cryptoSyms,minCryptoPct),...distrib(emSyms,minEMPct)};
-    const frontier:FPt[]=[];for(let k=0;k<150;k++)frontier.push({vol:Math.random()*0.25+0.03,ret:Math.random()*0.3+0.03});
+    const frontier:FPt[]=[];
+    const riskProf=(()=>{const q3=answers["3"]||"",q2=answers["2"]||"";if(q3.includes("10%"))return"defensive";if(q3.includes("20%"))return"moderate";if(q3.includes("35%"))return"balanced";if(q3.toLowerCase().includes("limite"))return"aggressive";if(q2.toLowerCase().includes("conservateur"))return"defensive";if(q2.toLowerCase().includes("modere"))return"moderate";if(q2.toLowerCase().includes("agressif"))return"aggressive";return"balanced";})();
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
-      const opt=markowitz(returns,method,minClass);
+      const opt=markowitz(returns,method,minClass,0.28,0.03,riskProf);
       const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.005).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       const weights:Weight[]=rawW.map(([sym,w],i)=>({
