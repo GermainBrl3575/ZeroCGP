@@ -685,6 +685,24 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   /* ═══════════════════════════════════════════════════════
+     ETAPE 7b : Final overlap cleanup (after all enrichment)
+     Re-run overlap dedup since enrichment steps may have added duplicates
+     ═══════════════════════════════════════════════════════ */
+  keepBestFromGroup(OVERLAP_EU);
+  keepBestFromGroup(OVERLAP_DEV_EX_US);
+  if (pool2.some(a => a.dedup === "SP500" || WDEDUPS.includes(a.dedup))) {
+    pool2 = pool2.filter(a => !US_SECTOR_DEDUPS.includes(a.dedup));
+    if (risk !== "aggressive") {
+      pool2 = pool2.filter(a => !US_FACTOR_DEDUPS.includes(a.dedup));
+    } else {
+      // For aggressive: remove VTV and VUG when SP500 present (they are subsets)
+      if (pool2.some(a => a.dedup === "SP500")) {
+        pool2 = pool2.filter(a => !["US_VALUE", "US_GROWTH"].includes(a.dedup));
+      }
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════
      ETAPE 8 : Verification finale + fallback
      ═══════════════════════════════════════════════════════ */
   if (pool2.length < 4) {
