@@ -220,7 +220,7 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Caisse Epargne":      ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Banque Populaire":    ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "LCL":                 ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
-  "Degiro":              [],
+  "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
   "Binance / Coinbase":  [],
@@ -579,19 +579,26 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     pool2 = smartDedup(pool2);
   }
 
-  // AV with small pool: add av-eligible diversifiers
+  // AV with small pool: add av-eligible diversifiers by dedup key
   if (wAV && pool2.length < 6 && !onlyBonds && !onlyCrypto) {
-    const AV_ADD = risk === "defensive"
-      ? ["SGLD.L", "XGLE.DE", "EPRE.PA"]  // Safe diversifiers only
-      : risk === "moderate"
-        ? ["SGLD.L", "XGLE.DE", "EPRE.PA"] // Same for moderate
-        : ["SGLD.L", "EPRE.PA", "MC.PA", "RMS.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
-    for (const sym of AV_ADD) {
-      const asset = CAT.find(a => a.s === sym);
-      if (!asset || !asset.av || pool2.find(a => a.s === sym || a.dedup === asset.dedup) || blocked.has(sym)) continue;
+    const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
+      ? ["GOLD_EU", "EUR_GOV", "EUR_GOV_ST", "EU_REITS"]  // Safe diversifiers
+      : ["GOLD_EU", "EU_REITS"];
+    for (const ded of AV_ADD_DEDUPS) {
+      if (pool2.find(a => a.dedup === ded)) continue;
+      const asset = CAT.find(a => a.dedup === ded && a.av && !blocked.has(a.s));
+      if (!asset) continue;
       if (esgStrict && !asset.esg) continue;
-      if (!zoneFilter(asset)) continue;
       pool2.push(asset);
+    }
+    // Also add av-eligible stocks for dynamic/aggressive if pool still small
+    if (risk !== "defensive" && risk !== "moderate" && pool2.length < 6) {
+      const AV_STOCKS = ["MC.PA", "RMS.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
+      for (const sym of AV_STOCKS) {
+        const asset = CAT.find(a => a.s === sym);
+        if (!asset || !asset.av || pool2.find(a => a.s === sym || a.dedup === asset.dedup) || blocked.has(sym)) continue;
+        pool2.push(asset);
+      }
     }
     pool2 = smartDedup(pool2);
   }
