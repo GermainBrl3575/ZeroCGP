@@ -506,12 +506,12 @@ function selectUniverse(answers:Record<string,string>):{
   if(esgStrict){
     const hasESGEtf=universe.some(a=>a.esg&&a.type==="etf");
     if(!hasESGEtf&&wPEA){
-      disclaimer="⚠️ Aucun ETF MSCI World SRI éligible PEA n'existe à ce jour. Ce portefeuille applique un filtre ESG sur les actions individuelles PEA disponibles. Pour une exposition ETF ESG pure, un CTO avec MWRD.L ou SUWS.L serait plus adapté.";
+      disclaimer="AVERTISSEMENT: Aucun ETF MSCI World SRI éligible PEA n'existe à ce jour. Ce portefeuille applique un filtre ESG sur les actions individuelles PEA disponibles. Pour une exposition ETF ESG pure, un CTO avec MWRD.L ou SUWS.L serait plus adapté.";
     } else if(!hasESGEtf){
-      disclaimer="⚠️ Le filtre ESG strict est appliqué sur les actions disponibles. Les critères ESG varient selon les émetteurs — ce portefeuille exclut les secteurs armement, tabac et combustibles fossiles.";
+      disclaimer="AVERTISSEMENT: Le filtre ESG strict est appliqué sur les actions disponibles. Les critères ESG varient selon les émetteurs — ce portefeuille exclut les secteurs armement, tabac et combustibles fossiles.";
     }
   }
-  console.log(\`[v3] z=\${q6}|risk=\${risk}|sup=\${q8}|bank=\${q9}|esg=\${q4}|diversif=\${q7} → [\${symbols.join(",")}]\`);
+  console.log(\`[v3] z=\${q6}|risk=\${risk}|sup=\${q8}|bank=\${q9}|esg=\${q4}|diversif=\${q7} -> [\${symbols.join(",")}]\`);
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,riskProfile:risk,disclaimer};
 }
 
