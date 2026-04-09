@@ -584,19 +584,16 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   // AV with small pool: add av-eligible diversifiers by dedup key
-  console.log(`[AV-CHECK] wAV=${wAV} pool=${pool2.length} onlyBonds=${onlyBonds} onlyCrypto=${onlyCrypto} wPEA=${wPEA} risk=${risk}`);
-  if (wAV && pool2.length < 8 && !onlyBonds && !onlyCrypto) { // Raised threshold to 8
+  if (wAV && pool2.length < 8 && !onlyBonds && !onlyCrypto) {
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
       ? ["GOLD_EU", "EUR_GOV", "EUR_GOV_ST", "EU_REITS"]  // Safe diversifiers
       : ["GOLD_EU", "EU_REITS"];
     for (const ded of AV_ADD_DEDUPS) {
       if (pool2.find(a => a.dedup === ded)) continue;
       const asset = CAT.find(a => a.dedup === ded && a.av === true && !blocked.has(a.s));
-      console.log(`[AV-ADD] dedup=${ded} found=${asset?.s||'null'} av=${asset?.av} type=${asset?.type}`);
       if (!asset) continue;
       if (esgStrict && !asset.esg) continue;
       pool2.push(asset);
-      console.log(`[AV-ADD] pushed ${asset.s} to pool (now ${pool2.length})`);
     }
     // Also add av-eligible stocks for dynamic/aggressive if pool still small
     if (risk !== "defensive" && risk !== "moderate" && pool2.length < 6) {
