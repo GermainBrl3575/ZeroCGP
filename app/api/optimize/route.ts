@@ -202,7 +202,7 @@ function dedup(assets:Asset[]):Asset[]{
 }
 
 function selectUniverse(answers:Record<string,string>):{
-  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;
+  symbols:string[];minBondPct:number;minGoldPct:number;minReitPct:number;minCryptoPct:number;minEMPct:number;maxWt:number;
 }{
   const q1=answers["1"]||"",q2=answers["2"]||"",q3=answers["3"]||"";
   const q4=answers["4"]||"",q5=answers["5"]||"",q6=answers["6"]||"";
@@ -510,8 +510,11 @@ function selectUniverse(answers:Record<string,string>):{
   // Zone EM : forcer au moins 40% en actifs EM dans Markowitz
   const minEMPct    =zEM?40:0;
 
-  console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"%");
-  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct};
+  // maxWt: pour Equilibre (8-10), plafonner a 0.20 pour forcer diversification
+  const maxWt=n7.includes("concentre")||n7.includes("5 actifs")?0.35
+             :n7.includes("large")||n7.includes("15")?0.25:0.20;
+  console.log("[v5] z="+q6+"|r="+risk+"|s="+q8+"|b="+q9+" bonds>="+minBondPct+"% maxWt="+maxWt);
+  return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,maxWt};
 }
 
 async function fetchReturns(symbols:string[],years=10):Promise<Record<string,number[]>>{
@@ -674,7 +677,7 @@ type Result={method:string;label:string;ret:number;vol:number;sharpe:number;var9
 export async function POST(req:NextRequest){
   const{capital=50000,answers={}}=await req.json();
   try{
-    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct}=selectUniverse(answers);
+    const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,maxWt}=selectUniverse(answers);
     const returns=await fetchReturns(symbols,10);
     // Proxy: si un actif a peu de data, utiliser le meilleur du meme dedup
     const dedupBest:Record<string,string>={};
@@ -700,7 +703,7 @@ export async function POST(req:NextRequest){
     const frontier:FPt[]=[];
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
-      const opt=markowitz(returns,method,minClass);
+      const opt=markowitz(returns,method,minClass,maxWt);
       const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.01).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       // Arrondir tous les poids puis ajuster le dernier pour sum=100%
