@@ -511,7 +511,7 @@ function selectUniverse(answers:Record<string,string>):{
       disclaimer="AVERTISSEMENT: Le filtre ESG strict est applique sur les actions disponibles. Les criteres ESG varient selon les emetteurs - ce portefeuille exclut les secteurs armement, tabac et combustibles fossiles.";
     }
   }
-  console.log(\`[v3] z=\${q6}|risk=\${risk}|sup=\${q8}|bank=\${q9}|esg=\${q4}|diversif=\${q7} -> [\${symbols.join(",")}]\`);
+  console.log("[v3] z="+q6+"|risk="+risk+"|esg="+q4+" -> ["+symbols.join(",")+"]");
   return{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct,riskProfile:risk,disclaimer};
 }
 
