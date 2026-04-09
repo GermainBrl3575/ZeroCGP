@@ -27,7 +27,7 @@ interface Asset {
    ======================================================= */
 const CAT: Asset[] = [
   // ?? ETF MONDE ?????????????????????????????????????????????????
-  {s:"PANX.PA",  n:"ETF MSCI World PEA (PANX)",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
+  {s:"PANX.PA",  n:"ETF MSCI World PEA (PANX)",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.13,pea:true, cto:true, av:true },
   // CW8.PA = Amundi MSCI World Swap -- PEA ?ligible, m?me dedup MSCI_WORLD -> garde lowest TER
   {s:"CW8.PA",   n:"Amundi MSCI World Swap PEA",    zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.12,pea:true, cto:true, av:true },
   // EWLD.PA = version distribution de CW8
@@ -42,7 +42,7 @@ const CAT: Asset[] = [
   {s:"EUNL.DE",  n:"iShares MSCI World EUR",       zone:"monde",type:"etf",dedup:"MSCI_WORLD",    ter:0.20,pea:false,cto:true, av:true },
   {s:"VWCE.DE",  n:"Vanguard FTSE All-World",      zone:"monde",type:"etf",dedup:"FTSE_ALLWORLD", ter:0.22,pea:false,cto:true, av:true },
   {s:"ACWI",     n:"iShares MSCI ACWI",            zone:"monde",type:"etf",dedup:"MSCI_ACWI",     ter:0.32,pea:false,cto:true, av:false},
-  {s:"MWRD.L",   n:"iShares MSCI World SRI",       zone:"monde",type:"etf",dedup:"MSCI_WORLD_SRI",ter:0.20,pea:false,cto:true, av:false,esg:true},
+  {s:"SUWS.L",   n:"iShares MSCI World ESG Screened",zone:"monde",type:"etf",dedup:"MSCI_WORLD_SRI",ter:0.20,pea:false,cto:true,av:false,esg:true},
 
   // ?? ETF USA -- UCITS prioritaires, VOO/SPY bloqu?s FR ?????????
   // R?gle : CSPX.L + SXR8.DE + VOO + SPY -> m?me dedup SP500 -> 1 seul
@@ -58,7 +58,7 @@ const CAT: Asset[] = [
   {s:"QQQ",      n:"Invesco NASDAQ 100",           zone:"usa",  type:"etf",dedup:"NASDAQ100",     ter:0.20,pea:false,cto:true, av:false},
 
   // ?? ETF EUROPE ????????????????????????????????????????????????
-  {s:"MEUD.PA",  n:"Lyxor Euro Stoxx 50 PEA",     zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.07,pea:true, cto:true, av:true },
+  {s:"MEUD.PA",  n:"Lyxor Euro Stoxx 50 PEA",     zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.11,pea:true, cto:true, av:true },
   {s:"C50.PA",   n:"Amundi Euro Stoxx 50 PEA",    zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
   {s:"EXSA.DE",  n:"iShares Euro Stoxx 50",        zone:"europe",type:"etf",dedup:"EUROSTOXX50",  ter:0.10,pea:true, cto:true, av:true },
   {s:"SMEA.PA",  n:"Amundi MSCI Europe PEA",       zone:"europe",type:"etf",dedup:"MSCI_EUROPE",  ter:0.15,pea:true, cto:true, av:true },
@@ -193,7 +193,12 @@ const BANK_BLOCKED: Record<string,string[]> = {
   "Autre":[],
 };
 
-function norm(s:string){return s.toLowerCase().replace(/[éèêë]/g,"e").replace(/[àâä]/g,"a").replace(/[ùûü]/g,"u").replace(/[îï]/g,"i").replace(/[ôö]/g,"o").replace(/ç/g,"c");}
+function norm(s:string){
+  return s.toLowerCase()
+    .replace(/[????]/g,"e").replace(/[???]/g,"a")
+    .replace(/[???]/g,"u").replace(/[??]/g,"i")
+    .replace(/[??]/g,"o").replace(/?/g,"c");
+}
 
 function dedup(assets:Asset[]):Asset[]{
   const m=new Map<string,Asset>();
@@ -537,10 +542,10 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
   const T=Math.min(...syms.map(s=>returns[s].length));
 
   // ?? Moments historiques annualis?s ???????????????????????????????
-  const mu=syms.map(s=>(returns[s].slice(0,T).reduce((a,b)=>a+b,0)/T)*52);
+  const mu=syms.map(s=>(returns[s].slice(-T).reduce((a,b)=>a+b,0)/T)*52);
   const cov:number[][]=Array.from({length:N},()=>new Array(N).fill(0));
   for(let i=0;i<N;i++)for(let j=i;j<N;j++){
-    const ri=returns[syms[i]].slice(0,T),rj=returns[syms[j]].slice(0,T);
+    const ri=returns[syms[i]].slice(-T),rj=returns[syms[j]].slice(-T);
     const mi=ri.reduce((a,b)=>a+b,0)/T,mj=rj.reduce((a,b)=>a+b,0)/T;
     let cv=0;for(let t=0;t<T;t++)cv+=(ri[t]-mi)*(rj[t]-mj);
     cov[i][j]=cov[j][i]=(cv/(T-1))*52;
@@ -655,9 +660,13 @@ export async function POST(req:NextRequest){
       const opt=markowitz(returns,method,minClass);
       const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.015).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
+      // Arrondir tous les poids puis ajuster le dernier pour sum=100%
+      const roundedW=rawW.map(([,v])=>Math.round(v/totalW*1000)/10);
+      const sumR=roundedW.reduce((a,b)=>a+b,0);
+      if(roundedW.length>0)roundedW[roundedW.length-1]=Math.round((roundedW[roundedW.length-1]+(100-sumR))*10)/10;
       const weights:Weight[]=rawW.map(([sym,w],i)=>({
         symbol:sym,name:meta[sym]?.name||sym,type:meta[sym]?.type||"etf",
-        weight:i===rawW.length-1?Math.round((1-rawW.slice(0,-1).reduce((s,[,v])=>s+v/totalW,0))*1000)/10:Math.round(w/totalW*1000)/10,
+        weight:roundedW[i],
         amount:Math.round(w/totalW*capital),
       }));
       return{method,label,rec,ret:Math.round(opt.ret*1000)/10,vol:Math.round(opt.vol*1000)/10,sharpe:Math.round(opt.sharpe*100)/100,var95:Math.round(opt.var95*1000)/10,weights,frontier};
