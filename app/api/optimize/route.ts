@@ -383,6 +383,8 @@ function selectUniverse(answers:Record<string,string>):{
       // Ne pas ajouter SP500/NASDAQ si ETF monde present (non-agressif)
       const hasW=pool.some(a=>["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(a.dedup)&&a.type==="etf");
       if(hasW&&risk!=="aggressive"&&["SP500","NASDAQ100"].includes(asset.dedup))continue;
+      // Ne pas re-ajouter ETF monde pour agressif (core-satellite les a retires)
+      if(risk==="aggressive"&&["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI"].includes(asset.dedup)&&asset.type==="etf")continue;
       pool.push(asset);
     }
     pool=dedup(pool);
