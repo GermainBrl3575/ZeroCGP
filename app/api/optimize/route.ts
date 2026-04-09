@@ -37,6 +37,7 @@ const CAT_STATIC: Asset[] = [
   {s:"ESE.PA",   n:"BNP Easy S&P 500",              zone:"usa",  type:"etf",dedup:"SP500",         ter:0.15,pea:true, cto:true, av:true },
   {s:"SXR8.DE",  n:"iShares S&P 500 EUR",           zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:true },
   {s:"CSPX.L",   n:"iShares Core S&P 500",          zone:"usa",  type:"etf",dedup:"SP500",         ter:0.07,pea:false,cto:true, av:false},
+  {s:"IVV",      n:"iShares Core S&P 500",            zone:"usa",  type:"etf",dedup:"SP500",         ter:0.04,pea:false,cto:true, av:false},
   {s:"VOO",      n:"Vanguard S&P 500",              zone:"usa",  type:"etf",dedup:"SP500",         ter:0.03,pea:false,cto:true, av:false},
   {s:"SPY",      n:"SPDR S&P 500",                  zone:"usa",  type:"etf",dedup:"SP500",         ter:0.095,pea:false,cto:true,av:false},
   // ETF NASDAQ
@@ -80,7 +81,7 @@ const CAT_STATIC: Asset[] = [
   {s:"VWOB",   n:"Vanguard EM Gov Bond",            zone:"em",    type:"bond",dedup:"EM_GOV",      ter:0.20,pea:false,cto:true,av:false},
   // OR & MATIERES
   {s:"SGLD.L", n:"Invesco Physical Gold EUR",       zone:"any",type:"gold",     dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true,av:true },
-  {s:"IGLN.L", n:"iShares Physical Gold ETC",      zone:"any",type:"gold",     dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true,av:true },
+  {s:"IGLN.L", n:"iShares Physical Gold ETC",      zone:"any",type:"gold",     dedup:"GOLD_EU",   ter:0.19,pea:false,cto:true,av:false },
   {s:"GLD",    n:"SPDR Gold Shares",                zone:"any",type:"gold",     dedup:"GOLD_US",   ter:0.40,pea:false,cto:true,av:false},
   {s:"IAU",    n:"iShares Gold Trust",              zone:"any",type:"gold",     dedup:"GOLD_US",   ter:0.25,pea:false,cto:true,av:false},
   {s:"GNR",    n:"SPDR Natural Resources",          zone:"any",type:"commodity",dedup:"NAT_RES",   ter:0.46,pea:false,cto:true,av:false},
@@ -567,8 +568,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
     const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     const CTO_ADD = risk === "aggressive"
-      ? ["SXR8.DE", "EQQQ.DE", "VWO", "EXW1.DE", "MCHI", "EWY"]
-      : ["VWO"]; // For non-aggressive, only add EM (world already covers rest)
+      ? ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"]
+      : ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "IGLN.L"]; // EM + gold UCITS alternatives
     for (const sym of CTO_ADD) {
       const asset = CAT.find(a => a.s === sym);
       if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym || a.dedup === asset.dedup)) continue;
