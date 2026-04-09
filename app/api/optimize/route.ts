@@ -193,12 +193,7 @@ const BANK_BLOCKED: Record<string,string[]> = {
   "Autre":[],
 };
 
-function norm(s:string){
-  return s.toLowerCase()
-    .replace(/[????]/g,"e").replace(/[???]/g,"a")
-    .replace(/[???]/g,"u").replace(/[??]/g,"i")
-    .replace(/[??]/g,"o").replace(/?/g,"c");
-}
+function norm(s:string){return s.toLowerCase().replace(/[éèêë]/g,"e").replace(/[àâä]/g,"a").replace(/[ùûü]/g,"u").replace(/[îï]/g,"i").replace(/[ôö]/g,"o").replace(/[ç]/g,"c");}
 
 function dedup(assets:Asset[]):Asset[]{
   const m=new Map<string,Asset>();
@@ -493,7 +488,7 @@ async function fetchReturns(symbols:string[],years=10):Promise<Record<string,num
     const prices:Record<string,number[]>={};
     rows.forEach(r=>{if(!prices[r.symbol])prices[r.symbol]=[];prices[r.symbol].push(parseFloat(r.close));});
     const returns:Record<string,number[]>={};
-    Object.entries(prices).forEach(([sym,p])=>{if(p.length>20)returns[sym]=p.slice(1).map((c,i)=>(c-p[i])/p[i]);});
+    Object.entries(prices).forEach(([sym,p])=>{if(p.length>150)returns[sym]=p.slice(1).map((c,i)=>(c-p[i])/p[i]);});
     return returns;
   }finally{client.release();}
 }
@@ -643,7 +638,18 @@ export async function POST(req:NextRequest){
   const{capital=50000,answers={}}=await req.json();
   try{
     const{symbols,minBondPct,minGoldPct,minReitPct,minCryptoPct,minEMPct}=selectUniverse(answers);
-    const returns=await fetchReturns(symbols,15);
+    const returns=await fetchReturns(symbols,10);
+    // Proxy: si un actif a peu de data, utiliser le meilleur du meme dedup
+    const dedupBest:Record<string,string>={};
+    CAT.forEach(a=>{
+      const cur=dedupBest[a.dedup];
+      if(!cur||(returns[a.s]?.length||0)>(returns[cur]?.length||0))dedupBest[a.dedup]=a.s;
+    });
+    Object.keys(returns).forEach(sym=>{
+      const asset=CAT.find(a=>a.s===sym);if(!asset)return;
+      const best=dedupBest[asset.dedup];
+      if(best&&best!==sym&&(returns[best]?.length||0)>(returns[sym].length*1.5))returns[sym]=returns[best];
+    });
     const validSyms=Object.keys(returns);
     if(validSyms.length<3)return NextResponse.json({error:"Pas assez de donnees historiques pour ce profil"},{status:500});
     const meta=await fetchMeta(validSyms);
