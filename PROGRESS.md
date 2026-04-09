@@ -1,52 +1,58 @@
 # ZERO CGP v2 -- Progress Log
 
-## Session started: 2026-04-09
+## Session: 2026-04-09
+## Current step: VAGUE 1 - Iteration 6 (score 6/10 consistent)
 
-## Current step: VAGUE 1 - Iteration 4
+## Status Summary
+- DB Migration: DONE (assets_master + dedup_groups + esg_ratings)
+- selectUniverse() v7: DONE (complete rewrite, 8-step architecture)
+- Dynamic catalogue: DONE (loadCatalogue from Neon)
+- Wave 1: 0/5 PASS but all 5 tests score 6/10 (WARN, not FAIL)
+- Wave 2/3: Not started
 
-## Phase 1: DB Migration -- DONE
-- [x] ALTER TABLE assets_master (pea, cto, av, zone, dedup, ter, excl_esg)
-- [x] CREATE TABLE dedup_groups (175 entries)
-- [x] CREATE TABLE esg_ratings (47 entries)
-- [x] populate_catalogue.py run (1176 assets updated)
+## Wave 1 Results (Iteration 6)
+| Test | Score | Key Issue |
+|------|-------|-----------|
+| CTO IB aggressive | 6/10 | QQQ+VOO overlap, EWC overweight |
+| PEA BoursoBank moderate | 6/10 | Vol 17.7% too high, too many stocks |
+| AV BoursoBank defensive | 6/10 | Only 5 assets (need 8-10), SGLD.L AV debatable |
+| PEA Fortuneo Europe | 6/10 | C50.PA + individual stocks overlap |
+| CTO Degiro moderate | 6/10 | Only 5 assets (need 8-10), near-equal weights |
 
-## Phase 2: Rewrite route.ts -- DONE (v7)
-- [x] loadCatalogue() from Neon (INNER JOIN dedup_groups)
-- [x] inferType() for bond/gold/reit/crypto from dedup keys
-- [x] selectUniverse() 8-step architecture (complete rewrite)
-- [x] smartDedup with PEA/AV preference
-- [x] WORLD_SUBS anti-doublon (removes ALL sub-indices)
-- [x] SP500_SUBS anti-doublon (removes sector/factor ETFs)
-- [x] OVERLAP_GROUPS dedup (EM broad, US bonds, EU, Dev ex-US)
-- [x] PEA no bonds (regulatory)
-- [x] AV enrichment with SGLD.L/XGLE.DE/EPRE.PA
+## Key Remaining Issues
+1. **Pool too small**: Many portfolios have only 4-5 assets (target 8-10)
+   - Root cause: aggressive anti-doublon + bond cap + limited AV-eligible ETFs
+   - Fix: expand enrichment lists, relax bond cap when pool < 6
+2. **Near-equal weights**: Markowitz gives ~22-24% to each (optimization failure with few assets)
+   - Root cause: with only 4-5 assets, there's not enough freedom for differentiation
+   - Fix: more assets in pool
+3. **QQQ+VOO overlap (~40%)**: CGP agent always flags this
+   - Could remove one for aggressive, or accept as "core-satellite"
+4. **PEA moderate vol**: 17.7% > 12-15% target
+   - Root cause: PEA can't have bonds, and stocks are volatile
 
-## Wave 1 (5 tests) - target 4/5 PASS
-- Iteration 1: 1/5 PASS (20%) -- US sector flooding, AV 4 assets only
-- Iteration 2: 0/5 PASS (0%) -- VEA/VGK overlap, 100% US for CTO monde
-- Iteration 3: 0/5 PASS (0%) -- Still VGK/VEA overlap, AGG/BND dup, VWO/PAEEM dup
-- Iteration 4: 0/5 PASS (0%) -- SP500 sub-cleanup not working despite correct dedup keys
+## Architecture (v7)
+```
+ETAPE 1: baseFilter + smartDedup (1 per dedup, prefer PEA/AV)
+ETAPE 2: WORLD anti-doublon (removes ALL sub-indices except aggressive)
+ETAPE 3: EM anti-doublon (broad → remove single-country)
+ETAPE 4: Core-satellite (defensive/moderate: 1 world, aggressive: SP500+NASDAQ)
+ETAPE 4b: SP500 anti-doublon (removes sector/factor ETFs)
+           Overlap groups (EM, EU, Dev, US bonds)
+ETAPE 5: CTO/AV enrichment (VWO for non-aggressive, country ETFs for aggressive)
+          AV enrichment (SGLD.L, XGLE.DE, EPRE.PA for small pools)
+ETAPE 6: PEA enrichment (PAEEM, C50, MEUD, EPRE)
+ETAPE 7: Bond auto-add (skip PEA), EUR_GOV max 1, bond cap 2-4
+ETAPE 8: Fallback (relax zone if pool < 4)
+```
 
-## Key remaining bugs
-1. CTO IB aggressive: XLK/VUG/VTV/SCHD still present alongside VOO despite SP500_SUBS cleanup
-2. PEA moderate: 60% stocks, vol 17.8% (target 12-15%)
-3. PEA Europe: 100% stocks, no ETFs (C50.PA missing)
-4. CTO Degiro moderate: VWO + PAEEM.PA both present (overlap dedup not working)
+## Commits (15 total)
+- c199b39 feat: v6 rewrite
+- 6195479 feat: v7 complete rewrite
+- cb07ed2 fix: bond cap + minETFPct (latest)
 
-## Commits
-- c199b39 feat: v6 rewrite - dynamic catalogue from Neon
-- b192d81 fix: restrict catalogue to curated dedup_groups
-- e8839ab fix: infer types from dedup keys
-- 3d16fab fix: geographic diversity + AV enrichment
-- 26be75e fix: US sector cleanup when MSCI_WORLD present
-- 32f9559 fix: overlap groups for EU/Dev ETFs
-- 946f5de fix: final overlap cleanup after enrichment
-- 70834c4 fix: aggressive anti-doublon for world sub-regions
-- 6195479 feat: complete selectUniverse() v7 rewrite
-- 72ad7b7 fix: SP500 sub-index cleanup + overlap dedup
-
-## Hypothesis for bug #1
-SP500_SUBS cleanup code IS in place and dedup keys ARE correct.
-Possible cause: the cleanup runs but then enrichment step 5/6 re-adds them,
-OR the smart dedup merges them with different dedup keys.
-Need to add console.log to trace or restructure to ensure cleanup runs LAST.
+## Next Steps
+1. Expand pool for CTO/AV/PEA enrichment (add more assets)
+2. Reduce anti-doublon aggressiveness (keep EWC, EWJ as complements)
+3. Consider accepting QQQ+VOO overlap as intentional for aggressive
+4. Address user request for catalogue scraping (deferred)
