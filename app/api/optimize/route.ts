@@ -137,7 +137,7 @@ let CAT_CACHE: Asset[] | null = null;
 let CAT_CACHE_TIME = 0;
 
 async function loadCatalogue(): Promise<Asset[]> {
-  if (CAT_CACHE && Date.now() - CAT_CACHE_TIME < 300000) return CAT_CACHE;
+  if (CAT_CACHE && Date.now() - CAT_CACHE_TIME < 180000) return CAT_CACHE; // 3min cache
   const client = await pool.connect();
   try {
     // Only load curated assets (those in dedup_groups) with sufficient data
