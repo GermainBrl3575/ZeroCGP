@@ -590,10 +590,12 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       : ["GOLD_EU", "EU_REITS"];
     for (const ded of AV_ADD_DEDUPS) {
       if (pool2.find(a => a.dedup === ded)) continue;
-      const asset = CAT.find(a => a.dedup === ded && a.av && !blocked.has(a.s));
+      const asset = CAT.find(a => a.dedup === ded && a.av === true && !blocked.has(a.s));
+      console.log(`[AV-ADD] dedup=${ded} found=${asset?.s||'null'} av=${asset?.av} type=${asset?.type}`);
       if (!asset) continue;
       if (esgStrict && !asset.esg) continue;
       pool2.push(asset);
+      console.log(`[AV-ADD] pushed ${asset.s} to pool (now ${pool2.length})`);
     }
     // Also add av-eligible stocks for dynamic/aggressive if pool still small
     if (risk !== "defensive" && risk !== "moderate" && pool2.length < 6) {
