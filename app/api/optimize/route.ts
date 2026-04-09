@@ -661,7 +661,7 @@ function markowitz(returns:Record<string,number[]>,method:"minvariance"|"maxshar
   for(let t=0;t<T;t++){let pr=0;syms.forEach((s,i)=>{pr+=bestW[i]*(returns[s][t]||0);});portR.push(pr);}
   portR.sort((a,b)=>a-b);
   const var95=Math.abs(portR[Math.floor(portR.length*0.05)]||0)*Math.sqrt(52);
-  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.02)weights[s]=bestW[i];});
+  const weights:Record<string,number>={};syms.forEach((s,i)=>{if(bestW[i]>0.01)weights[s]=bestW[i];});
   return{weights,ret:finalRet,vol:finalVol,sharpe:finalSharpe,var95};
 }
 
@@ -699,7 +699,7 @@ export async function POST(req:NextRequest){
     const methods:Array<["minvariance"|"maxsharpe"|"maxutility",string,boolean]>=[["minvariance","Variance Minimale",false],["maxsharpe","Sharpe Maximum",true],["maxutility","Utilite Maximale",false]];
     const results:Result[]=methods.map(([method,label,rec])=>{
       const opt=markowitz(returns,method,minClass);
-      const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.015).sort((a,b)=>b[1]-a[1]);
+      const rawW=Object.entries(opt.weights).filter(([,v])=>v>0.01).sort((a,b)=>b[1]-a[1]);
       const totalW=rawW.reduce((s,[,v])=>s+v,0);
       // Arrondir tous les poids puis ajuster le dernier pour sum=100%
       const roundedW=rawW.map(([,v])=>Math.round(v/totalW*1000)/10);
