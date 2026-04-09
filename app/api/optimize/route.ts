@@ -161,18 +161,28 @@ async function loadCatalogue(): Promise<Asset[]> {
       )
       ORDER BY am.type, am.symbol
     `);
-    CAT_CACHE = rows.map(r => ({
-      s: r.s, n: r.n || r.s,
-      type: (r.type || "etf") as Asset["type"],
-      dedup: r.dedup || r.s,
-      ter: parseFloat(r.ter) || 0,
-      pea: r.pea === true,
-      cto: r.cto === true,
-      av: r.av === true,
-      zone: (r.zone || "any") as Asset["zone"],
-      esg: r.esg === true,
-      excl_esg: r.excl_esg === true,
-    }));
+    // Build lookup from static catalogue for type overrides
+    const staticLookup = new Map<string, Asset>();
+    CAT_STATIC.forEach(a => staticLookup.set(a.s, a));
+
+    CAT_CACHE = rows.map(r => {
+      const staticAsset = staticLookup.get(r.s);
+      // Use type from static catalogue (has correct bond/gold/reit/crypto types)
+      // Neon DB has type="etf" for everything
+      const type = staticAsset?.type || inferType(r.dedup, r.type);
+      return {
+        s: r.s, n: r.n || r.s,
+        type: type as Asset["type"],
+        dedup: r.dedup || r.s,
+        ter: parseFloat(r.ter) || 0,
+        pea: staticAsset?.pea ?? (r.pea === true),
+        cto: staticAsset?.cto ?? (r.cto === true),
+        av: staticAsset?.av ?? (r.av === true),
+        zone: (staticAsset?.zone || r.zone || "any") as Asset["zone"],
+        esg: staticAsset?.esg ?? (r.esg === true),
+        excl_esg: staticAsset?.excl_esg ?? (r.excl_esg === true),
+      };
+    });
     CAT_CACHE_TIME = Date.now();
     console.log(`[CAT] Loaded ${CAT_CACHE.length} assets from Neon`);
     return CAT_CACHE;
@@ -182,6 +192,22 @@ async function loadCatalogue(): Promise<Asset[]> {
   } finally {
     client.release();
   }
+}
+
+// Infer correct asset type from dedup key (Neon has type="etf" for everything)
+function inferType(dedup: string, dbType: string): string {
+  const bondKeys = ["EUR_GOV", "EUR_GOV_ST", "EUR_AGG", "GLOBAL_AGG", "US_20Y", "US_7_10Y", "US_AGG", "US_IG", "US_HY", "EM_GOV", "US_1_3Y", "US_TOTAL", "US_TIPS", "EM_BOND_USD"];
+  const goldKeys = ["GOLD_EU", "GOLD_US", "GOLD_MINERS"];
+  const commodityKeys = ["NAT_RES", "CMDTY"];
+  const reitKeys = ["US_REITS", "US_REITS2", "US_REITS3", "GLOBAL_REITS", "EU_REITS", "AMT", "DLR", "PLD"];
+  const cryptoKeys = ["BTC", "ETH", "SOL", "BNB"];
+  if (bondKeys.includes(dedup)) return "bond";
+  if (goldKeys.includes(dedup)) return "gold";
+  if (commodityKeys.includes(dedup)) return "commodity";
+  if (reitKeys.includes(dedup)) return "reit";
+  if (cryptoKeys.includes(dedup)) return "crypto";
+  if (dbType === "stock") return "stock";
+  return "etf";
 }
 
 const BANK_BLOCKED: Record<string, string[]> = {
