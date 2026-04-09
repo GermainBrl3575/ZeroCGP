@@ -504,6 +504,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       // Add EM for geographic diversity
       const em = CAT.find(a => EM_BROAD.includes(a.dedup) && supOk(a) && (!esgStrict || a.esg));
       if (em && !pool2.find(a => EM_BROAD.includes(a.dedup))) pool2.push(em);
+      // Remove developed ex-US (VEA/EFA) since countries (EWJ, EWC) and Europe are already separate
+      pool2 = pool2.filter(a => !["MSCI_EAFE", "FTSE_DEV"].includes(a.dedup));
     } else if (risk === "balanced") {
       // DYNAMIQUE: ETF monde + satellite SP500
       if (wETFsM.length > 1) {
@@ -661,6 +663,22 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
+  // Cap bonds: max 2 for non-defensive, max 3 for defensive (per MASTER_PROMPT)
+  if (!onlyBonds) {
+    const maxBonds = risk === "defensive" ? 3 : 2;
+    const bonds = pool2.filter(a => a.type === "bond");
+    if (bonds.length > maxBonds) {
+      // Keep best bonds (prefer av-eligible, then lowest TER)
+      const sorted = bonds.sort((a, b) => {
+        if (wAV && a.av && !b.av) return -1;
+        if (wAV && !a.av && b.av) return 1;
+        return a.ter - b.ter;
+      });
+      const keepBonds = new Set(sorted.slice(0, maxBonds).map(a => a.s));
+      pool2 = pool2.filter(a => a.type !== "bond" || keepBonds.has(a.s));
+    }
+  }
+
   // Final overlap dedup (after all enrichment)
   for (const group of OVERLAP_GROUPS) {
     const inGroup = pool2.filter(a => group.includes(a.dedup));
@@ -715,6 +733,11 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
 
   // ── Mandatory slots for requested classes ──
   const mandatory: Asset[] = [];
+  // If ETF requested, ensure at least 1 ETF is mandatory
+  if (wETF) {
+    const etfs = pool2.filter(a => a.type === "etf");
+    if (etfs.length > 0) mandatory.push(etfs[0]);
+  }
   if (wGold) {
     const g = pool2.find(a => a.type === "gold" || a.type === "commodity");
     if (g) mandatory.push(g);
