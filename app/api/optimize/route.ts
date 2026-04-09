@@ -91,7 +91,7 @@ const CAT: Asset[] = [
 
   // ?? OBLIGATIONS ???????????????????????????????????????????????
   {s:"XGLE.DE",n:"Xtrackers EUR Gov Bond",      zone:"europe",type:"bond",dedup:"EUR_GOV",    ter:0.09,pea:false,cto:true,av:true },
-  {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y",   zone:"europe",type:"bond",dedup:"EUR_GOV", ter:0.09,pea:false,cto:true,av:true },
+  {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y",   zone:"europe",type:"bond",dedup:"EUR_GOV_ST",ter:0.09,pea:false,cto:true,av:true },
   {s:"IEAG.L", n:"iShares EUR Agg Bond",         zone:"europe",type:"bond",dedup:"EUR_AGG",    ter:0.17,pea:false,cto:true,av:false},
   {s:"AGGH.L", n:"ETF Oblig Aggregate Monde (AGGH)",      zone:"any",   type:"bond",dedup:"GLOBAL_AGG", ter:0.10,pea:false,cto:true,av:false},
   {s:"TLT",    n:"iShares 20Y US Treasury",      zone:"usa",   type:"bond",dedup:"US_20Y",     ter:0.15,pea:false,cto:true,av:false},
@@ -292,11 +292,16 @@ function selectUniverse(answers:Record<string,string>):{
   let pool=dedup(filter(false));
   // Anti-doublon: si MSCI World present, supprimer les sous-indices US
   const WDEDUPS=["MSCI_WORLD","FTSE_ALLWORLD","MSCI_ACWI","MSCI_WORLD_D"];
-  const USDEDUPS=["SP500","NASDAQ100","EUROSTOXX50","MSCI_EUROPE","EU_SMALL_CAP","FR_MID_CAP"];
+  const USDEDUPS_US=["SP500","NASDAQ100"];
+  const USDEDUPS_EU=["EUROSTOXX50","MSCI_EUROPE","EU_SMALL_CAP","FR_MID_CAP"];
   const hasW=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
   if(hasW&&!zUSA&&!zEU){
     const hasWPEA=pool.some(a=>WDEDUPS.includes(a.dedup)&&a.pea&&a.type==="etf");
-    pool=pool.filter(a=>!USDEDUPS.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
+    // Toujours retirer doublons US (SP500/NASDAQ couverts par MSCI World)
+    pool=pool.filter(a=>!USDEDUPS_US.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
+    // Retirer doublons EU seulement pour agressif (defensif/modere les garde comme complement)
+    if(risk==="aggressive"||risk==="balanced")
+      pool=pool.filter(a=>!USDEDUPS_EU.includes(a.dedup)||(wPEA&&!hasWPEA&&a.pea));
   }
   // Regle EM: si ETF broad EM present (IEMG/VWO), les single-country sont redondants
   // Exception: zone=EM explicite -> garder les single-country pour diversifier
@@ -471,7 +476,16 @@ function selectUniverse(answers:Record<string,string>):{
 
   // ?? Fallback g?n?rique si < 4 ?????????????????????????????????
   if(pool.length<4){
-    pool=dedup(filter(true));
+    // Re-run filter avec types relaxes mais respecter anti-doublon
+    let fb=dedup(filter(true));
+    // Re-appliquer anti-doublon monde
+    const hasFbW=fb.some(a=>WDEDUPS.includes(a.dedup)&&a.type==="etf");
+    if(hasFbW&&!zUSA&&!zEU){
+      fb=fb.filter(a=>!USDEDUPS_US.includes(a.dedup));
+      if(risk==="aggressive"||risk==="balanced")
+        fb=fb.filter(a=>!USDEDUPS_EU.includes(a.dedup));
+    }
+    pool=fb;
     if(pool.length<4){
       // Dernier recours : monde entier sans filtre zone
       pool=dedup(CAT.filter(a=>{
