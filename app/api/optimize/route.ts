@@ -232,8 +232,8 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT","VWOB"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
-  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
-  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
+  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
+  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
   "Binance / Coinbase":  [],
   "Autre":               [],
 };
@@ -290,8 +290,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   let risk = riskOrder[Math.min(riskOrder.indexOf(riskQ2), riskOrder.indexOf(riskQ3))] as
     "defensive" | "moderate" | "balanced" | "aggressive";
   if (isShort && riskOrder.indexOf(risk) > 1) risk = "moderate";
-  // AV cap: dynamic/aggressive not suited for AV (limited pool) → cap at moderate
-  if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate";
 
   // ── 3.3 Parse supports (q8) — JSON format or legacy string ──
   let comptes: Array<{ type: string; banque: string; pct: number }> = [];
@@ -409,7 +407,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     return {
       symbols: dedupFilter(cr).map(a => a.s).slice(0, maxAssets),
       minBondPct: 0, minGoldPct: 0, minReitPct: 0, minCryptoPct: 30, minEMPct: 0,
-      maxWt: 0.35, risk, comptes,
+      maxWt: 0.35,
     };
   }
 
@@ -633,7 +631,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     // Prefer .PA bonds (EUR, no FX risk) before .L bonds (GBP)
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
       ? ["EUR_GOV_PA", "GLOBAL_AGG_PA", "GOLD_EU", "EU_REITS"]  // .PA bonds first, then gold
-      : ["GOLD_EU", "EU_REITS", "SP500", "NASDAQ100", "EUROSTOXX50"];  // ETF actions for dynamic/aggressive AV
+      : ["GOLD_EU", "EU_REITS"];
     for (const ded of AV_ADD_DEDUPS) {
       if (pool2.find(a => a.dedup === ded)) continue;
       const asset = CAT.find(a => a.dedup === ded && a.av === true && !blocked.has(a.s));
@@ -849,15 +847,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  // Hard fallback if still < 4: relax ESG strict → exclusion only, then relax zone
-  if (pool2.length < 5 && esgStrict) {
-    // ESG strict pool too small → fallback to exclusion (remove worst offenders, keep neutrals)
-    const relaxedESG = smartDedup(CAT.filter(a =>
-      supOk(a) && !blocked.has(a.s) && zoneFilter(a) && !a.excl_esg &&
-      (a.type !== "crypto" || wCrypto) && (!wBonds || a.type !== "bond" || risk !== "aggressive")
-    ));
-    if (relaxedESG.length > pool2.length) pool2 = relaxedESG;
-  }
+  // Hard fallback if still < 4
   if (pool2.length < 4) {
     pool2 = smartDedup(baseFilter(false)); // relax zone
     if (pool2.length < 4) {
@@ -1041,11 +1031,6 @@ function markowitz(
     }
   }
 
-  // Aggressive/balanced: cap gold/commodity at 10% (defensive diversifier, not core)
-  if (risk === "aggressive" || risk === "balanced") {
-    goldIdxs.forEach(i => { wMax[i] = Math.min(wMax[i], 0.10); });
-  }
-
   const portRet = (w: number[]) => w.reduce((a, x, i) => a + x * mu[i], 0);
   const portVar = (w: number[]) => { let v = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) v += w[i] * w[j] * cov[i][j]; return v; };
   const portVol = (w: number[]) => Math.sqrt(Math.max(0, portVar(w)));
@@ -1184,8 +1169,7 @@ export async function POST(req: NextRequest) {
 
     const validSyms = Object.keys(returns);
     console.log(`[POST] requested=${symbols.length} valid=${validSyms.length} dropped=[${symbols.filter(s=>!returns[s]).join(',')}] weeks=[${validSyms.map(s=>s+':'+returns[s].length+'w').join(',')}]`);
-    if (validSyms.length < 2) return NextResponse.json({ error: "Pas assez d'actifs disponibles pour ce profil. Essayez d'elargir les classes d'actifs ou la zone geographique." }, { status: 400 });
-    if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 400 });
+    if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 500 });
 
     const meta = await fetchMeta(validSyms, CAT);
     const bondSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "bond");
