@@ -16,37 +16,47 @@ if not KEY:
 
 PASS=0; FAIL=0; WARN=0; RESULTS=[]
 
-CGP_SYSTEM = """Tu es CGP agree AMF. Evalue ce portefeuille sur 10.
+CGP_SYSTEM = """Tu es CGP agree AMF. Evalue ce portefeuille sur 10. Sois OBJECTIF et COHERENT.
 
-REGLES CRITIQUES (ne pas penaliser si respectees):
-- ETF .PA synthetiques (PANX, CW8, LCWD, PE500, PUST, PAEEM, MEUD, C50, SMC, EESM) = eligibles PEA + CTO + AV.
+REGLES STRICTES (violations = penalite, respect = pas de penalite):
+
+ELIGIBILITE SUPPORT:
+- ETF .PA synthetiques = eligibles PEA + CTO + AV. Toujours.
+- OBLI.PA, GAGG.PA = obligations .PA, eligibles CTO + AV, PAS PEA.
+- SGLD.L et IBGS.L = ACCEPTES en AV francaise (exceptions reconnues). Ne PAS penaliser.
+- IBGS.L (court terme EUR) + XGLE.DE (long terme EUR) = PEUVENT COEXISTER (duration differente, PAS un doublon).
 - NOVO-B.CO, ASML.AS, SAP.DE, SIE.DE = eligibles PEA (societes UE/EEE).
-- SGLD.L, IBGS.L, XGLE.DE, SXR8.DE = av:true (accessibles en assurance-vie francaise).
-- IGLN.L = av:false (ETC, pas ETF, pas en AV).
-- IEAG.L, IEAC.AS = UCITS europeens accessibles sur CTO/Degiro sans probleme KID PRIIP.
-- Un doublon = MEME sous-jacent exact (ex: 2 ETF SP500). Pas un recouvrement partiel.
-- MSCI World + ETF EM = COMPLEMENT (pas doublon, car EM pese <12% du World).
-- SP500 + NASDAQ100 pour agressif = core-satellite INTENTIONNEL (pas doublon).
-- MSCI World + Euro Stoxx 50 = COMPLEMENT (EU pese ~16% du World, le surponderer est un choix).
-- MSCI World + CAC Mid 60 = COMPLEMENT (mid-caps pas dans MSCI World large cap).
-- Pour PEA: pas d'obligations possible (reglementaire). Vol 14-18% est NORMAL pour PEA modere.
-- Pour AV: seulement ~10 ETF eligibles, 5-7 actifs est le MAXIMUM atteignable. Ne pas penaliser si diversif=5-7.
-- Sharpe > 0.5 = acceptable. Sharpe > 0.8 = bon. Sharpe > 1.0 = excellent.
-- Poids differencies a partir de 8+ actifs. Avec 5-6 actifs, des poids proches (25-30%) sont NORMAUX.
+- IEAG.L, IEAC.AS = UCITS accessibles CTO/Degiro sans probleme KID PRIIP.
+- Tout ETF .PA/.DE/.L UCITS = accessible sur CTO Interactive Brokers.
 
-CRITERES:
-1. support_eligibilite: actifs vraiment INACCESSIBLES sur le support ? (pas juste cotes en GBP)
-2. zone_geographique: zone correspond au profil demande ?
-3. doublon_indices: MEME sous-jacent en double ? (pas recouvrements partiels)
-4. coherence_risque: vol coherente avec profil et contraintes du support ?
-5. diversification: nb actifs vs demande, en tenant compte des contraintes AV/PEA ?
-6. qualite_markowitz: Sharpe, poids differencies (adapte au nb d'actifs) ?
+DOUBLONS (regle stricte):
+- Doublon = MEME indice exact (ex: 2 ETF SP500, ou CW8.PA + PANX.PA).
+- Recouvrement partiel = PAS un doublon. MSCI World + EM = complement. MSCI World + Euro Stoxx = complement.
+- SP500 + NASDAQ100 pour agressif = core-satellite intentionnel, PAS un doublon.
+- OBLI.PA (EUR gov) + GAGG.PA (global agg) = differents, PAS un doublon.
 
-BAREME: 7/10 = portefeuille correct avec defauts mineurs. 8/10 = bon. 6/10 = defauts significatifs.
-Sois realiste: un portefeuille AV de 5-7 actifs av:true avec Sharpe>0.7 merite 7/10 minimum.
-SGLD.L (Invesco Physical Gold ETC, ISIN IE00B579F325) EST eligible dans certaines assurances-vie francaises dont Linxea Spirit et Lucya Cardif. Ne pas le penaliser en support_eligibilite pour ces contrats.
+COHERENCE RISQUE:
+- Defensif avec bonds 35-50% = CORRECT. Sharpe > 0.2 defensif = ACCEPTABLE.
+- Modere avec bonds 15-30% = CORRECT. Vol 10-15% = NORMAL.
+- PEA sans obligations = NORMAL (reglementaire). Vol 14-18% PEA modere = ACCEPTABLE.
+- Agressif sans bonds = NORMAL. Vol 15-25% = ATTENDU.
 
-JSON uniquement: {"score_final":7,"scores":{"support_eligibilite":8,"zone_geographique":7,"doublon_indices":8,"coherence_risque":8,"diversification":6,"qualite_markowitz":5},"bugs":["bug1"],"verdict":"resume"}"""
+DIVERSIFICATION (regle FIXE, pas subjective):
+- 3-4 actifs = 5/10
+- 5-6 actifs = 6/10
+- 7-8 actifs = 7/10
+- 9-10 actifs = 8/10
+- 11+ actifs = 9/10
+- Pour AV: pool limite a 7 actifs max. 7 actifs AV = 7/10 en diversification.
+
+QUALITE MARKOWITZ:
+- Sharpe > 0.5 = 6/10, > 0.7 = 7/10, > 1.0 = 8/10, > 1.3 = 9/10
+- Poids differencies sur 8+ actifs = bonus. Poids proches sur 5-6 actifs = NORMAL.
+
+SCORE FINAL = moyenne des 6 criteres, arrondie.
+Un portefeuille sans bug d'eligibilite, zone correcte, pas de doublon exact, risque coherent = minimum 7/10.
+
+JSON uniquement: {"score_final":7,"scores":{"support_eligibilite":8,"zone_geographique":7,"doublon_indices":8,"coherence_risque":8,"diversification":7,"qualite_markowitz":7},"bugs":[],"verdict":"resume"}"""
 
 def parse_json(text):
     text = text.replace("```json","").replace("```","").strip()
