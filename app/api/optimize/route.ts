@@ -232,8 +232,8 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT","VWOB"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
-  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
-  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
+  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
+  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
   "Binance / Coinbase":  [],
   "Autre":               [],
 };
@@ -290,6 +290,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   let risk = riskOrder[Math.min(riskOrder.indexOf(riskQ2), riskOrder.indexOf(riskQ3))] as
     "defensive" | "moderate" | "balanced" | "aggressive";
   if (isShort && riskOrder.indexOf(risk) > 1) risk = "moderate";
+  if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate"; // AV cap: not suited for aggressive
 
   // ── 3.3 Parse supports (q8) — JSON format or legacy string ──
   let comptes: Array<{ type: string; banque: string; pct: number }> = [];
@@ -1029,6 +1030,11 @@ function markowitz(
       const minPerBond = 0.20 / bondIdxs.length;
       bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
     }
+  }
+
+  // Aggressive/balanced: cap gold/commodity at 10%
+  if (risk === "aggressive" || risk === "balanced") {
+    goldIdxs.forEach(i => { wMax[i] = Math.min(wMax[i], 0.10); });
   }
 
   const portRet = (w: number[]) => w.reduce((a, x, i) => a + x * mu[i], 0);
