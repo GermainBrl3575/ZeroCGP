@@ -35,6 +35,8 @@ DOUBLONS (regle stricte):
 - Recouvrement partiel = PAS un doublon. MSCI World + EM = complement. MSCI World + Euro Stoxx = complement.
 - SP500 + NASDAQ100 pour agressif = core-satellite intentionnel, PAS un doublon.
 - OBLI.PA (EUR gov) + GAGG.PA (global agg) = differents, PAS un doublon.
+- Le champ "support" dans chaque actif indique PEA, CTO ou AV. Dans un portefeuille multi-support (PEA+CTO), les actifs CTO (AAPL, MSFT, LLY) sont loges sur le CTO et les actifs PEA sur le PEA. Ne PAS penaliser un actif CTO dans un portefeuille PEA+CTO.
+- Pour AV: TOUS les actifs du portefeuille sont av:true par construction (filtres dans le code). Ne pas remettre en question l'eligibilite AV si l'actif est .PA ou est dans la liste des exceptions (SGLD.L, IBGS.L).
 
 COHERENCE RISQUE:
 - Defensif avec bonds 35-50% = CORRECT. Sharpe > 0.2 defensif = ACCEPTABLE.

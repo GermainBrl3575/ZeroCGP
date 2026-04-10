@@ -725,9 +725,12 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  // Cap bonds: max 3 when obligations requested, max 2 otherwise, max 4 for defensive
+  // Cap bonds: max 3 for defensive, max 2 otherwise
+  // Remove overlapping bonds: AGG if GAGG.PA present, IEAG.L if OBLI.PA present
   if (!onlyBonds) {
-    const maxBonds = risk === "defensive" ? 4 : wBonds ? 3 : 2;
+    if (pool2.find(a => a.s === "GAGG.PA")) pool2 = pool2.filter(a => a.s !== "AGG");
+    if (pool2.find(a => a.s === "OBLI.PA")) pool2 = pool2.filter(a => a.s !== "IEAG.L");
+    const maxBonds = risk === "defensive" ? 3 : wBonds ? 3 : 2;
     const bonds = pool2.filter(a => a.type === "bond");
     if (bonds.length > maxBonds) {
       // Keep best bonds (prefer av-eligible, then lowest TER)
