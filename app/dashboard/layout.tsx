@@ -2,6 +2,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import Watermark from "@/components/ui/Watermark";
+import Ticker from "@/components/ui/Ticker";
 import { supabase } from "@/lib/supabase";
 
 interface Portfolio { id: string; name: string; type: "manual" | "optimized" }
@@ -29,7 +31,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     if (pfs && pfs.length > 0) {
       setPortfolios(pfs as Portfolio[]);
-      // Toujours relire l'URL au moment du chargement
       const urlId = getUrlId();
       if (urlId && pfs.find(p => p.id === urlId)) {
         setActiveId(urlId);
@@ -40,10 +41,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setLoading(false);
   }, [router]);
 
-  // Recharger à chaque changement de pathname
   useEffect(() => { loadPortfolios(); }, [loadPortfolios, pathname]);
 
-  // Écouter aussi les changements de searchParams (popstate + pushState)
   useEffect(() => {
     function syncUrlId() {
       const urlId = getUrlId();
@@ -64,8 +63,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div style={{ display:"flex", height:"100vh", overflow:"hidden" }}>
       <Sidebar portfolios={portfolios} activePortfolioId={activeId} />
-      <main style={{ flex:1, background:"#F5F4F1", overflowY:"auto", overflowX:"hidden", height:"100vh" }}>
-        {children}
+      <main style={{ flex:1, background:"#F9F8F6", overflowY:"auto", overflowX:"hidden", height:"100vh", position:"relative", display:"flex", flexDirection:"column" }}>
+        <Ticker />
+        <div style={{ flex:1, position:"relative", overflowY:"auto" }}>
+          <Watermark />
+          <div style={{ position:"relative", zIndex:1 }}>
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   );
