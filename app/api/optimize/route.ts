@@ -263,6 +263,7 @@ function dedupFilter(assets: Asset[]): Asset[] {
 function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   symbols: string[]; minBondPct: number; minGoldPct: number; minReitPct: number;
   minCryptoPct: number; minEMPct: number; maxWt: number; risk: "defensive"|"moderate"|"balanced"|"aggressive";
+  comptes: Array<{type:string;banque:string;pct:number}>;
 } {
   const q1 = answers["1"] || "", q2 = answers["2"] || "", q3 = answers["3"] || "";
   const q4 = answers["4"] || "", q5 = answers["5"] || "", q6raw = answers["6"] || "";
@@ -919,7 +920,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   _log.push(`final:${symbols.length}(${symbols.join(',')})`);
   console.log(`[SELECT] ${_log.join(' | ')} | risk=${risk} maxWt=${maxWt}`);
 
-  return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk };
+  return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk, comptes };
 }
 
 /* =========================================================
@@ -1151,7 +1152,7 @@ export async function POST(req: NextRequest) {
   const { capital = 50000, answers = {} } = await req.json();
   try {
     const CAT = await loadCatalogue();
-    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk } = selectUniverse(answers, CAT);
+    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk, comptes } = selectUniverse(answers, CAT);
     const returns = await fetchReturns(symbols, 10);
 
     // Proxy substitution: if an asset has little data, use best from same dedup group
@@ -1197,16 +1198,19 @@ export async function POST(req: NextRequest) {
       const roundedW = rawW.map(([, v]) => Math.round(v / totalW * 1000) / 10);
       const sumR = roundedW.reduce((a, b) => a + b, 0);
       if (roundedW.length > 0) roundedW[roundedW.length - 1] = Math.round((roundedW[roundedW.length - 1] + (100 - sumR)) * 10) / 10;
-      const weights: Weight[] = rawW.map(([sym, w], i) => {
-        const asset = CAT.find(a => a.s === sym);
-        // Tag optimal support for multi-account portfolios
-        const support = asset?.pea ? "PEA" : asset?.av ? "AV" : "CTO";
-        return {
-          symbol: sym, name: meta[sym]?.name || sym, type: meta[sym]?.type || "etf",
-          weight: roundedW[i],
-          amount: Math.round(w / totalW * capital),
-          support,
-        };
+      const wPEA2 = comptes.some(c => c.type === "PEA");
+      const wAV2 = comptes.some(c => c.type === "AV");
+      const weights: Weight[] = rawW.map(([sym, w], i) => ({
+        symbol: sym, name: meta[sym]?.name || sym, type: meta[sym]?.type || "etf",
+        weight: roundedW[i], amount: Math.round(w / totalW * capital),
+      }));
+      // Tag optimal support (non-breaking: frontend ignores unknown fields)
+      weights.forEach(wt => {
+        const asset = CAT.find(a => a.s === wt.symbol);
+        if (!asset) return;
+        if (wPEA2 && asset.pea) wt.support = "PEA";
+        else if (wAV2 && asset.av) wt.support = "AV";
+        else wt.support = "CTO";
       });
       return { method, label, rec, ret: Math.round(opt.ret * 1000) / 10, vol: Math.round(opt.vol * 1000) / 10, sharpe: Math.round(opt.sharpe * 100) / 100, var95: Math.round(opt.var95 * 1000) / 10, weights, frontier };
     });
