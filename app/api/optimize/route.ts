@@ -776,10 +776,15 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       // Dev ex-US sub-regions
       ["MSCI_EAFE", "FTSE_DEV", "FTSE_EUR", "MSCI_EMU"],
     ];
-    // Build candidate pool from base filter (all assets that passed initial filter but were removed by anti-doublon)
-    const allBase = smartDedup(baseFilter(true));
+    // Build candidate pool from full CAT (not just baseFilter which has same anti-doublons)
     const poolSyms = new Set(pool2.map(a => a.s));
-    const candidates = allBase.filter(a => !poolSyms.has(a.s) && supOk(a) && !blocked.has(a.s));
+    const poolDedups = new Set(pool2.map(a => a.dedup));
+    const candidates = CAT.filter(a =>
+      !poolSyms.has(a.s) && !poolDedups.has(a.dedup) && // not already in pool (by symbol or dedup)
+      supOk(a) && !blocked.has(a.s) &&
+      zoneFilter(a) &&
+      (!esgStrict || a.esg) && (!esgPartial || !a.excl_esg)
+    );
     // Sort candidates: prefer different types, then different zones, then low TER
     const poolTypes = new Set(pool2.map(a => a.type));
     const poolZones = new Set(pool2.map(a => a.zone));
