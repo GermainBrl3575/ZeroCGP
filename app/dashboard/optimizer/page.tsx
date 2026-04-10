@@ -1,6 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import AssetCard from "@/components/AssetCard";
+import SupportBuilder from "@/components/ui/SupportBuilder";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -363,9 +364,9 @@ function OptimizerInner() {
         <div className="prog-wrap"><div className="prog" style={{width:`${progress}%`}}/></div>
       </div>
       <h2 className="q-section" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(26px,3vw,32px)",fontWeight:300,color:"#050B14",marginBottom:36,letterSpacing:"-.02em",lineHeight:1.15}}>{q.q}</h2>
-      {isMulti ? (
+      {q.id==="Q5" ? (
         <div style={{maxWidth:560}}>
-          <p style={{fontSize:12,color:"#8A9BB0",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes (au moins une)</p>
+          <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes</p>
           <div style={{display:"flex",flexWrap:"wrap",marginBottom:32}}>
             {ASSET_CLASSES.map(c=>(
               <button key={c} onClick={()=>toggleClass(c)} className={`ac-chip ${multiSel.includes(c)?"on":"off"}`}>
@@ -375,90 +376,47 @@ function OptimizerInner() {
             ))}
           </div>
           <button onClick={advanceQ5} disabled={multiSel.length===0} className="btn-navy">
-            CONFIRMER ({multiSel.length} sélectionnée{multiSel.length>1?"s":""}) →
+            Confirmer ({multiSel.length} sélectionnée{multiSel.length>1?"s":""}) →
           </button>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"#8A9BB0",fontSize:12,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block"}}>← Précédent</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block",fontWeight:300}}>← Précédent</button>}
         </div>
-      ):(
+      ) : q.id==="Q8" ? (
+        <div>
+          <SupportBuilder
+            value={answers[8]||"[]"}
+            onChange={(json: string)=>setAnswers(a=>({...a,[8]:json}))}
+            onSubmit={()=>startCalc()}
+          />
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+        </div>
+      ) : q.id==="Q9" ? (
         <div style={{maxWidth:520}}>
-          {/* Q9 : dropdown banque */}
-          {q.id==="Q9" ? (
-            <div>
-              <select
-                value={answers[step]||""}
-                onChange={e=>{
-                  const v=e.target.value;
-                  setAnswers(a=>({...a,[step]:v}));
-                }}
-                style={{width:"100%",padding:"14px 16px",fontSize:14,border:"1.5px solid rgba(10,22,40,.15)",borderRadius:10,background:"white",color:NAVY,fontFamily:"'Inter',sans-serif",cursor:"pointer",appearance:"none",backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"}}
-              >
-                <option value="">-- Sélectionnez votre banque --</option>
-                {["BNP Paribas","Société Générale","LCL","Crédit Agricole","Caisse d'Épargne","Banque Populaire","BoursoBank","Fortuneo","Hello Bank","Degiro","Trade Republic","Interactive Brokers","Binance / Coinbase","Autre"].map(b=>(
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-              {answers[step] && (
-                <button onClick={()=>startCalc()} className="q-btn" style={{marginTop:16,background:"#050B14",color:"white",borderColor:"#050B14",width:"100%"}}>
-                  Lancer l'optimisation →
-                </button>
-              )}
-            </div>
-          ) : q.isMulti ? (
-            /* Q8 : checkboxes multi-select avec tooltips */
-            <div style={{display:"flex",flexDirection:"column",gap:10}}>
-              {q.opts.map((opt:string)=>{
-                const selected=(answers[step]||"").split(",").filter(Boolean);
-                const isSel=selected.includes(opt);
-                const tooltip=(q as {tooltips?:Record<string,string>}).tooltips?.[opt];
-                return(
-                  <div key={opt} style={{display:"flex",alignItems:"center",gap:10}}>
-                    <button
-                      onClick={()=>{
-                        const cur=(answers[step]||"").split(",").filter(Boolean);
-                        const next=cur.includes(opt)?cur.filter(x=>x!==opt):[...cur,opt];
-                        setAnswers(a=>({...a,[step]:next.join(",")}));
-                      }}
-                      style={{flex:1,display:"flex",alignItems:"center",gap:12,padding:"14px 16px",
-                        background:isSel?"rgba(10,22,40,0.04)":"white",
-                        border:`1.5px solid ${isSel?NAVY:"rgba(10,22,40,.1)"}`,
-                        borderRadius:10,cursor:"pointer",fontFamily:"'Inter',sans-serif",
-                        fontSize:13,color:NAVY,textAlign:"left",fontWeight:isSel?600:400}}
-                    >
-                      <span style={{width:20,height:20,borderRadius:4,border:`2px solid ${isSel?NAVY:"rgba(10,22,40,.2)"}`,
-                        background:isSel?NAVY:"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {isSel&&<span style={{color:"white",fontSize:12,lineHeight:1}}>✓</span>}
-                      </span>
-                      {opt}
-                    </button>
-                    {tooltip&&(
-                      <div style={{position:"relative",display:"inline-block"}}>
-                        <span
-                          title={tooltip}
-                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
-                            width:20,height:20,borderRadius:"50%",border:"1.5px solid #8A9BB0",
-                            fontSize:11,color:"#8A9BB0",cursor:"help",fontWeight:700,userSelect:"none"}}
-                        >ⓘ</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {(answers[step]||"").split(",").filter(Boolean).length>0 && (
-                <button onClick={()=>setStep(s=>s+1)} className="q-btn" style={{marginTop:8,background:NAVY,color:"white",borderColor:NAVY}}>
-                  Continuer →
-                </button>
-              )}
-            </div>
-          ) : (
-            /* Questions standards : boutons radio */
-            q.opts.map((opt:string)=>{
-              const isSel=answers[step]===opt,isFlash=flash===opt;
-              return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?NAVY:isSel?"rgba(10,22,40,.03)":"white",borderColor:isFlash||isSel?NAVY:"rgba(10,22,40,.1)",color:isFlash?"white":NAVY,fontWeight:isSel?500:400}}>
-                {opt}{isSel&&!isFlash&&<span style={{color:NAVY_MID,fontSize:12,fontWeight:600}}>✓</span>}
-              </button>);
-            })
+          <select
+            value={answers[step]||""}
+            onChange={e=>setAnswers(a=>({...a,[step]:e.target.value}))}
+            style={{width:"100%",padding:"14px 16px",fontSize:14,border:"1px solid rgba(5,11,20,.08)",borderRadius:8,background:"white",color:"#050B14",fontFamily:"'Inter',sans-serif",fontWeight:300,cursor:"pointer"}}
+          >
+            <option value="">Sélectionnez votre banque…</option>
+            {["BNP Paribas","Société Générale","LCL","Crédit Agricole","Caisse d'Épargne","Banque Populaire","BoursoBank","Fortuneo","Hello Bank","Degiro","Trade Republic","Interactive Brokers","Binance / Coinbase","Autre"].map(b=>(
+              <option key={b} value={b}>{b}</option>
+            ))}
+          </select>
+          {answers[step]&&(
+            <button onClick={()=>startCalc()} className="btn-navy" style={{marginTop:16,width:"100%"}}>
+              Lancer l'optimisation →
+            </button>
           )}
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"#8A9BB0",fontSize:12,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>← Précédent</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+        </div>
+      ) : (
+        <div style={{maxWidth:520}}>
+          {q.opts.map((opt:string)=>{
+            const isSel=answers[step]===opt,isFlash=flash===opt;
+            return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?"#050B14":isSel?"rgba(5,11,20,.02)":"white",borderColor:isFlash||isSel?"#050B14":"rgba(5,11,20,.08)",color:isFlash?"white":"#050B14",fontWeight:isSel?400:300}}>
+              {opt}{isSel&&!isFlash&&<span style={{color:"rgba(5,11,20,.3)",fontSize:12,fontWeight:500}}>✓</span>}
+            </button>);
+          })}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       )}
     </div></>);
