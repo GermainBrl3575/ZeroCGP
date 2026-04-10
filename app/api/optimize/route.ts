@@ -759,7 +759,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      réintroduire des doublons faibles (overlap partiel)
      ═══════════════════════════════════════════════════════ */
   // Skip weak-dup for AV (pool is naturally limited to ~5-7 av:true assets)
-  const targetAssets = maxAssets <= 7 ? 5 : maxAssets <= 16 ? 8 : 12;
+  // Target 12-14 for equilibre since Markowitz drops 30-40% (<1% weight)
+  const targetAssets = maxAssets <= 7 ? 7 : maxAssets <= 16 ? 14 : 20;
   if (pool2.length < targetAssets && !wAV) {
     // Doublons faibles autorisés : sous-ensembles partiels du monde/SP500
     const WEAK_DUPS: string[][] = [
