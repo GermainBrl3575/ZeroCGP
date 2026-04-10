@@ -396,9 +396,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const esgStrict = n4.includes("strict");
   const esgPartial = n4.includes("armement") || n4.includes("tabac") || n4.includes("exclusion");
 
-  // ── MaxAssets ──
-  const maxAssets = n7.includes("concentre") || n7.includes("5 actifs") ? 7
-    : n7.includes("large") || n7.includes("15") ? 28 : 16;
+  // ── MaxAssets (updated labels: Simple 3-5, Equilibre 6-10, Maximum 10-15) ──
+  const maxAssets = n7.includes("concentre") || n7.includes("5 actifs") || n7.includes("simple") ? 7
+    : n7.includes("large") || n7.includes("15") || n7.includes("maximum") ? 20 : 16;
 
   // ── Crypto-only shortcut ──
   if (onlyCrypto || (wCrypto && !wETF && !wStocks && !wBonds)) {
@@ -764,8 +764,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      réintroduire des doublons faibles (overlap partiel)
      ═══════════════════════════════════════════════════════ */
   // Skip weak-dup for AV (pool is naturally limited to ~5-7 av:true assets)
-  // Target 12-14 for equilibre since Markowitz drops 30-40% (<1% weight)
-  const targetAssets = maxAssets <= 7 ? 7 : maxAssets <= 16 ? 14 : 20;
+  // Target overshoot: Markowitz drops 30-40%, so aim higher
+  const targetAssets = maxAssets <= 7 ? 8 : maxAssets <= 16 ? 16 : 22;
   if (pool2.length < targetAssets && !wAV) {
     // Doublons faibles autorisés : sous-ensembles partiels du monde/SP500
     const WEAK_DUPS: string[][] = [
@@ -987,11 +987,25 @@ function markowitz(
   const portVol = (w: number[]) => Math.sqrt(Math.max(0, portVar(w)));
   const covW = (w: number[]) => cov.map(row => row.reduce((a, x, j) => a + x * w[j], 0));
 
+  // Weight diversity penalty: penalize near-equal weights
+  const weightDiversity = (w: number[]) => {
+    const active = w.filter(x => x > 0.01);
+    if (active.length < 2) return 0;
+    const mean = active.reduce((a, b) => a + b, 0) / active.length;
+    const std = Math.sqrt(active.reduce((a, x) => a + (x - mean) ** 2, 0) / active.length);
+    return std;
+  };
+
   const score = (w: number[]) => {
     const r = portRet(w), v = portVar(w), vol = Math.sqrt(Math.max(0, v));
-    if (method === "minvariance") return -v;
-    if (method === "maxsharpe") return vol > 0 ? (r - rfRate) / vol : -999;
-    return r - 0.5 * v;
+    let base: number;
+    if (method === "minvariance") base = -v;
+    else if (method === "maxsharpe") base = vol > 0 ? (r - rfRate) / vol : -999;
+    else base = r - 0.5 * v;
+    // Penalize solutions with near-equal weights (std < 0.05)
+    const wStd = weightDiversity(w);
+    if (N >= 4 && wStd < 0.05) base -= 0.1 * (1 / (wStd + 0.01));
+    return base;
   };
 
   const gradient = (w: number[]) => {
@@ -1006,27 +1020,36 @@ function markowitz(
     return mu.map((m, i) => m - sw[i]);
   };
 
-  // Phase 1: Monte Carlo
+  // Dirichlet-like random: generates asymmetric weight distributions
+  const dirichlet = (alpha: number) => {
+    const raw = syms.map(() => { let x = 0; for (let j = 0; j < Math.max(1, Math.round(alpha * 2)); j++) x -= Math.log(Math.random() + 1e-10); return x; });
+    const s = raw.reduce((a, b) => a + b, 0);
+    return raw.map(x => x / s);
+  };
+
+  // Phase 1: Monte Carlo (5000 trials with Dirichlet starts)
   let bestW = projectSimplex(new Array(N).fill(1 / N), wMin, wMax);
   let bestScore = score(bestW);
-  const STARTS = 30;
+  const STARTS = 40;
+  const MC_TRIALS = 5000;
   const candidates: number[][] = [];
-  for (let trial = 0; trial < Math.max(3000, STARTS * N); trial++) {
-    const raw = syms.map(() => Math.random());
+  for (let trial = 0; trial < Math.max(MC_TRIALS, STARTS * N); trial++) {
+    // Alternate between uniform random and Dirichlet(0.5) for asymmetric exploration
+    const raw = trial % 3 === 0 ? dirichlet(0.5) : syms.map(() => Math.random());
     const s = raw.reduce((a, b) => a + b, 0);
     const w = projectSimplex(raw.map(x => x / s), wMin, wMax);
     const sc = score(w);
     if (sc > bestScore) { bestScore = sc; bestW = [...w]; }
-    if (trial % Math.floor(3000 / STARTS) === 0) candidates.push([...w]);
+    if (trial % Math.floor(MC_TRIALS / STARTS) === 0) candidates.push([...w]);
   }
   candidates.push([...bestW]);
 
-  // Phase 2: Gradient Ascent
+  // Phase 2: Gradient Ascent (500 steps per start)
   for (const start of candidates) {
     let w = [...start];
     let lr = 0.05;
     let prevScore = score(w);
-    for (let step = 0; step < 300; step++) {
+    for (let step = 0; step < 500; step++) {
       const g = gradient(w);
       const gnorm = Math.sqrt(g.reduce((a, b) => a + b * b, 0));
       if (gnorm < 1e-10) break;
@@ -1041,6 +1064,23 @@ function markowitz(
       }
     }
   }
+
+  // Phase 3: If weights too uniform on 6+ assets, re-run with tighter maxWeight
+  const wDiv = weightDiversity(bestW);
+  if (N >= 6 && wDiv < 0.03) {
+    const tighterMax = wMax.map(m => Math.min(m, 0.20));
+    let bestW2 = projectSimplex(dirichlet(0.3), wMin, tighterMax);
+    let bestScore2 = score(bestW2);
+    for (let trial = 0; trial < 2000; trial++) {
+      const raw = dirichlet(0.5);
+      const s2 = raw.reduce((a, b) => a + b, 0);
+      const w2 = projectSimplex(raw.map(x => x / s2), wMin, tighterMax);
+      const sc2 = score(w2);
+      if (sc2 > bestScore2) { bestScore2 = sc2; bestW2 = [...w2]; }
+    }
+    if (weightDiversity(bestW2) > wDiv) { bestW = bestW2; bestScore = bestScore2; }
+  }
+  console.log(`[MARKOWITZ] ${method} wDiv=${weightDiversity(bestW).toFixed(3)} best=${bestScore.toFixed(3)}`);
 
   const finalRet = portRet(bestW);
   const finalVol = portVol(bestW);
