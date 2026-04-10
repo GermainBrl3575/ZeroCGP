@@ -236,6 +236,12 @@ const css = `
   .op-metrics{display:flex;gap:12px;margin-bottom:44px}
   .op-mn{font-family:'Inter',sans-serif;font-size:32px;font-weight:500;color:rgba(5,11,20,.88);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
   .op-ml{font-size:9px;color:rgba(5,11,20,.36);margin-top:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .stat-box{flex:1;padding:22px 20px;border-radius:8px;text-align:center;background:rgba(255,255,255,.65);border:0.5px solid rgba(5,11,20,.09);box-shadow:0 2px 12px rgba(0,0,0,.018),0 1px 2px rgba(0,0,0,.01)}
+  .btn-cta{font-family:'Inter',sans-serif;font-size:11.5px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;padding:15px 40px;border:none;border-radius:6px;position:relative;overflow:hidden;background:linear-gradient(145deg,#050B14,#0c1a2e);color:rgba(255,255,255,.92);box-shadow:0 3px 14px rgba(5,11,20,.1);transition:box-shadow 0.8s cubic-bezier(.16,1,.3,1),transform 0.7s cubic-bezier(.16,1,.3,1)}
+  .btn-cta:hover{transform:translateY(-0.5px);box-shadow:0 6px 28px rgba(5,11,20,.18),0 0 20px rgba(26,58,106,.25)}
+  .btn-cta::after{content:'';position:absolute;inset:0;border-radius:6px;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 40%,rgba(255,255,255,.12) 50%,rgba(255,255,255,.08) 60%,transparent 100%);background-size:200% 100%;background-position:-100% 0;transition:background-position 2s cubic-bezier(.16,1,.3,1)}
+  .btn-cta:hover::after{background-position:100% 0}
+  .btn-cta:disabled{opacity:.3;cursor:not-allowed}
   .fl label{font-size:10px;font-weight:500;letter-spacing:.1em;color:rgba(5,11,20,.36);display:block;margin-bottom:10px;text-transform:uppercase}
   .fl input{background:rgba(255,255,255,.72);border:0.5px solid rgba(5,11,20,.09);border-radius:6px;padding:17px 22px;font-size:16px;color:rgba(5,11,20,.88);outline:none;transition:border 0.7s cubic-bezier(.16,1,.3,1),box-shadow 0.7s cubic-bezier(.16,1,.3,1);font-family:'Inter',sans-serif;font-weight:500;width:280px;font-variant-numeric:tabular-nums;box-shadow:0 1px 2px rgba(0,0,0,.015)}
   .fl input:focus{border-color:rgba(26,58,106,.3);box-shadow:0 0 0 3px rgba(26,58,106,.05)}
@@ -343,13 +349,13 @@ function OptimizerInner() {
   if(step===0)return(<><style>{css}</style><div className="op">
     <Sheet>
     <div className="op-ey">Optimiseur Markowitz</div>
-    <h1 className="op-h1">Créez votre<br/>portefeuille <em>optimal.</em></h1>
+    <h1 className="op-h1">Créez votre portefeuille optimal.</h1>
     <p className="op-sub">En 9 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie moderne du portefeuille.</p>
     <div className="op-metrics">
-      {[["9","Questions"],["3","Méthodes"],["700+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
+      {[["9","Questions"],["3","Méthodes"],["700+","Actifs"]].map(([n,l])=>(<div key={l} className="stat-box"><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
     </div>
     <div className="fl" style={{marginBottom:32}}><label>Capital à investir (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="50 000"/></div>
-    <button onClick={()=>setStep(1)} className="btn-shimmer">Créer un portefeuille &rarr;</button>
+    <button onClick={()=>setStep(1)} className="btn-cta">Créer un portefeuille</button>
     </Sheet>
   </div></>);
 
@@ -447,7 +453,7 @@ function OptimizerInner() {
 
   // ── Résultats ──
   if(step===200){
-    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><Sheet><p style={{color:"#8A9BB0"}}>Aucun resultat.</p><button className="btn-shimmer" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></Sheet></div></>);
+    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><Sheet><p style={{color:"#8A9BB0"}}>Aucun resultat.</p><button className="btn-cta" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></Sheet></div></>);
     const selR=results.find(r=>r.method===sel)??results[0];
     const cap=parseFloat(capital)||50000;
     return(<><style>{css}</style><div className="op" style={{paddingBottom:60}}>
@@ -522,7 +528,7 @@ function OptimizerInner() {
       {saveError&&<p style={{color:"#DC2626",fontSize:12,marginBottom:12}}>{saveError}</p>}
       <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
         <button className="btn-out" onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setCalcStepIdx(0);setAnswers({});setSaveError("");}}>Recommencer</button>
-        <button onClick={handleSave} disabled={saving} className="btn-shimmer">{saving?"Enregistrement...":"Enregistrer ce portefeuille \u2192"}</button>
+        <button onClick={handleSave} disabled={saving} className="btn-cta">{saving?"Enregistrement...":"Enregistrer ce portefeuille \u2192"}</button>
       </div>
     </div></>);
   }
