@@ -216,18 +216,20 @@ function inferType(dedup: string, dbType: string): string {
 }
 
 const BANK_BLOCKED: Record<string, string[]> = {
-  "BoursoBank":          ["VOO","VTI","SPY","QQQ","CSPX.L"],
-  "Fortuneo":            ["VOO","VTI","SPY"],
+  "BoursoBank":          ["VOO","VTI","SPY","QQQ","CSPX.L","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT"],
+  "Fortuneo":            ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT"],
   "Hello Bank":          ["VOO","VTI","SPY"],
-  "BNP Paribas":         ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L"],
+  "BNP Paribas":         ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L","IVV","VWO","ACWI","REET","GNR","IBIT"],
   "Societe Generale":    ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Credit Agricole":     ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Caisse Epargne":      ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "Banque Populaire":    ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
   "LCL":                 ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
-  "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU"],
+  "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT","VWOB"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
+  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
+  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
   "Binance / Coinbase":  [],
   "Autre":               [],
 };
