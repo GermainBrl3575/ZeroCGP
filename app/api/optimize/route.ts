@@ -262,7 +262,7 @@ function dedupFilter(assets: Asset[]): Asset[] {
    ========================================================= */
 function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   symbols: string[]; minBondPct: number; minGoldPct: number; minReitPct: number;
-  minCryptoPct: number; minEMPct: number; maxWt: number;
+  minCryptoPct: number; minEMPct: number; maxWt: number; risk: "defensive"|"moderate"|"balanced"|"aggressive";
 } {
   const q1 = answers["1"] || "", q2 = answers["2"] || "", q3 = answers["3"] || "";
   const q4 = answers["4"] || "", q5 = answers["5"] || "", q6raw = answers["6"] || "";
@@ -909,7 +909,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   _log.push(`final:${symbols.length}(${symbols.join(',')})`);
   console.log(`[SELECT] ${_log.join(' | ')} | risk=${risk} maxWt=${maxWt}`);
 
-  return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt };
+  return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk };
 }
 
 /* =========================================================
@@ -966,13 +966,13 @@ function projectSimplex(w: number[], wMin: number[], wMax: number[]): number[] {
 function markowitz(
   returns: Record<string, number[]>, CAT: Asset[],
   method: "minvariance" | "maxsharpe" | "maxutility",
-  minClass: Record<string, number>, maxWeight = 0.32, rfRate = 0.03
+  minClass: Record<string, number>, maxWeight = 0.32, rfRate = 0.03,
+  risk: "defensive" | "moderate" | "balanced" | "aggressive" = "balanced"
 ) {
   const syms = Object.keys(returns); const N = syms.length;
   if (N < 2) return { weights: {} as Record<string, number>, ret: 0, vol: 0, sharpe: 0, var95: 0 };
   const T = Math.min(...syms.map(s => returns[s].length));
-  const perSym = syms.map(s => `${s}:${returns[s].length}w`);
-  console.log(`[MARKOWITZ] ${method} N=${N} T=${T} syms=[${perSym.join(',')}]`);
+  console.log(`[MARKOWITZ] ${method} N=${N} T=${T} risk=${risk}`);
 
   // Moments (annualized) — use slice(-T) for alignment
   const mu = syms.map(s => (returns[s].slice(-T).reduce((a, b) => a + b, 0) / T) * 52);
@@ -986,7 +986,35 @@ function markowitz(
 
   const wMin = syms.map(s => (minClass[s] || 0) / 100);
   const isStock = syms.map(s => CAT.find(a => a.s === s)?.type === "stock");
+  const isBond = syms.map(s => CAT.find(a => a.s === s)?.type === "bond");
+  const isEquityETF = syms.map(s => {
+    const a = CAT.find(x => x.s === s);
+    return a?.type === "etf" && a?.zone !== "any"; // ETF with geographic zone = equity ETF
+  });
   const wMax = syms.map((_, i) => isStock[i] ? Math.min(maxWeight, 0.12) : maxWeight);
+
+  // Risk profile constraints on wMin/wMax
+  if (risk === "defensive") {
+    // Max 15% per equity asset, min 40% total in bonds
+    for (let i = 0; i < N; i++) {
+      if (isStock[i] || isEquityETF[i]) wMax[i] = Math.min(wMax[i], 0.15);
+    }
+    const bondIdxs = syms.map((_, i) => isBond[i] ? i : -1).filter(i => i >= 0);
+    if (bondIdxs.length > 0) {
+      const minPerBond = 0.40 / bondIdxs.length;
+      bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
+    }
+  } else if (risk === "moderate") {
+    // Max 20% per equity asset, min 15% total in bonds if bonds present
+    for (let i = 0; i < N; i++) {
+      if (isStock[i]) wMax[i] = Math.min(wMax[i], 0.12);
+    }
+    const bondIdxs = syms.map((_, i) => isBond[i] ? i : -1).filter(i => i >= 0);
+    if (bondIdxs.length > 0) {
+      const minPerBond = 0.15 / bondIdxs.length;
+      bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
+    }
+  }
 
   const portRet = (w: number[]) => w.reduce((a, x, i) => a + x * mu[i], 0);
   const portVar = (w: number[]) => { let v = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) v += w[i] * w[j] * cov[i][j]; return v; };
@@ -1109,7 +1137,7 @@ export async function POST(req: NextRequest) {
   const { capital = 50000, answers = {} } = await req.json();
   try {
     const CAT = await loadCatalogue();
-    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt } = selectUniverse(answers, CAT);
+    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk } = selectUniverse(answers, CAT);
     const returns = await fetchReturns(symbols, 10);
 
     // Proxy substitution: if an asset has little data, use best from same dedup group
@@ -1149,7 +1177,7 @@ export async function POST(req: NextRequest) {
       ["maxutility", "Utilite Maximale", false],
     ];
     const results: Result[] = methods.map(([method, label, rec]) => {
-      const opt = markowitz(returns, CAT, method, minClass, maxWt);
+      const opt = markowitz(returns, CAT, method, minClass, maxWt, 0.03, risk);
       const rawW = Object.entries(opt.weights).filter(([, v]) => v > 0.01).sort((a, b) => b[1] - a[1]);
       const totalW = rawW.reduce((s, [, v]) => s + v, 0);
       const roundedW = rawW.map(([, v]) => Math.round(v / totalW * 1000) / 10);
