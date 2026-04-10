@@ -742,17 +742,66 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   /* ═══════════════════════════════════════════════════════
-     ETAPE 8 : Verification finale + fallback
-     Si pool < 4 → relax zone filter
+     ETAPE 8 : Remplissage doublons faibles si pool < target
+     Si pool trop petit après anti-doublons forts,
+     réintroduire des doublons faibles (overlap partiel)
      ═══════════════════════════════════════════════════════ */
-  if (pool2.length < 4) {
-    // Re-run with relaxed zone filter
-    pool2 = smartDedup(baseFilter(false));
-    // Re-apply world anti-doublon
-    const hasW8 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
-    if (hasW8 && risk !== "aggressive") {
-      pool2 = pool2.filter(a => !WORLD_SUBS.includes(a.dedup));
+  const targetAssets = maxAssets <= 7 ? 5 : maxAssets <= 16 ? 8 : 12;
+  if (pool2.length < targetAssets) {
+    // Doublons faibles autorisés : sous-ensembles partiels du monde/SP500
+    const WEAK_DUPS: string[][] = [
+      // World + regional = complément légitime
+      ["SP500", "NASDAQ100", "EUROSTOXX50", "MSCI_EUROPE", "CAC_MID60", "MSCI_EU_SMALL"],
+      // Broad EM + single country
+      ["MSCI_CHINA", "MSCI_KOREA", "MSCI_INDIA", "MSCI_BRAZIL", "MSCI_TAIWAN"],
+      // Bond diversification
+      ["EUR_AGG", "US_IG", "US_HY", "EM_GOV", "US_7_10Y", "US_20Y", "US_TIPS", "GLOBAL_AGG", "EM_BOND_USD"],
+      // Dev ex-US sub-regions
+      ["MSCI_EAFE", "FTSE_DEV", "FTSE_EUR", "MSCI_EMU"],
+    ];
+    // Build candidate pool from base filter (all assets that passed initial filter but were removed by anti-doublon)
+    const allBase = smartDedup(baseFilter(true));
+    const poolSyms = new Set(pool2.map(a => a.s));
+    const candidates = allBase.filter(a => !poolSyms.has(a.s) && supOk(a) && !blocked.has(a.s));
+    // Sort candidates: prefer different types, then different zones, then low TER
+    const poolTypes = new Set(pool2.map(a => a.type));
+    const poolZones = new Set(pool2.map(a => a.zone));
+    candidates.sort((a, b) => {
+      // Prefer types not yet in pool
+      const aNewType = !poolTypes.has(a.type) ? 1 : 0;
+      const bNewType = !poolTypes.has(b.type) ? 1 : 0;
+      if (aNewType !== bNewType) return bNewType - aNewType;
+      // Prefer zones not yet in pool
+      const aNewZone = !poolZones.has(a.zone) ? 1 : 0;
+      const bNewZone = !poolZones.has(b.zone) ? 1 : 0;
+      if (aNewZone !== bNewZone) return bNewZone - aNewZone;
+      // Prefer ETF over stock
+      if (a.type === "etf" && b.type !== "etf") return -1;
+      if (b.type === "etf" && a.type !== "etf") return 1;
+      return a.ter - b.ter;
+    });
+    for (const c of candidates) {
+      if (pool2.length >= targetAssets) break;
+      // Check it's a legitimate weak dup (in one of the WEAK_DUPS groups)
+      const isWeakDup = WEAK_DUPS.some(group => group.includes(c.dedup));
+      // Or it's a completely new type/zone
+      const isNewDiversifier = !poolTypes.has(c.type) || !poolZones.has(c.zone);
+      if (isWeakDup || isNewDiversifier) {
+        // Respect class filters
+        if (!wStocks && c.type === "stock") continue;
+        if (!wGold && (c.type === "gold" || c.type === "commodity")) continue;
+        if (!wReits && c.type === "reit") continue;
+        if (!wBonds && c.type === "bond" && risk === "aggressive") continue;
+        pool2.push(c);
+        poolTypes.add(c.type);
+        poolZones.add(c.zone);
+      }
     }
+  }
+
+  // Hard fallback if still < 4
+  if (pool2.length < 4) {
+    pool2 = smartDedup(baseFilter(false)); // relax zone
     if (pool2.length < 4) {
       pool2 = smartDedup(CAT.filter(a => {
         if (a.type === "crypto" && !wCrypto) return false;
