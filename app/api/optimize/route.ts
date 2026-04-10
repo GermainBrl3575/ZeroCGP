@@ -1002,9 +1002,11 @@ function markowitz(
     if (method === "minvariance") base = -v;
     else if (method === "maxsharpe") base = vol > 0 ? (r - rfRate) / vol : -999;
     else base = r - 0.5 * v;
-    // Penalize solutions with near-equal weights (std < 0.05)
-    const wStd = weightDiversity(w);
-    if (N >= 4 && wStd < 0.05) base -= 0.1 * (1 / (wStd + 0.01));
+    // Light penalty for near-equal weights (only for maxsharpe with 6+ assets)
+    if (method === "maxsharpe" && N >= 6) {
+      const wStd = weightDiversity(w);
+      if (wStd < 0.03) base -= 0.02 * (1 / (wStd + 0.01));
+    }
     return base;
   };
 
