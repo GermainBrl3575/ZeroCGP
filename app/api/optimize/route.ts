@@ -11,7 +11,7 @@ interface Asset {
   s:string; n:string;
   zone:"monde"|"usa"|"europe"|"em"|"any";
   type:"etf"|"stock"|"bond"|"gold"|"commodity"|"crypto"|"reit";
-  dedup:string; ter:number;
+  dedup:string; ter:number; weeks?:number;
   pea:boolean; cto:boolean; av:boolean;
   esg?:boolean; excl_esg?:boolean;
 }
@@ -156,7 +156,8 @@ async function loadCatalogue(): Promise<Asset[]> {
         COALESCE(am.av, false) as av,
         COALESCE(am.zone, 'any') as zone,
         COALESCE(am.excl_esg, false) as excl_esg,
-        CASE WHEN er.esg_score >= 7 THEN true ELSE false END as esg
+        CASE WHEN er.esg_score >= 7 THEN true ELSE false END as esg,
+        (SELECT COUNT(*) FROM assets_history ah WHERE ah.symbol = am.symbol) as weeks
       FROM assets_master am
       INNER JOIN dedup_groups dg ON dg.symbol = am.symbol
       LEFT JOIN esg_ratings er ON er.symbol = am.symbol
@@ -164,7 +165,7 @@ async function loadCatalogue(): Promise<Asset[]> {
         SELECT symbol FROM assets_history
         GROUP BY symbol HAVING COUNT(*) >= 200
       )
-      ORDER BY am.type, am.symbol
+      ORDER BY am.type, dg.ter ASC, am.symbol
     `);
     // Build lookup from static catalogue for type overrides
     const staticLookup = new Map<string, Asset>();
@@ -186,6 +187,7 @@ async function loadCatalogue(): Promise<Asset[]> {
         zone: (staticAsset?.zone || r.zone || "any") as Asset["zone"],
         esg: staticAsset?.esg ?? (r.esg === true),
         excl_esg: staticAsset?.excl_esg ?? (r.excl_esg === true),
+        weeks: parseInt(r.weeks) || 0,
       };
     });
     CAT_CACHE_TIME = Date.now();
@@ -455,8 +457,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       // Prefer AV-eligible if user has AV
       if (wAV && a.av && !ex.av) { m.set(a.dedup, a); continue; }
       if (wAV && !a.av && ex.av) continue;
-      // Lowest TER wins
-      if (a.ter < ex.ter) m.set(a.dedup, a);
+      // Lowest TER wins, then most weeks (more data = better Markowitz)
+      if (a.ter < ex.ter) { m.set(a.dedup, a); continue; }
+      if (a.ter === ex.ter && (a.weeks || 0) > (ex.weeks || 0)) m.set(a.dedup, a);
     }
     return [...m.values()];
   };
