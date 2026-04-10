@@ -398,8 +398,8 @@ function OptimizerInner() {
                 ))}
               </select>
               {answers[step] && (
-                <button onClick={()=>setStep(s=>s+1)} className="q-btn" style={{marginTop:16,background:NAVY,color:"white",borderColor:NAVY,width:"100%"}}>
-                  Continuer →
+                <button onClick={()=>startCalc()} className="q-btn" style={{marginTop:16,background:"#050B14",color:"white",borderColor:"#050B14",width:"100%"}}>
+                  Lancer l'optimisation →
                 </button>
               )}
             </div>
