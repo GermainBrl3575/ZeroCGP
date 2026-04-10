@@ -2,7 +2,8 @@
 import { useMemo } from "react";
 
 const NAVY = "#050B14";
-const GREEN = "#4ade80";
+const SAPPHIRE = "#2a5494";
+const SAPPHIRE_GLOW = "rgba(26,58,106,0.4)";
 
 interface Props { calcPct: number; currentStep: string; stepIdx: number }
 
@@ -42,8 +43,8 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
           <div style={{ fontSize: 9, letterSpacing: 5, textTransform: "uppercase", color: "rgba(5,11,20,.22)", marginBottom: 12, fontFamily: "'Inter',sans-serif", fontWeight: 400 }}>
             Calcul en cours
           </div>
-          <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: "clamp(22px,2.8vw,32px)", fontWeight: 300, color: NAVY, lineHeight: 1.25, letterSpacing: "-0.3px", margin: "0 0 28px" }}>
-            Optimisation <span style={{ fontWeight: 500 }}>du portefeuille…</span>
+          <h1 style={{ fontFamily: "'Inter',sans-serif", fontSize: "clamp(22px,2.8vw,32px)", fontWeight: 500, color: "rgba(5,11,20,.88)", lineHeight: 1.25, letterSpacing: "-0.03em", margin: "0 0 28px" }}>
+            Optimisation du portefeuille…
           </h1>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -58,8 +59,8 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
                 }}>
                   <div style={{
                     width: 5, height: 5, borderRadius: "50%", flexShrink: 0,
-                    background: done ? GREEN : active ? NAVY : "rgba(5,11,20,.15)",
-                    boxShadow: done ? `0 0 6px ${GREEN}40` : "none",
+                    background: done ? SAPPHIRE : active ? NAVY : "rgba(5,11,20,.15)",
+                    boxShadow: done ? `0 0 8px ${SAPPHIRE_GLOW}` : "none",
                     transition: "all 0.5s ease",
                   }} />
                   <span style={{
@@ -79,7 +80,8 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
             <div style={{ height: 2, background: "rgba(5,11,20,.04)", borderRadius: 1, overflow: "hidden" }}>
               <div style={{
                 height: "100%", borderRadius: 1,
-                background: `linear-gradient(90deg, ${NAVY}, ${GREEN})`,
+                background: `linear-gradient(90deg, ${NAVY}40, ${SAPPHIRE})`,
+                boxShadow: `0 0 6px ${SAPPHIRE_GLOW}`,
                 width: `${calcPct}%`,
                 transition: "width 0.7s cubic-bezier(.16,1,.3,1)",
               }} />
@@ -104,12 +106,12 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
               return (
                 <line key={`e${i}`}
                   x1={e.x1} y1={e.y1} x2={e.x2} y2={e.y2}
-                  stroke={glow ? GREEN : NAVY}
-                  strokeWidth={0.3}
-                  strokeOpacity={pulse ? 0.3 : glow ? 0.18 : show ? (e.d < 200 ? 0.06 : 0.02) : 0}
+                  stroke={glow ? SAPPHIRE : NAVY}
+                  strokeWidth={glow ? 0.6 : 0.4}
+                  strokeOpacity={pulse ? 0.5 : glow ? 0.35 : show ? (e.d < 200 ? 0.12 : 0.05) : 0}
                   style={{
                     transition: `stroke-opacity 0.8s ease ${i * 0.01}s, stroke 0.5s ease`,
-                    filter: glow ? `drop-shadow(0 0 ${pulse ? 4 : 2}px rgba(74,222,128,${pulse ? 0.4 : 0.2}))` : "none",
+                    filter: glow ? `drop-shadow(0 0 ${pulse ? 6 : 3}px ${SAPPHIRE_GLOW})` : "none",
                   }}
                 />
               );
@@ -119,12 +121,12 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
               <g key={`n${i}`}>
                 <circle
                   cx={n.x} cy={n.y}
-                  r={phase >= 1 ? (phase >= 4 ? 4 : 3) : 0}
-                  fill={phase >= 3 ? GREEN : NAVY}
-                  opacity={phase >= 1 ? 1 : 0}
+                  r={phase >= 1 ? (phase >= 4 ? 5 : 3.5) : 0}
+                  fill={phase >= 3 ? SAPPHIRE : NAVY}
+                  opacity={phase >= 1 ? 0.9 : 0}
                   style={{
                     transition: `r 0.6s cubic-bezier(.34,1.56,.64,1) ${i * 0.06}s, fill 0.5s ease, opacity 0.6s ease ${i * 0.06}s`,
-                    filter: phase >= 4 ? `drop-shadow(0 0 4px rgba(74,222,128,0.3))` : "none",
+                    filter: phase >= 4 ? `drop-shadow(0 0 6px ${SAPPHIRE_GLOW})` : "none",
                   }}
                 />
                 <text
@@ -133,7 +135,7 @@ export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) 
                   textAnchor="middle" dominantBaseline="middle"
                   fontFamily="'Inter',sans-serif" fontSize={7.5} fontWeight={300}
                   fill={NAVY} letterSpacing={0.5}
-                  opacity={phase >= 1 ? 0.25 : 0}
+                  opacity={phase >= 1 ? 0.45 : 0}
                   style={{ transition: `opacity 0.8s ease ${i * 0.06 + 0.3}s` }}
                 >
                   {n.label}
