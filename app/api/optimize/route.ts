@@ -575,6 +575,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"],
     ["MSCI_EAFE", "FTSE_DEV"],
     ["GOLD_EU", "GOLD_US", "GOLD_MINERS"],  // Max 1 gold exposure
+    ["CAC_MID60", "MSCI_EU_SMALL"],           // SMC.PA vs EESM.PA (both EU small/mid)
+    ["NAT_RES", "CMDTY"],                     // GNR vs GSG (commodities)
   ];
   for (const group of OVERLAP_GROUPS) {
     const inGroup = pool2.filter(a => group.includes(a.dedup));
@@ -598,7 +600,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
     const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     const CTO_BASE_AGG = ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"];
-    const CTO_BASE_STD = ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "IGLN.L"];
+    const CTO_BASE_STD = ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "OBLI.PA", "GAGG.PA"];
     // For "large" profile with stocks requested, add individual stocks
     const CTO_LARGE_STOCKS = wStocks ? ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","V","MA","JNJ","LLY","JPM",
       "MC.PA","RMS.PA","ASML.AS","SAP.DE","NOVO-B.CO","SU.PA","AIR.PA"] : [];
@@ -625,8 +627,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
 
   // AV with small pool: add av-eligible diversifiers by dedup key
   if (wAV && pool2.length < 8 && !onlyBonds && !onlyCrypto) {
+    // Prefer .PA bonds (EUR, no FX risk) before .L bonds (GBP)
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
-      ? ["GOLD_EU", "EUR_GOV", "EUR_GOV_ST", "EU_REITS"]  // Safe diversifiers
+      ? ["EUR_GOV_PA", "GLOBAL_AGG_PA", "GOLD_EU", "EU_REITS"]  // .PA bonds first, then gold
       : ["GOLD_EU", "EU_REITS"];
     for (const ded of AV_ADD_DEDUPS) {
       if (pool2.find(a => a.dedup === ded)) continue;
@@ -691,6 +694,10 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       const bondCandidates = CAT.filter(a =>
         a.type === "bond" && !blocked.has(a.s) && supOk(a) && zoneFilter(a)
       ).sort((a, b) => {
+        // Prefer .PA bonds (EUR-denominated, no FX risk) over .L (GBP)
+        const aPA = a.s.endsWith(".PA") ? 1 : 0;
+        const bPA = b.s.endsWith(".PA") ? 1 : 0;
+        if (aPA !== bPA) return bPA - aPA;
         if (wAV && a.av && !b.av) return -1;
         if (wAV && !a.av && b.av) return 1;
         return a.ter - b.ter;
@@ -994,24 +1001,28 @@ function markowitz(
   const wMax = syms.map((_, i) => isStock[i] ? Math.min(maxWeight, 0.12) : maxWeight);
 
   // Risk profile constraints on wMin/wMax
+  const isGold = syms.map(s => { const a = CAT.find(x => x.s === s); return a?.type === "gold" || a?.type === "commodity"; });
+  const bondIdxs = syms.map((_, i) => isBond[i] ? i : -1).filter(i => i >= 0);
+  const goldIdxs = syms.map((_, i) => isGold[i] ? i : -1).filter(i => i >= 0);
   if (risk === "defensive") {
-    // Max 15% per equity asset, min 40% total in bonds
+    // Max 10% per equity ETF, max 8% per stock, min 45% total bonds+gold
     for (let i = 0; i < N; i++) {
-      if (isStock[i] || isEquityETF[i]) wMax[i] = Math.min(wMax[i], 0.15);
+      if (isStock[i]) wMax[i] = Math.min(wMax[i], 0.08);
+      else if (isEquityETF[i]) wMax[i] = Math.min(wMax[i], 0.10);
     }
-    const bondIdxs = syms.map((_, i) => isBond[i] ? i : -1).filter(i => i >= 0);
-    if (bondIdxs.length > 0) {
-      const minPerBond = 0.40 / bondIdxs.length;
-      bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
+    const safeIdxs = [...bondIdxs, ...goldIdxs];
+    if (safeIdxs.length > 0) {
+      const minPerSafe = 0.45 / safeIdxs.length;
+      safeIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerSafe); });
     }
   } else if (risk === "moderate") {
-    // Max 20% per equity asset, min 15% total in bonds if bonds present
+    // Max 15% per equity, min 20% total bonds if bonds present
     for (let i = 0; i < N; i++) {
       if (isStock[i]) wMax[i] = Math.min(wMax[i], 0.12);
+      else if (isEquityETF[i]) wMax[i] = Math.min(wMax[i], 0.20);
     }
-    const bondIdxs = syms.map((_, i) => isBond[i] ? i : -1).filter(i => i >= 0);
     if (bondIdxs.length > 0) {
-      const minPerBond = 0.15 / bondIdxs.length;
+      const minPerBond = 0.20 / bondIdxs.length;
       bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
     }
   }
