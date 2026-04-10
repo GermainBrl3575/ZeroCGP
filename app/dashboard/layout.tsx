@@ -158,9 +158,29 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [profHov,sPH]=useState(false);
   const [userHov,sUH]=useState(false);
   const [loaded,sLd]=useState(false);
+  const [portfolios,setPortfolios]=useState<{id:string;name:string;type:string}[]>([]);
+  const [activeId,setActiveId]=useState("");
+  const [userInitials,setUserInitials]=useState("U");
+  const [userName,setUserName]=useState("Mon compte");
   const mk=useMk();
 
   useEffect(()=>{setTimeout(()=>sLd(true),80);},[]);
+
+  // Load portfolios + user from Supabase
+  useEffect(()=>{
+    (async()=>{
+      const {data:{user}}=await supabase.auth.getUser();
+      if(!user){router.push("/auth/login");return;}
+      // User info
+      const email=user.email||"";
+      const name=user.user_metadata?.full_name||user.user_metadata?.name||email.split("@")[0]||"User";
+      setUserName(name);
+      setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
+      // Portfolios
+      const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",user.id).order("created_at",{ascending:false});
+      if(pfs&&pfs.length>0){setPortfolios(pfs);setActiveId(pfs[0].id);}
+    })();
+  },[]);
 
   async function handleLogout(){await supabase.auth.signOut();router.push("/");}
 
@@ -188,7 +208,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
           <div style={{padding:"26px 22px 20px",fontSize:11.5,fontWeight:500,letterSpacing:".3em",color:"rgba(255,255,255,.58)",textTransform:"uppercase"}}>Zero CGP</div>
           <div onMouseEnter={()=>sPH(true)} onMouseLeave={()=>sPH(false)} style={{margin:"0 12px 20px",padding:"11px 13px",borderRadius:8,cursor:"pointer",background:profHov?"linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))":"linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",border:profHov?".5px solid rgba(255,255,255,.1)":".5px solid rgba(255,255,255,.055)",boxShadow:profHov?"inset 0 1px 0 rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.2)":"inset 0 1px 0 rgba(255,255,255,.03),0 2px 6px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,transition:`all ${EASE}`,transform:profHov?"translateY(-.5px)":"none"}}>
             <div style={{width:28,height:28,borderRadius:7,background:profHov?"linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.07))":"linear-gradient(135deg,rgba(201,168,76,.1),rgba(201,168,76,.04))",border:`.5px solid rgba(201,168,76,${profHov?.28:.18})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8.5,fontWeight:600,letterSpacing:".04em",color:C.gold,transition:`all ${EASE}`}}>0CGP</div>
-            <span style={{fontSize:12.5,fontWeight:400,flex:1,color:profHov?"rgba(255,255,255,.82)":"rgba(255,255,255,.68)",transition:`color ${EASE}`}}>Papa</span>
+            <span style={{fontSize:12.5,fontWeight:400,flex:1,color:profHov?"rgba(255,255,255,.82)":"rgba(255,255,255,.68)",transition:`color ${EASE}`}}>{portfolios.find(p=>p.id===activeId)?.name||"Portfolio"}</span>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={profHov?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)"} strokeWidth="1.5" strokeLinecap="round" style={{transition:`all ${EASE}`,transform:profHov?"rotate(180deg)":"none"}}><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div style={{padding:"0 22px",marginBottom:8}}><div style={{fontSize:8.5,fontWeight:500,letterSpacing:".18em",textTransform:"uppercase",color:"rgba(255,255,255,.35)",marginBottom:7}}>Navigation</div><div style={{height:".3px",background:"linear-gradient(90deg,rgba(255,255,255,.07),rgba(255,255,255,.02),transparent)"}}/></div>
@@ -204,8 +224,8 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
           <div style={{padding:"0 20px",marginBottom:12}}><div style={{height:".3px",marginBottom:10,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)"}}/><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.gold,opacity:.6}}/><span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)"}}>Optimisation : il y a 26 jours</span></div></div>
           <div style={{margin:"0 9px 9px",padding:"13px",borderRadius:8,background:"rgba(255,255,255,.04)",border:".3px solid rgba(255,255,255,.045)"}}>
             <div onMouseEnter={()=>sUH(true)} onMouseLeave={()=>sUH(false)} onClick={handleLogout} style={{display:"flex",alignItems:"center",gap:11,cursor:"pointer",transition:`all ${EASE}`,transform:userHov?"translateY(-.5px)":"none"}}>
-              <div style={{width:36,height:36,borderRadius:"50%",background:userHov?"linear-gradient(145deg,#1d3050,#0e1a2c)":"linear-gradient(145deg,#182840,#0c1422)",border:`.5px solid rgba(255,255,255,${userHov?.12:.08})`,boxShadow:"inset 0 1.5px 3px rgba(255,255,255,.05),inset 0 -1.5px 3px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:500,letterSpacing:".04em",color:userHov?"rgba(255,255,255,.85)":"rgba(255,255,255,.65)",flexShrink:0,transition:`all ${EASE}`}}>U</div>
-              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:500,marginBottom:2,color:userHov?"rgba(255,255,255,.85)":"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",transition:`color ${EASE}`}}>Mon compte</div><div style={{fontSize:9,fontWeight:500,letterSpacing:".08em",textTransform:"uppercase",color:userHov?C.bordeauxH:C.bordeaux,transition:`color ${EASE}`}}>Déconnexion</div></div>
+              <div style={{width:36,height:36,borderRadius:"50%",background:userHov?"linear-gradient(145deg,#1d3050,#0e1a2c)":"linear-gradient(145deg,#182840,#0c1422)",border:`.5px solid rgba(255,255,255,${userHov?.12:.08})`,boxShadow:"inset 0 1.5px 3px rgba(255,255,255,.05),inset 0 -1.5px 3px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:500,letterSpacing:".04em",color:userHov?"rgba(255,255,255,.85)":"rgba(255,255,255,.65)",flexShrink:0,transition:`all ${EASE}`}}>{userInitials}</div>
+              <div style={{flex:1,minWidth:0}}><div style={{fontSize:12.5,fontWeight:500,marginBottom:2,color:userHov?"rgba(255,255,255,.85)":"rgba(255,255,255,.7)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",transition:`color ${EASE}`}}>{userName}</div><div style={{fontSize:9,fontWeight:500,letterSpacing:".08em",textTransform:"uppercase",color:userHov?C.bordeauxH:C.bordeaux,transition:`color ${EASE}`}}>Déconnexion</div></div>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={userHov?"rgba(175,60,60,.65)":"rgba(175,60,60,.35)"} strokeWidth=".8" strokeLinecap="round" style={{transition:`stroke ${EASE}`}}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             </div>
           </div>
