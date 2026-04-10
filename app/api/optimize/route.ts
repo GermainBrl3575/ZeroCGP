@@ -232,8 +232,8 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Degiro":              ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","SHY","BND","TIP","VWOB","EMB","VWO","REET","GNR","GSG","IWM","IJR","IJH","VYM","DVY","SCHD","VIG","MTUM","USMV","VTV","VUG","RSP","EFA","VEA","EWJ","EWA","EWC","IYR","XLRE","AMT","DLR","PLD","GDX","XLK","IGV","SOXX","SMH","XLV","IBB","XLF","XLE","XLI","XLY","XLP","ITA","PPA","ACWI","IVV","IVW","XLB","IDU","FEZ","EWP","EWI","EWG","EWU","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT","VWOB"],
   "Trade Republic":      [],
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
-  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
-  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT"],
+  "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
+  "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
   "Binance / Coinbase":  [],
   "Autre":               [],
 };
@@ -631,7 +631,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     // Prefer .PA bonds (EUR, no FX risk) before .L bonds (GBP)
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
       ? ["EUR_GOV_PA", "GLOBAL_AGG_PA", "GOLD_EU", "EU_REITS"]  // .PA bonds first, then gold
-      : ["GOLD_EU", "EU_REITS"];
+      : ["GOLD_EU", "EU_REITS", "SP500", "NASDAQ100", "EUROSTOXX50"];  // ETF actions for dynamic/aggressive AV
     for (const ded of AV_ADD_DEDUPS) {
       if (pool2.find(a => a.dedup === ded)) continue;
       const asset = CAT.find(a => a.dedup === ded && a.av === true && !blocked.has(a.s));
@@ -847,7 +847,15 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  // Hard fallback if still < 4
+  // Hard fallback if still < 4: relax ESG strict → exclusion only, then relax zone
+  if (pool2.length < 5 && esgStrict) {
+    // ESG strict pool too small → fallback to exclusion (remove worst offenders, keep neutrals)
+    const relaxedESG = smartDedup(CAT.filter(a =>
+      supOk(a) && !blocked.has(a.s) && zoneFilter(a) && !a.excl_esg &&
+      (a.type !== "crypto" || wCrypto) && (!wBonds || a.type !== "bond" || risk !== "aggressive")
+    ));
+    if (relaxedESG.length > pool2.length) pool2 = relaxedESG;
+  }
   if (pool2.length < 4) {
     pool2 = smartDedup(baseFilter(false)); // relax zone
     if (pool2.length < 4) {
@@ -1169,7 +1177,8 @@ export async function POST(req: NextRequest) {
 
     const validSyms = Object.keys(returns);
     console.log(`[POST] requested=${symbols.length} valid=${validSyms.length} dropped=[${symbols.filter(s=>!returns[s]).join(',')}] weeks=[${validSyms.map(s=>s+':'+returns[s].length+'w').join(',')}]`);
-    if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 500 });
+    if (validSyms.length < 2) return NextResponse.json({ error: "Pas assez d'actifs disponibles pour ce profil. Essayez d'elargir les classes d'actifs ou la zone geographique." }, { status: 400 });
+    if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 400 });
 
     const meta = await fetchMeta(validSyms, CAT);
     const bondSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "bond");
