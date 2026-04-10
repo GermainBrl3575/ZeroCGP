@@ -803,8 +803,13 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (pool2.length >= targetAssets) break;
       // Never reintroduce strong dups
       if (pool2.find(a => a.dedup === c.dedup)) continue;
-      // When MSCI_WORLD present (non-aggressive): don't reintroduce ANY world sub-indices
-      if (hasWorldPool && risk !== "aggressive" && WORLD_SUBS.includes(c.dedup)) continue;
+      // When MSCI_WORLD present (non-aggressive): don't reintroduce SP500/NASDAQ (strongest overlap)
+      if (hasWorldPool && risk !== "aggressive" && ["SP500","NASDAQ100"].includes(c.dedup)) continue;
+      // Block developed sub-regions (VEA, EFA, EWJ, EWC) but allow EU complements (C50, EXSA)
+      if (hasWorldPool && risk !== "aggressive" && ["MSCI_EAFE","FTSE_DEV","MSCI_JAPAN","MSCI_CAN","MSCI_AUS","MSCI_SPAIN","MSCI_ITALY","MSCI_GERMANY","MSCI_UK"].includes(c.dedup)) continue;
+      // Max 1 EU sub-index as complement to World
+      const EU_SUBS = ["EUROSTOXX50","MSCI_EUROPE","FTSE_EUR","MSCI_EMU","CAC_MID60","MSCI_EU_SMALL"];
+      if (hasWorldPool && EU_SUBS.includes(c.dedup) && pool2.filter(a => EU_SUBS.includes(a.dedup)).length >= 1) continue;
       // When SP500 or WORLD present: don't reintroduce SP500 sub-indices
       if ((hasSP500Pool || hasWorldPool) && SP500_SUBS.includes(c.dedup)) continue;
       // Check it's a legitimate weak dup (in one of the WEAK_DUPS groups)
