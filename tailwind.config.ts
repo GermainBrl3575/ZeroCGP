@@ -10,15 +10,14 @@ const config: Config = {
     extend: {
       colors: {
         accent: "#D5001C",
-        sidebar: "#111111",
-        "bg-main": "#F5F4F1",
+        "bg-main": "#F9F8F6",
         gold: "#C9A84C",
         etf: "#2563EB",
         stock: "#16A34A",
         crypto: "#D97706",
       },
       fontFamily: {
-        sans: ["-apple-system", "Helvetica Neue", "Arial", "sans-serif"],
+        sans: ["Inter", "sans-serif"],
       },
     },
   },

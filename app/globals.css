@@ -2,12 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: border-box; border-style: solid; }
 html { height: 100%; }
 body {
   height: 100%;
-  background: #F5F4F1;
-  font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  background: #F9F8F6;
+  font-family: 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
