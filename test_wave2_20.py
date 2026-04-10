@@ -86,7 +86,7 @@ def evaluate(answers, result):
             "Evalue. JSON uniquement sans apostrophe.")
     for attempt in range(3):
         try:
-            d=json.dumps({"model":"claude-sonnet-4-6","max_tokens":1200,"temperature":0,"system":CGP_SYSTEM,
+            d=json.dumps({"model":"claude-sonnet-4-6","max_tokens":1200,"temperature":0.3,"system":CGP_SYSTEM,
                 "messages":[{"role":"user","content":prompt}]}).encode()
             req=urllib.request.Request("https://api.anthropic.com/v1/messages",data=d,method="POST",
                 headers={"Content-Type":"application/json","x-api-key":KEY,"anthropic-version":"2023-06-01"})
