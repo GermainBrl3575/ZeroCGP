@@ -584,12 +584,12 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     const CTO_BASE_AGG = ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"];
     const CTO_BASE_STD = ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "IGLN.L"];
-    // For "large" profile, add more assets to fill the pool
-    const CTO_LARGE = ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","V","MA","JNJ","LLY","JPM",
-      "MC.PA","RMS.PA","ASML.AS","SAP.DE","NOVO-B.CO","SU.PA","AIR.PA"];
+    // For "large" profile with stocks requested, add individual stocks
+    const CTO_LARGE_STOCKS = wStocks ? ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","V","MA","JNJ","LLY","JPM",
+      "MC.PA","RMS.PA","ASML.AS","SAP.DE","NOVO-B.CO","SU.PA","AIR.PA"] : [];
     const CTO_ADD = risk === "aggressive"
-      ? [...CTO_BASE_AGG, ...(maxAssets > 12 ? CTO_LARGE : [])]
-      : [...CTO_BASE_STD, ...(maxAssets > 12 ? ["AAPL","MSFT","MC.PA","ASML.AS"] : [])];
+      ? [...CTO_BASE_AGG, ...(maxAssets > 12 ? CTO_LARGE_STOCKS : [])]
+      : [...CTO_BASE_STD, ...(maxAssets > 12 ? CTO_LARGE_STOCKS.slice(0, 4) : [])];
     for (const sym of CTO_ADD) {
       const asset = CAT.find(a => a.s === sym);
       if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym || a.dedup === asset.dedup)) continue;
@@ -597,6 +597,10 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (wAV && !wCTO && !asset.av) continue;
       if (esgStrict && !asset.esg) continue;
       if (!zoneFilter(asset)) continue;
+      // Respect requested asset classes
+      if (!wStocks && asset.type === "stock") continue;
+      if (!wGold && (asset.type === "gold" || asset.type === "commodity")) continue;
+      if (!wReits && asset.type === "reit") continue;
       if (risk === "aggressive" && WDEDUPS.includes(asset.dedup)) continue;
       if (hasW5 && risk !== "aggressive" && WORLD_SUBS.includes(asset.dedup)) continue;
       pool2.push(asset);
