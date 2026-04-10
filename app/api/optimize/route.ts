@@ -290,6 +290,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   let risk = riskOrder[Math.min(riskOrder.indexOf(riskQ2), riskOrder.indexOf(riskQ3))] as
     "defensive" | "moderate" | "balanced" | "aggressive";
   if (isShort && riskOrder.indexOf(risk) > 1) risk = "moderate";
+  // AV cap: dynamic/aggressive not suited for AV (limited pool) → cap at moderate
+  if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate";
 
   // ── 3.3 Parse supports (q8) — JSON format or legacy string ──
   let comptes: Array<{ type: string; banque: string; pct: number }> = [];
@@ -407,7 +409,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     return {
       symbols: dedupFilter(cr).map(a => a.s).slice(0, maxAssets),
       minBondPct: 0, minGoldPct: 0, minReitPct: 0, minCryptoPct: 30, minEMPct: 0,
-      maxWt: 0.35,
+      maxWt: 0.35, risk, comptes,
     };
   }
 
@@ -1037,6 +1039,11 @@ function markowitz(
       const minPerBond = 0.20 / bondIdxs.length;
       bondIdxs.forEach(i => { wMin[i] = Math.max(wMin[i], minPerBond); });
     }
+  }
+
+  // Aggressive/balanced: cap gold/commodity at 10% (defensive diversifier, not core)
+  if (risk === "aggressive" || risk === "balanced") {
+    goldIdxs.forEach(i => { wMax[i] = Math.min(wMax[i], 0.10); });
   }
 
   const portRet = (w: number[]) => w.reduce((a, x, i) => a + x * mu[i], 0);
