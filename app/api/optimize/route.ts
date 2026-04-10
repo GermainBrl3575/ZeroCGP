@@ -746,8 +746,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      Si pool trop petit après anti-doublons forts,
      réintroduire des doublons faibles (overlap partiel)
      ═══════════════════════════════════════════════════════ */
+  // Skip weak-dup for AV (pool is naturally limited to ~5-7 av:true assets)
   const targetAssets = maxAssets <= 7 ? 5 : maxAssets <= 16 ? 8 : 12;
-  if (pool2.length < targetAssets) {
+  if (pool2.length < targetAssets && !wAV) {
     // Doublons faibles autorisés : sous-ensembles partiels du monde/SP500
     const WEAK_DUPS: string[][] = [
       // World + regional = complément légitime
