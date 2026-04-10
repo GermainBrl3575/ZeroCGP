@@ -781,8 +781,16 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (b.type === "etf" && a.type !== "etf") return 1;
       return a.ter - b.ter;
     });
+    const hasWorldPool = pool2.some(a => WDEDUPS.includes(a.dedup));
+    const hasSP500Pool = pool2.some(a => a.dedup === "SP500");
     for (const c of candidates) {
       if (pool2.length >= targetAssets) break;
+      // Never reintroduce strong dups
+      if (pool2.find(a => a.dedup === c.dedup)) continue;
+      // When MSCI_WORLD present (non-aggressive): don't reintroduce SP500/NASDAQ
+      if (hasWorldPool && risk !== "aggressive" && ["SP500","NASDAQ100"].includes(c.dedup)) continue;
+      // When SP500 or WORLD present: don't reintroduce SP500 sub-indices
+      if ((hasSP500Pool || hasWorldPool) && SP500_SUBS.includes(c.dedup)) continue;
       // Check it's a legitimate weak dup (in one of the WEAK_DUPS groups)
       const isWeakDup = WEAK_DUPS.some(group => group.includes(c.dedup));
       // Or it's a completely new type/zone
