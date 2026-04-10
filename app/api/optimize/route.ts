@@ -443,7 +443,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     if (!wBonds && a.type === "bond" && risk === "aggressive") return false;
     if (esgStrict && !a.esg) return false;
     if (esgPartial && a.excl_esg) return false;
-    if (risk === "defensive" && ["TSLA", "NVDA", "KWEB", "MCHI", "BTC-USD", "ETH-USD", "SOL-USD"].includes(a.s)) return false;
+    if (risk === "defensive" && ["TSLA","NVDA","KWEB","MCHI","BTC-USD","ETH-USD","SOL-USD","EWT","EWY","INDA","EWH","EWZ","EWT","BABA","TCEHY","SE","NU"].includes(a.s)) return false;
     return true;
   });
 
@@ -1140,7 +1140,7 @@ function markowitz(
   return { weights, ret: finalRet, vol: finalVol, sharpe: finalSharpe, var95 };
 }
 
-type Weight = { symbol: string; name: string; type: string; weight: number; amount: number };
+type Weight = { symbol: string; name: string; type: string; weight: number; amount: number; support?: string };
 type FPt = { vol: number; ret: number };
 type Result = { method: string; label: string; ret: number; vol: number; sharpe: number; var95: number; rec?: boolean; weights: Weight[]; frontier: FPt[] };
 
@@ -1194,11 +1194,17 @@ export async function POST(req: NextRequest) {
       const roundedW = rawW.map(([, v]) => Math.round(v / totalW * 1000) / 10);
       const sumR = roundedW.reduce((a, b) => a + b, 0);
       if (roundedW.length > 0) roundedW[roundedW.length - 1] = Math.round((roundedW[roundedW.length - 1] + (100 - sumR)) * 10) / 10;
-      const weights: Weight[] = rawW.map(([sym, w], i) => ({
-        symbol: sym, name: meta[sym]?.name || sym, type: meta[sym]?.type || "etf",
-        weight: roundedW[i],
-        amount: Math.round(w / totalW * capital),
-      }));
+      const weights: Weight[] = rawW.map(([sym, w], i) => {
+        const asset = CAT.find(a => a.s === sym);
+        // Tag optimal support for multi-account portfolios
+        const support = asset?.pea ? "PEA" : asset?.av ? "AV" : "CTO";
+        return {
+          symbol: sym, name: meta[sym]?.name || sym, type: meta[sym]?.type || "etf",
+          weight: roundedW[i],
+          amount: Math.round(w / totalW * capital),
+          support,
+        };
+      });
       return { method, label, rec, ret: Math.round(opt.ret * 1000) / 10, vol: Math.round(opt.vol * 1000) / 10, sharpe: Math.round(opt.sharpe * 100) / 100, var95: Math.round(opt.var95 * 1000) / 10, weights, frontier };
     });
     // Include debug info in response

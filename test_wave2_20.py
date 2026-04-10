@@ -28,6 +28,7 @@ ELIGIBILITE SUPPORT:
 - NOVO-B.CO, ASML.AS, SAP.DE, SIE.DE = eligibles PEA (societes UE/EEE).
 - IEAG.L, IEAC.AS = UCITS accessibles CTO/Degiro sans probleme KID PRIIP.
 - Tout ETF .PA/.DE/.L UCITS = accessible sur CTO Interactive Brokers.
+- Sur Interactive Brokers, les ETF US non-UCITS (QQQ, VOO, VWO, EWT, EWY, INDA, EWZ, AGG, TLT, IEF, LQD, HYG, MCHI, EMB, VWOB) sont ACCESSIBLES via exemption professionnelle. Ne PAS penaliser support_eligibilite pour IB.
 
 DOUBLONS (regle stricte):
 - Doublon = MEME indice exact (ex: 2 ETF SP500, ou CW8.PA + PANX.PA).
