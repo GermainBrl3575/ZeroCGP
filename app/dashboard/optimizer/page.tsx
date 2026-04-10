@@ -224,38 +224,25 @@ function FrontierTooltip({ active, payload }: { active?: boolean; payload?: {val
   );
 }
 
-const GREEN = "#4ade80";
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  @keyframes cardIn { from{opacity:0;transform:translateY(8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
-  @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
-  .op{padding:48px 56px;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
-  .op-ey{font-size:9px;font-weight:400;letter-spacing:.22em;color:rgba(5,11,20,.25);margin-bottom:16px;text-transform:uppercase}
-  .op-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,4.5vw,52px);font-weight:300;color:#050B14;letter-spacing:-.03em;line-height:1.08;margin-bottom:18px}
-  .op-h1 em{font-style:normal;font-weight:500}
-  .op-sub{font-size:13px;font-weight:300;color:rgba(5,11,20,.4);line-height:1.8;margin-bottom:40px;max-width:480px;letter-spacing:.01em}
-  .op-metrics{display:flex;gap:48px;margin-bottom:40px}
-  .op-mn{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;color:#050B14;line-height:1}
-  .op-ml{font-size:9px;color:rgba(5,11,20,.25);margin-top:6px;letter-spacing:.1em;text-transform:uppercase;font-weight:400}
-  .fl label{font-size:9px;font-weight:400;letter-spacing:.18em;color:rgba(5,11,20,.25);display:block;margin-bottom:10px;text-transform:uppercase}
-  .fl input{background:white;border:1px solid rgba(5,11,20,.08);border-radius:6px;padding:14px 18px;font-size:14px;color:#050B14;outline:none;transition:border-color 0.3s;font-family:'Inter',sans-serif;font-weight:300;width:260px}
-  .fl input:focus{border-color:rgba(5,11,20,.3)}
-  .btn-shimmer{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;color:white;border:none;padding:18px 44px;cursor:pointer;display:inline-block;text-transform:uppercase;position:relative;overflow:hidden;
-    background:linear-gradient(110deg,#050B14 30%,#1a2a42 50%,#050B14 70%);background-size:200% 100%;animation:shimmer 3s ease infinite;transition:all 0.7s cubic-bezier(.16,1,.3,1)}
-  .btn-shimmer:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(5,11,20,.18)}
-  .btn-shimmer:disabled{opacity:.3;cursor:not-allowed;animation:none}
-  .btn-navy{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;background:#050B14;color:white;border:none;padding:18px 44px;cursor:pointer;transition:all 0.25s;display:inline-block;text-transform:uppercase}
+  @keyframes cardIn { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+  .op{padding:0;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
+  .op-ey{font-size:10px;font-weight:500;letter-spacing:.15em;color:rgba(26,58,106,.65);margin-bottom:32px;text-transform:uppercase}
+  .op-h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:500;color:rgba(5,11,20,.88);letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
+  .op-sub{font-size:14.5px;font-weight:400;color:rgba(5,11,20,.78);line-height:1.8;margin-bottom:40px;max-width:500px}
+  .op-metrics{display:flex;gap:12px;margin-bottom:44px}
+  .op-mn{font-family:'Inter',sans-serif;font-size:32px;font-weight:500;color:rgba(5,11,20,.88);letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .op-ml{font-size:9px;color:rgba(5,11,20,.36);margin-top:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .fl label{font-size:10px;font-weight:500;letter-spacing:.1em;color:rgba(5,11,20,.36);display:block;margin-bottom:10px;text-transform:uppercase}
+  .fl input{background:rgba(255,255,255,.72);border:0.5px solid rgba(5,11,20,.09);border-radius:6px;padding:17px 22px;font-size:16px;color:rgba(5,11,20,.88);outline:none;transition:border 0.7s cubic-bezier(.16,1,.3,1),box-shadow 0.7s cubic-bezier(.16,1,.3,1);font-family:'Inter',sans-serif;font-weight:500;width:280px;font-variant-numeric:tabular-nums;box-shadow:0 1px 2px rgba(0,0,0,.015)}
+  .fl input:focus{border-color:rgba(26,58,106,.3);box-shadow:0 0 0 3px rgba(26,58,106,.05)}
+  .btn-navy{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;background:#050B14;color:white;border:none;padding:18px 44px;cursor:pointer;transition:all 0.7s cubic-bezier(.16,1,.3,1);display:inline-block;text-transform:uppercase}
   .btn-navy:hover{background:#1a2a42}.btn-navy:disabled{opacity:.3;cursor:not-allowed}
-  .btn-out{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.16em;background:transparent;color:#050B14;border:1px solid rgba(5,11,20,.12);padding:14px 28px;cursor:pointer;border-radius:6px;transition:all 0.25s;text-transform:uppercase}
+  .btn-out{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.16em;background:transparent;color:#050B14;border:1px solid rgba(5,11,20,.12);padding:14px 28px;cursor:pointer;border-radius:6px;transition:all 0.7s cubic-bezier(.16,1,.3,1);text-transform:uppercase}
   .btn-out:hover{background:#050B14;color:white;border-color:#050B14}
-  .prog-wrap{height:2px;background:rgba(5,11,20,.04);border-radius:1px;margin-bottom:8px}
-  .prog{height:100%;background:linear-gradient(90deg,#050B14,${GREEN});border-radius:1px;transition:width 0.7s cubic-bezier(.16,1,.3,1)}
-  .opt-card{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:18px 22px;border:0.5px solid rgba(5,11,20,.06);font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:300;margin-bottom:10px;letter-spacing:.01em;
-    background:rgba(255,255,255,.42);box-shadow:0 1px 0 rgba(255,255,255,0.6) inset,0 2px 8px rgba(0,0,0,.012);
-    transition:all 0.7s cubic-bezier(.16,1,.3,1);animation:cardIn .4s ease both}
-  .opt-card:hover{border-color:rgba(5,11,20,.14);background:rgba(255,255,255,.6);transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,0.6) inset,0 6px 20px rgba(0,0,0,.03)}
   .q-btn{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:8px;padding:18px 22px;border:1px solid;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;font-weight:300;margin-bottom:10px;letter-spacing:.01em}
   .q-btn:hover{border-color:#050B14;background:rgba(5,11,20,.02)}
   .m-card{border-radius:12px;padding:28px 24px;cursor:pointer;transition:all 0.25s;position:relative;border:1px solid}
@@ -373,14 +360,15 @@ function OptimizerInner() {
     const isMulti=q.isMulti;
     return(<><style>{css}</style><div className="op">
       <Sheet>
-      <div className="q-section" style={{marginBottom:48}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-          <span style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,.25)",letterSpacing:".18em",textTransform:"uppercase"}}>{q.id} — Question {step} sur 9</span>
-          <span style={{fontSize:9,color:"rgba(5,11,20,.2)",letterSpacing:".1em"}}>{Math.round(progress)}%</span>
-        </div>
-        <div className="prog-wrap"><div className="prog" style={{width:`${progress}%`}}/></div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:10.5,fontWeight:500,letterSpacing:".06em",color:"rgba(5,11,20,.36)"}}>{q.id} — Question {step} sur 9</span>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:10.5,fontWeight:500,color:"#1a3a6a",fontVariantNumeric:"tabular-nums",opacity:.7}}>{Math.round(progress)}%</span>
       </div>
-      <h2 className="q-section" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(26px,3vw,32px)",fontWeight:300,color:"#050B14",marginBottom:36,letterSpacing:"-.02em",lineHeight:1.15}}>{q.q}</h2>
+      <div style={{position:"relative",height:4,marginBottom:44}}>
+        <div style={{position:"absolute",top:1,left:0,right:0,height:1.5,background:"rgba(5,11,20,.04)",borderRadius:1}}/>
+        <div style={{position:"absolute",top:1,left:0,height:1.5,borderRadius:1,width:`${progress}%`,background:"linear-gradient(90deg,rgba(5,11,20,.21),rgba(26,58,106,.9))",boxShadow:"0 0 6px rgba(26,58,106,.25)",transition:"width 0.7s cubic-bezier(.34,1.56,.64,1)"}}/>
+      </div>
+      <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,marginBottom:32}}>{q.q}</h2>
       {q.id==="Q5" ? (
         <div style={{maxWidth:560}}>
           <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes</p>
@@ -426,12 +414,22 @@ function OptimizerInner() {
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : (
-        <div style={{maxWidth:520}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540}}>
           {q.opts.map((opt:string,idx:number)=>{
             const isSel=answers[step]===opt,isFlash=flash===opt;
-            return(<button key={opt} onClick={()=>answer(opt)} className="opt-card" style={{background:isFlash?"#050B14":isSel?"rgba(255,255,255,.6)":"rgba(255,255,255,.42)",borderColor:isFlash||isSel?"#050B14":"rgba(5,11,20,.06)",color:isFlash?"white":"#050B14",fontWeight:isSel?400:300,animationDelay:`${idx*0.06}s`}}>
-              {opt}{isSel&&!isFlash&&<span style={{color:"rgba(5,11,20,.3)",fontSize:12,fontWeight:500}}>{"\u2713"}</span>}
-            </button>);
+            return(<div key={opt} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`}}>
+              <div onClick={()=>answer(opt)} style={{
+                borderRadius:6,border:isFlash?".5px solid rgba(26,58,106,.45)":isSel?".5px solid rgba(5,11,20,.13)":`0.5px solid rgba(5,11,20,0.09)`,
+                padding:"17px 22px",fontSize:14,fontWeight:isFlash?500:400,letterSpacing:"-.005em",cursor:isFlash?"default":"pointer",
+                fontFamily:"'Inter',sans-serif",
+                background:isFlash?`linear-gradient(145deg,#050B14,#0c1a2e)`:isSel?"rgba(255,255,255,.88)":"rgba(255,255,255,0.72)",
+                color:isFlash?"rgba(255,255,255,.93)":"rgba(5,11,20,.88)",
+                boxShadow:isFlash?"0 4px 20px rgba(26,58,106,.25),inset 0 1px 0 rgba(255,255,255,.04)":"0 1px 2px rgba(0,0,0,0.015)",
+                transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
+              }}>
+                {opt}
+              </div>
+            </div>);
           })}
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>{"\u2190"} Precedent</button>}
         </div>
