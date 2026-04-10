@@ -73,6 +73,8 @@ const CAT_STATIC: Asset[] = [
   {s:"IBGS.L", n:"ETF Oblig Gouv EUR 1-3Y",         zone:"europe",type:"bond",dedup:"EUR_GOV_ST",  ter:0.09,pea:false,cto:true,av:true },
   {s:"IEAG.L", n:"iShares EUR Agg Bond",            zone:"europe",type:"bond",dedup:"EUR_AGG",     ter:0.17,pea:false,cto:true,av:false},
   {s:"AGGH.L", n:"ETF Oblig Aggregate Monde",       zone:"any",   type:"bond",dedup:"GLOBAL_AGG",  ter:0.10,pea:false,cto:true,av:false},
+  {s:"OBLI.PA",n:"Amundi Euro Govt Bond PEA",       zone:"europe",type:"bond",dedup:"EUR_GOV_PA", ter:0.14,pea:true, cto:true,av:true },
+  {s:"GAGG.PA",n:"Amundi Global Agg EUR Hedged",    zone:"any",   type:"bond",dedup:"GLOBAL_AGG_PA",ter:0.14,pea:true, cto:true,av:true },
   {s:"TLT",    n:"iShares 20Y US Treasury",         zone:"usa",   type:"bond",dedup:"US_20Y",      ter:0.15,pea:false,cto:true,av:false},
   {s:"IEF",    n:"iShares 7-10Y Treasury",          zone:"usa",   type:"bond",dedup:"US_7_10Y",    ter:0.15,pea:false,cto:true,av:false},
   {s:"AGG",    n:"iShares US Aggregate Bond",       zone:"usa",   type:"bond",dedup:"US_AGG",      ter:0.03,pea:false,cto:true,av:false},
