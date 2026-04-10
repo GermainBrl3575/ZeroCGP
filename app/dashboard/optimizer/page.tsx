@@ -2,6 +2,7 @@
 import dynamic from "next/dynamic";
 import AssetCard from "@/components/AssetCard";
 import SupportBuilder from "@/components/ui/SupportBuilder";
+import Sheet from "@/components/ui/Sheet";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -228,7 +229,9 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Inter:wght@300;400;500;600&display=swap');
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  .op{padding:48px 56px;background:#F9F8F6;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
+  @keyframes cardIn { from{opacity:0;transform:translateY(8px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+  .op{padding:48px 56px;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
   .op-ey{font-size:9px;font-weight:400;letter-spacing:.22em;color:rgba(5,11,20,.25);margin-bottom:16px;text-transform:uppercase}
   .op-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,4.5vw,52px);font-weight:300;color:#050B14;letter-spacing:-.03em;line-height:1.08;margin-bottom:18px}
   .op-h1 em{font-style:normal;font-weight:500}
@@ -239,12 +242,20 @@ const css = `
   .fl label{font-size:9px;font-weight:400;letter-spacing:.18em;color:rgba(5,11,20,.25);display:block;margin-bottom:10px;text-transform:uppercase}
   .fl input{background:white;border:1px solid rgba(5,11,20,.08);border-radius:6px;padding:14px 18px;font-size:14px;color:#050B14;outline:none;transition:border-color 0.3s;font-family:'Inter',sans-serif;font-weight:300;width:260px}
   .fl input:focus{border-color:rgba(5,11,20,.3)}
+  .btn-shimmer{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;color:white;border:none;padding:18px 44px;cursor:pointer;display:inline-block;text-transform:uppercase;position:relative;overflow:hidden;
+    background:linear-gradient(110deg,#050B14 30%,#1a2a42 50%,#050B14 70%);background-size:200% 100%;animation:shimmer 3s ease infinite;transition:all 0.7s cubic-bezier(.16,1,.3,1)}
+  .btn-shimmer:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(5,11,20,.18)}
+  .btn-shimmer:disabled{opacity:.3;cursor:not-allowed;animation:none}
   .btn-navy{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;background:#050B14;color:white;border:none;padding:18px 44px;cursor:pointer;transition:all 0.25s;display:inline-block;text-transform:uppercase}
   .btn-navy:hover{background:#1a2a42}.btn-navy:disabled{opacity:.3;cursor:not-allowed}
   .btn-out{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.16em;background:transparent;color:#050B14;border:1px solid rgba(5,11,20,.12);padding:14px 28px;cursor:pointer;border-radius:6px;transition:all 0.25s;text-transform:uppercase}
   .btn-out:hover{background:#050B14;color:white;border-color:#050B14}
   .prog-wrap{height:2px;background:rgba(5,11,20,.04);border-radius:1px;margin-bottom:8px}
   .prog{height:100%;background:linear-gradient(90deg,#050B14,${GREEN});border-radius:1px;transition:width 0.7s cubic-bezier(.16,1,.3,1)}
+  .opt-card{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:18px 22px;border:0.5px solid rgba(5,11,20,.06);font-size:14px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:300;margin-bottom:10px;letter-spacing:.01em;
+    background:rgba(255,255,255,.42);box-shadow:0 1px 0 rgba(255,255,255,0.6) inset,0 2px 8px rgba(0,0,0,.012);
+    transition:all 0.7s cubic-bezier(.16,1,.3,1);animation:cardIn .4s ease both}
+  .opt-card:hover{border-color:rgba(5,11,20,.14);background:rgba(255,255,255,.6);transform:translateY(-1px);box-shadow:0 1px 0 rgba(255,255,255,0.6) inset,0 6px 20px rgba(0,0,0,.03)}
   .q-btn{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:8px;padding:18px 22px;border:1px solid;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;font-weight:300;margin-bottom:10px;letter-spacing:.01em}
   .q-btn:hover{border-color:#050B14;background:rgba(5,11,20,.02)}
   .m-card{border-radius:12px;padding:28px 24px;cursor:pointer;transition:all 0.25s;position:relative;border:1px solid}
@@ -256,6 +267,9 @@ const css = `
   .ac-chip.off:hover{border-color:rgba(5,11,20,.3)}
   .q-section{animation:fadeUp .5s ease both}
   .result-card{animation:fadeUp .5s ease both}
+  .fadeUp1{animation:fadeUp .5s ease both;animation-delay:.1s}
+  .fadeUp2{animation:fadeUp .5s ease both;animation-delay:.2s}
+  .fadeUp3{animation:fadeUp .5s ease both;animation-delay:.3s}
 `;
 
 function OptimizerInner() {
@@ -340,6 +354,7 @@ function OptimizerInner() {
 
   // ── Écran 0 ──
   if(step===0)return(<><style>{css}</style><div className="op">
+    <Sheet>
     <div className="op-ey">Optimiseur Markowitz</div>
     <h1 className="op-h1">Créez votre<br/>portefeuille <em>optimal.</em></h1>
     <p className="op-sub">En 9 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie moderne du portefeuille.</p>
@@ -347,7 +362,8 @@ function OptimizerInner() {
       {[["9","Questions"],["3","Méthodes"],["700+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
     </div>
     <div className="fl" style={{marginBottom:32}}><label>Capital à investir (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="50 000"/></div>
-    <button onClick={()=>setStep(1)} className="btn-navy">Créer un portefeuille →</button>
+    <button onClick={()=>setStep(1)} className="btn-shimmer">Créer un portefeuille &rarr;</button>
+    </Sheet>
   </div></>);
 
   // ── Questions ──
@@ -356,6 +372,7 @@ function OptimizerInner() {
     const progress=(step/QUESTIONS.length)*100;
     const isMulti=q.isMulti;
     return(<><style>{css}</style><div className="op">
+      <Sheet>
       <div className="q-section" style={{marginBottom:48}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
           <span style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,.25)",letterSpacing:".18em",textTransform:"uppercase"}}>{q.id} — Question {step} sur 9</span>
@@ -410,15 +427,16 @@ function OptimizerInner() {
         </div>
       ) : (
         <div style={{maxWidth:520}}>
-          {q.opts.map((opt:string)=>{
+          {q.opts.map((opt:string,idx:number)=>{
             const isSel=answers[step]===opt,isFlash=flash===opt;
-            return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?"#050B14":isSel?"rgba(5,11,20,.02)":"white",borderColor:isFlash||isSel?"#050B14":"rgba(5,11,20,.08)",color:isFlash?"white":"#050B14",fontWeight:isSel?400:300}}>
-              {opt}{isSel&&!isFlash&&<span style={{color:"rgba(5,11,20,.3)",fontSize:12,fontWeight:500}}>✓</span>}
+            return(<button key={opt} onClick={()=>answer(opt)} className="opt-card" style={{background:isFlash?"#050B14":isSel?"rgba(255,255,255,.6)":"rgba(255,255,255,.42)",borderColor:isFlash||isSel?"#050B14":"rgba(5,11,20,.06)",color:isFlash?"white":"#050B14",fontWeight:isSel?400:300,animationDelay:`${idx*0.06}s`}}>
+              {opt}{isSel&&!isFlash&&<span style={{color:"rgba(5,11,20,.3)",fontSize:12,fontWeight:500}}>{"\u2713"}</span>}
             </button>);
           })}
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>{"\u2190"} Precedent</button>}
         </div>
       )}
+      </Sheet>
     </div></>);
   }
 
@@ -431,11 +449,11 @@ function OptimizerInner() {
 
   // ── Résultats ──
   if(step===200){
-    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><p style={{color:"#8A9BB0"}}>Aucun résultat.</p><button className="btn-navy" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></div></>);
+    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><Sheet><p style={{color:"#8A9BB0"}}>Aucun resultat.</p><button className="btn-shimmer" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></Sheet></div></>);
     const selR=results.find(r=>r.method===sel)??results[0];
     const cap=parseFloat(capital)||50000;
     return(<><style>{css}</style><div className="op" style={{paddingBottom:60}}>
-      <div className="op-ey">Résultats · Portefeuille Zero CGP</div>
+      <div className="op-ey" style={{animation:"fadeUp .5s ease both"}}>Resultats . Portefeuille Zero CGP</div>
       <h1 className="op-h1">3 portefeuilles <em>optimaux.</em></h1>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
         {results.map(r=>{
@@ -506,7 +524,7 @@ function OptimizerInner() {
       {saveError&&<p style={{color:"#DC2626",fontSize:12,marginBottom:12}}>{saveError}</p>}
       <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
         <button className="btn-out" onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setCalcStepIdx(0);setAnswers({});setSaveError("");}}>Recommencer</button>
-        <button onClick={handleSave} disabled={saving} className="btn-navy">{saving?"Enregistrement...":"Enregistrer ce portefeuille →"}</button>
+        <button onClick={handleSave} disabled={saving} className="btn-shimmer">{saving?"Enregistrement...":"Enregistrer ce portefeuille \u2192"}</button>
       </div>
     </div></>);
   }

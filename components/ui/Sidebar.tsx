@@ -18,6 +18,11 @@ const NAV = [
 interface Portfolio { id:string; name:string; type:"manual"|"optimized" }
 interface SidebarProps { portfolios?: Portfolio[]; activePortfolioId?: string; }
 
+/* ── SVG grain noise (data URI, tiny) ─── */
+const GRAIN_SVG = `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`;
+
+const EASE = "0.7s cubic-bezier(.16,1,.3,1)";
+
 function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps) {
   const pathname     = usePathname();
   const router       = useRouter();
@@ -30,7 +35,6 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
   const [editErr,    setEditErr]    = useState("");
   const [delConfirm, setDelConfirm] = useState(false);
 
-  // Lire l'id actif depuis l'URL (useSearchParams) — toujours à jour
   const urlId    = searchParams.get("id") ?? "";
   const curId    = urlId || activePortfolioId;
   const activePf = portfolios.find(p => p.id === curId) ?? portfolios[0];
@@ -67,11 +71,16 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
   }
 
   const CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:wght@300;400&family=Inter:wght@300;400;500&display=swap');
-    .sb{width:260px;min-height:100vh;background:#0A1628;display:flex;flex-direction:column;flex-shrink:0;font-family:'Inter',sans-serif}
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Inter:wght@300;400;500&display=swap');
+    .sb{width:260px;min-height:100vh;display:flex;flex-direction:column;flex-shrink:0;font-family:'Inter',sans-serif;
+      background:linear-gradient(168deg,rgba(18,36,62,.32) 0%,transparent 45%),linear-gradient(348deg,rgba(0,0,0,.12) 0%,transparent 35%),radial-gradient(ellipse at 25% 0%,rgba(25,48,82,.35) 0%,transparent 55%),radial-gradient(ellipse at 85% 100%,rgba(0,0,0,.15) 0%,transparent 45%),linear-gradient(180deg,#0f2038 0%,#091629 40%,#060e1c 100%);
+      border-radius:10px;margin:12px;position:relative;overflow:hidden}
+    .sb-grain{position:absolute;inset:0;pointer-events:none;opacity:.022;background-image:${GRAIN_SVG};background-size:128px 128px;z-index:1}
+    .sb-edge{position:absolute;top:0;left:12px;right:12px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12) 30%,rgba(255,255,255,.22) 50%,rgba(255,255,255,.12) 70%,transparent);z-index:2}
+    .sb-inner{position:relative;z-index:3;display:flex;flex-direction:column;flex:1}
     .sb-hd{padding:28px 22px 20px;border-bottom:1px solid rgba(255,255,255,.05)}
-    .sb-logo{font-family:'Cormorant Garant',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;margin-bottom:16px;display:block;text-decoration:none}
-    .sb-new{display:block;width:100%;text-align:center;padding:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:10px;font-weight:500;letter-spacing:.1em;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;text-decoration:none}
+    .sb-logo{font-family:'Cormorant Garamond',serif;font-size:13px;font-weight:400;letter-spacing:.28em;color:white;margin-bottom:16px;display:block;text-decoration:none}
+    .sb-new{display:block;width:100%;text-align:center;padding:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.6);font-size:10px;font-weight:500;letter-spacing:.1em;cursor:pointer;font-family:'Inter',sans-serif;transition:all ${EASE};text-decoration:none}
     .sb-new:hover{background:rgba(255,255,255,.12);color:white}
     .sb-dd{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:6px;padding:10px 13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;position:relative;user-select:none}
     .sb-dd:hover{background:rgba(255,255,255,.08)}
@@ -79,7 +88,7 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
     .sb-dd-txt{font-size:11px;color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:300}
     .sb-arr{font-size:8px;color:rgba(255,255,255,.2);flex-shrink:0}
     .sb-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#0E1F3A;border:1px solid rgba(255,255,255,.08);border-radius:6px;overflow:hidden;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.3)}
-    .sb-item{display:flex;align-items:center;gap:8px;padding:10px 13px;font-size:11px;color:rgba(255,255,255,.5);font-family:'Inter',sans-serif;transition:background .12s}
+    .sb-item{display:flex;align-items:center;gap:8px;padding:10px 13px;font-size:11px;color:rgba(255,255,255,.5);font-family:'Inter',sans-serif;transition:background ${EASE}}
     .sb-item:hover{background:rgba(255,255,255,.05)}
     .sb-item.cur{background:rgba(255,255,255,.08)}
     .sb-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;cursor:pointer;color:rgba(255,255,255,.7)}
@@ -87,22 +96,22 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
     .sb-badge{font-size:8px;font-weight:600;padding:2px 6px;border-radius:3px;letter-spacing:.06em;flex-shrink:0;white-space:nowrap}
     .b-init{background:rgba(30,58,110,.6);color:rgba(200,220,255,.85)}
     .b-opt{background:rgba(180,140,0,.35);color:rgba(255,220,60,.95)}
-    .sb-edit{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.3);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;flex-shrink:0}
+    .sb-edit{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);color:rgba(255,255,255,.3);font-size:9px;padding:2px 7px;border-radius:3px;cursor:pointer;font-family:'Inter',sans-serif;transition:all ${EASE};flex-shrink:0}
     .sb-edit:hover{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7)}
-    .sb-nav{padding:16px 10px;flex:1}
+    .sb-nav{padding:16px 10px;flex:1;display:flex;flex-direction:column;gap:1px}
     .sb-sec{font-size:7px;font-weight:500;letter-spacing:.18em;color:rgba(255,255,255,.15);padding:0 12px 10px;margin-top:8px}
-    .sb-lnk{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:0 6px 6px 0;font-size:12px;font-weight:400;text-decoration:none;transition:all .15s;border-left:2px solid transparent;color:rgba(255,255,255,.3)}
-    .sb-lnk:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.6)}
-    .sb-lnk.on{background:rgba(255,255,255,.07);border-left-color:#4A7FBF;color:white;font-weight:500}
+    .sb-lnk{display:flex;align-items:center;gap:11px;padding:10px 14px;border-radius:0 6px 6px 0;font-size:12px;font-weight:400;text-decoration:none;transition:all ${EASE};border-left:2px solid transparent;color:rgba(255,255,255,.3)}
+    .sb-lnk:hover{color:rgba(255,255,255,.68);transform:translateX(1.5px)}
+    .sb-lnk.on{background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border-left-color:#4A90D9;color:white;font-weight:500;box-shadow:inset 0 0 12px rgba(74,144,217,.08)}
     .sb-ico{font-size:13px;width:16px;text-align:center;flex-shrink:0}
     .sb-ft{padding:16px 22px;border-top:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:12px}
-    .sb-av{width:28px;height:28px;border-radius:50%;background:#1E3A6E;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:500;flex-shrink:0}
+    .sb-av{width:28px;height:28px;border-radius:50%;background:#1E3A6E;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:500;flex-shrink:0;box-shadow:inset 0 1px 4px rgba(0,0,0,.35)}
     .sb-un{font-size:11px;color:rgba(255,255,255,.5)}
-    .sb-out{font-size:9px;color:rgba(255,255,255,.18);cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;display:block;padding:0;transition:color .2s}
-    .sb-out:hover{color:rgba(255,255,255,.5)}
+    .sb-out{font-size:9px;color:#8B3A3A;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;display:block;padding:0;transition:color ${EASE}}
+    .sb-out:hover{color:#C25050}
     .mo{position:fixed;inset:0;background:rgba(10,22,40,.65);z-index:500;display:flex;align-items:center;justify-content:center}
     .mo-box{background:white;border-radius:16px;padding:32px 36px;width:400px;box-shadow:0 24px 64px rgba(0,0,0,.25)}
-    .mo-h{font-family:'Cormorant Garant',serif;font-size:24px;font-weight:300;color:#0A1628;margin-bottom:6px}
+    .mo-h{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:#0A1628;margin-bottom:6px}
     .mo-s{font-size:11px;color:#8A9BB0;margin-bottom:22px;font-weight:300}
     .mo-lbl{font-size:9px;font-weight:500;letter-spacing:.14em;color:#8A9BB0;display:block;margin-bottom:7px}
     .mo-inp{width:100%;background:#FAFAF8;border:1px solid rgba(10,22,40,.12);border-radius:8px;padding:11px 13px;font-size:13px;color:#0A1628;outline:none;font-family:'Inter',sans-serif;margin-bottom:14px}
@@ -145,7 +154,7 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
                 </>
               ) : (
                 <>
-                  <button className="mo-btn mo-cancel" onClick={()=>setDelConfirm(false)}>← RETOUR</button>
+                  <button className="mo-btn mo-cancel" onClick={()=>setDelConfirm(false)}>RETOUR</button>
                   <button className="mo-btn mo-delc" onClick={handleDelete}>CONFIRMER SUPPRESSION</button>
                 </>
               )}
@@ -154,51 +163,58 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
         </div>
       )}
       <aside className="sb">
-        <div className="sb-hd">
-          <Link href="/" className="sb-logo">ZERO CGP</Link>
-          {portfolios.length === 0 ? (
-            <Link href="/dashboard/entry" className="sb-new">+ RENSEIGNER MON PORTEFEUILLE</Link>
-          ) : (
-            <div className="sb-dd" onClick={()=>setDropOpen(!dropOpen)}>
-              <div className="sb-dd-l">
-                <span className={`sb-badge ${activePf?.type==="optimized"?"b-opt":"b-init"}`}>
-                  {activePf?.type==="optimized"?"0CGP":"INIT"}
-                </span>
-                <span className="sb-dd-txt">{activePf?.name ?? "—"}</span>
-              </div>
-              <span className="sb-arr">▾</span>
-              {dropOpen && (
-                <div className="sb-menu" onClick={e=>e.stopPropagation()}>
-                  {portfolios.map(pf => (
-                    <div key={pf.id} className={`sb-item${pf.id===curId?" cur":""}`}>
-                      <span className={`sb-badge ${pf.type==="optimized"?"b-opt":"b-init"}`}>
-                        {pf.type==="optimized"?"0CGP":"INIT"}
-                      </span>
-                      <span className="sb-name" onClick={()=>selectPortfolio(pf.id)}>{pf.name}</span>
-                      <button className="sb-edit" onClick={e=>openEdit(pf,e)}>✎</button>
-                    </div>
-                  ))}
-                  <div style={{borderTop:"1px solid rgba(255,255,255,.06)",padding:"8px 13px"}}>
-                    <button style={{background:"none",border:"none",color:"rgba(255,255,255,.25)",fontSize:10,cursor:"pointer",fontFamily:"'Inter',sans-serif",padding:0}} onClick={()=>{router.push("/dashboard/entry");setDropOpen(false);}}>+ Nouveau portefeuille</button>
-                  </div>
+        {/* Grain overlay */}
+        <div className="sb-grain" />
+        {/* Top edge highlight */}
+        <div className="sb-edge" />
+        {/* Inner content */}
+        <div className="sb-inner">
+          <div className="sb-hd">
+            <Link href="/" className="sb-logo">ZERO CGP</Link>
+            {portfolios.length === 0 ? (
+              <Link href="/dashboard/entry" className="sb-new">+ RENSEIGNER MON PORTEFEUILLE</Link>
+            ) : (
+              <div className="sb-dd" onClick={()=>setDropOpen(!dropOpen)}>
+                <div className="sb-dd-l">
+                  <span className={`sb-badge ${activePf?.type==="optimized"?"b-opt":"b-init"}`}>
+                    {activePf?.type==="optimized"?"0CGP":"INIT"}
+                  </span>
+                  <span className="sb-dd-txt">{activePf?.name ?? "\u2014"}</span>
                 </div>
-              )}
+                <span className="sb-arr">{"\u25BE"}</span>
+                {dropOpen && (
+                  <div className="sb-menu" onClick={e=>e.stopPropagation()}>
+                    {portfolios.map(pf => (
+                      <div key={pf.id} className={`sb-item${pf.id===curId?" cur":""}`}>
+                        <span className={`sb-badge ${pf.type==="optimized"?"b-opt":"b-init"}`}>
+                          {pf.type==="optimized"?"0CGP":"INIT"}
+                        </span>
+                        <span className="sb-name" onClick={()=>selectPortfolio(pf.id)}>{pf.name}</span>
+                        <button className="sb-edit" onClick={e=>openEdit(pf,e)}>{"\u270E"}</button>
+                      </div>
+                    ))}
+                    <div style={{borderTop:"1px solid rgba(255,255,255,.06)",padding:"8px 13px"}}>
+                      <button style={{background:"none",border:"none",color:"rgba(255,255,255,.25)",fontSize:10,cursor:"pointer",fontFamily:"'Inter',sans-serif",padding:0}} onClick={()=>{router.push("/dashboard/entry");setDropOpen(false);}}>+ Nouveau portefeuille</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <nav className="sb-nav">
+            <div className="sb-sec">NAVIGATION</div>
+            {NAV.map(({href,icon,label})=>(
+              <Link key={href} href={href} className={`sb-lnk${pathname.startsWith(href.split("?")[0])?" on":""}`}>
+                <span className="sb-ico">{icon}</span>{label}
+              </Link>
+            ))}
+          </nav>
+          <div className="sb-ft">
+            <div className="sb-av">U</div>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="sb-un">Mon compte</div>
+              <button className="sb-out" onClick={handleLogout}>DECONNEXION</button>
             </div>
-          )}
-        </div>
-        <nav className="sb-nav">
-          <div className="sb-sec">NAVIGATION</div>
-          {NAV.map(({href,icon,label})=>(
-            <Link key={href} href={href} className={`sb-lnk${pathname.startsWith(href.split("?")[0])?" on":""}`}>
-              <span className="sb-ico">{icon}</span>{label}
-            </Link>
-          ))}
-        </nav>
-        <div className="sb-ft">
-          <div className="sb-av">U</div>
-          <div style={{flex:1,minWidth:0}}>
-            <div className="sb-un">Mon compte</div>
-            <button className="sb-out" onClick={handleLogout}>DÉCONNEXION</button>
           </div>
         </div>
       </aside>
@@ -209,7 +225,7 @@ function SidebarInner({ portfolios = [], activePortfolioId = "" }: SidebarProps)
 export default function Sidebar(props: SidebarProps) {
   return (
     <Suspense fallback={
-      <aside style={{width:260,minHeight:"100vh",background:"#0A1628",flexShrink:0}}/>
+      <aside style={{width:260,minHeight:"100vh",background:"#0A1628",flexShrink:0,borderRadius:10,margin:12}}/>
     }>
       <SidebarInner {...props}/>
     </Suspense>
