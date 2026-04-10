@@ -886,7 +886,13 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const symbols = universe.map(a => a.s);
 
   // minBondPct: 0 for PEA (can't have bonds)
-  const minBondPct = wPEA ? 0 : onlyBonds ? 80 : risk === "defensive" && wBonds ? 30 : risk === "defensive" ? 15 : wBonds ? 12 : 0;
+  // Defensive: 40% bonds minimum (profil conservateur = majorite defensive)
+  // Moderate with bonds: 20% minimum
+  const minBondPct = wPEA ? 0 : onlyBonds ? 80
+    : risk === "defensive" ? 40
+    : risk === "moderate" && wBonds ? 20
+    : risk === "moderate" ? 10
+    : wBonds ? 8 : 0;
   const minGoldPct = wGold ? 6 : 0;
   const minReitPct = wReits ? 5 : 0;
   const minCryptoPct = wCrypto && !onlyCrypto ? 5 : 0;
