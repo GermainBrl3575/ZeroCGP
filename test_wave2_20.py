@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
-"""Automated test_quick5 that doesn't require interactive input."""
+"""Wave 2: 20 tests covering all profiles. Target: 18/20 PASS (score >= 7)."""
 import json, urllib.request, urllib.error, time, re, sys, os
 
 BASE_URL = "https://zero-cgp.vercel.app"
 KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 if not KEY:
-    # Try .env.local
     try:
         with open(".env.local") as f:
             for line in f:
@@ -15,7 +14,7 @@ if not KEY:
 if not KEY:
     print("No ANTHROPIC_API_KEY found"); sys.exit(1)
 
-PASS=0; FAIL=0; WARN=0
+PASS=0; FAIL=0; WARN=0; RESULTS=[]
 
 CGP_SYSTEM = """Tu es CGP agree AMF. Evalue ce portefeuille sur 10.
 
@@ -78,7 +77,7 @@ def evaluate(answers, result):
     r=next((x for x in result.get("results",[]) if x["method"]=="maxsharpe"),None)
     if not r: return None
     w=r["weights"]; total=round(sum(x["weight"] for x in w),1)
-    actifs="\n".join("- "+x["symbol"]+"("+str(x["weight"])+"%) "+x.get("type","?")+" "+x.get("name","")[:15] for x in w)
+    actifs="\n".join("- "+x["symbol"]+"("+str(x["weight"])+"%) "+x.get("type","?")+" "+x.get("name","")[:20] for x in w)
     def c(k): return answers.get(k,"?").replace("'","")
     prompt=("PROFIL: Risque="+c("2")+" Zone="+c("6")+" Support="+c("8")+" Banque="+c("9")+"\n"
             "Classes="+c("5")+" Diversif="+c("7")+"\n\n"
@@ -97,62 +96,135 @@ def evaluate(answers, result):
             if parsed: return parsed
         except urllib.error.HTTPError as e:
             if e.code==429: time.sleep(30+attempt*15); continue
-            print(f"  HTTP Error {e.code}: {e.read().decode()[:200]}")
+            print(f"  HTTP {e.code}")
         except Exception as ex:
-            print(f"  Eval error: {ex}")
+            print(f"  Eval err: {ex}")
         if attempt<2: time.sleep(8)
     return None
 
 def test(name, answers, cap=20000):
-    global PASS,FAIL,WARN
+    global PASS,FAIL,WARN,RESULTS
+    idx = PASS+FAIL+WARN+1
     print(f"\n{'='*50}", flush=True)
-    print(f"TEST [{PASS+FAIL+WARN+1}/5] {name}", flush=True)
+    print(f"TEST [{idx}/20] {name}", flush=True)
     try:
         result=api(answers,cap)
-        if "error" in result: print(f"  FAIL API: {result['error']}"); FAIL+=1; return
+        if "error" in result: print(f"  FAIL API: {result['error']}"); FAIL+=1; RESULTS.append((name,0,"API error")); return
         r=next((x for x in result.get("results",[]) if x["method"]=="maxsharpe"),None)
-        if not r: print("  FAIL: no result"); FAIL+=1; return
+        if not r: print("  FAIL: no result"); FAIL+=1; RESULTS.append((name,0,"no result")); return
         w=r["weights"]; total=round(sum(x["weight"] for x in w),1)
-        print(f"  {result.get('universe','?')} actifs -> {len(w)} | {total}% | Sharpe={r['sharpe']}", flush=True)
-        print("  "+" | ".join(x["symbol"]+"("+str(x["weight"])+"%) " for x in w[:5]), flush=True)
+        print(f"  U={result.get('universe','?')} A={len(w)} | {total}% | S={r['sharpe']} V={r['vol']}%", flush=True)
+        print("  "+" | ".join(x["symbol"]+"("+str(x["weight"])+"%)" for x in w[:5]), flush=True)
         ev=evaluate(answers,result)
-        if not ev: print("  WARN: eval echouee"); WARN+=1; return
+        if not ev: print("  WARN: eval failed"); WARN+=1; RESULTS.append((name,0,"eval failed")); return
         score=ev.get("score_final",0)
         scores=ev.get("scores",{})
-        print(f"\n  SCORES:", flush=True)
-        for k,v in scores.items():
-            flag=" << FIX" if v<6 else ""
-            print(f"    {k:<25} {v}/10{flag}", flush=True)
-        print(f"  SCORE: {score}/10  |  {ev.get('verdict','')[:80]}", flush=True)
-        for b in ev.get("bugs",[])[:3]: print(f"  ! {b[:90]}", flush=True)
+        low = [k for k,v in scores.items() if v<6]
+        print(f"  SCORE: {score}/10 | low: {low if low else 'none'}", flush=True)
+        print(f"  {ev.get('verdict','')[:100]}", flush=True)
         if score>=7: print("  >> PASS"); PASS+=1
         elif score>=5: print("  >> WARN"); WARN+=1
         else: print("  >> FAIL"); FAIL+=1
+        RESULTS.append((name,score,ev.get('verdict','')[:60]))
     except Exception as ex:
-        print(f"  FAIL: {ex}"); FAIL+=1
-    time.sleep(6)
+        print(f"  FAIL: {ex}"); FAIL+=1; RESULTS.append((name,0,str(ex)[:60]))
+    time.sleep(5)
 
-# 5 tests
+# ========== 20 TESTS ==========
+
+# G1: CTO MONDE (4 tests)
 test("CTO IB ETF monde agressif",
     {"1":"10 ans et plus","2":"Agressif","3":"Pas de limite","4":"Aucun filtre",
      "5":"ETF","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
 
+test("CTO Degiro ETF monde modere",
+    {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
+     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Degiro"})
+
+test("CTO IB ETF monde defensif obligations",
+    {"1":"2 a 5 ans","2":"Conservateur","3":"-10% maximum","4":"Aucun filtre",
+     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+test("CTO IB ETF actions monde dynamique large",
+    {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"Aucun filtre",
+     "5":"ETF,Actions","6":"Monde entier","7":"Large (15+ actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+# G2: PEA (4 tests)
 test("PEA BoursoBank ETF monde modere",
     {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
      "5":"ETF","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"PEA","9":"BoursoBank"})
 
-test("AV BoursoBank ETF obligations defensif",
-    {"1":"2 a 5 ans","2":"Conservateur","3":"-10% maximum","4":"Aucun filtre",
-     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Assurance-Vie","9":"BoursoBank"})
+test("PEA BoursoBank ETF monde agressif large",
+    {"1":"10 ans et plus","2":"Agressif","3":"Pas de limite","4":"Aucun filtre",
+     "5":"ETF","6":"Monde entier","7":"Large (15+ actifs)","8":"PEA","9":"BoursoBank"})
 
 test("PEA Fortuneo ETF Europe dynamique",
     {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"Aucun filtre",
      "5":"ETF,Actions","6":"Europe","7":"Equilibre (8-10 actifs)","8":"PEA","9":"Fortuneo"})
 
-test("CTO Degiro ETF monde modere obligations",
+test("PEA BNP ETF monde modere concentre",
     {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
-     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Degiro"})
+     "5":"ETF","6":"Monde entier","7":"Concentre (5 actifs)","8":"PEA","9":"BNP Paribas"})
 
-print(f"\n{'='*50}", flush=True)
-print(f"BILAN: {PASS} PASS | {WARN} WARN | {FAIL} FAIL / 5", flush=True)
-print(f"Score: {round(PASS/5*100)}%", flush=True)
+# G3: ASSURANCE-VIE (3 tests)
+test("AV BoursoBank ETF monde modere obligations",
+    {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
+     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Assurance-Vie","9":"BoursoBank"})
+
+test("AV BoursoBank obligations seules defensif",
+    {"1":"2 a 5 ans","2":"Conservateur","3":"-10% maximum","4":"Aucun filtre",
+     "5":"ETF,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Assurance-Vie","9":"BoursoBank"})
+
+test("AV Fortuneo ETF monde defensif",
+    {"1":"2 a 5 ans","2":"Conservateur","3":"-10% maximum","4":"Aucun filtre",
+     "5":"ETF","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Assurance-Vie","9":"Fortuneo"})
+
+# G4: ESG (2 tests)
+test("CTO IB ESG strict monde dynamique",
+    {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"ESG strict",
+     "5":"ETF,Actions","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+test("PEA BoursoBank ESG strict monde dynamique",
+    {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"ESG strict",
+     "5":"ETF,Actions","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"PEA","9":"BoursoBank"})
+
+# G5: ZONES SPECIALES (2 tests)
+test("CTO Degiro ETF actions USA agressif",
+    {"1":"10 ans et plus","2":"Agressif","3":"Pas de limite","4":"Aucun filtre",
+     "5":"ETF,Actions","6":"USA","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Degiro"})
+
+test("CTO IB ETF EM dynamique",
+    {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"Aucun filtre",
+     "5":"ETF","6":"Emergents","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+# G6: CLASSES SPECIALES (3 tests)
+test("CTO IB ETF or obligations monde modere",
+    {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
+     "5":"ETF,Or,Obligations","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+test("CTO IB Crypto monde agressif",
+    {"1":"10 ans et plus","2":"Agressif","3":"Pas de limite","4":"Aucun filtre",
+     "5":"ETF,Crypto","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+# G7: MULTI-SUPPORT (2 tests)
+test("PEA+CTO BoursoBank monde dynamique large",
+    {"1":"10 ans et plus","2":"Dynamique","3":"-35% maximum","4":"Aucun filtre",
+     "5":"ETF,Actions","6":"Monde entier","7":"Large (15+ actifs)","8":"PEA,Compte-Titres (CTO)","9":"BoursoBank"})
+
+test("CTO IB ETF immobilier monde modere",
+    {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
+     "5":"ETF,Immobilier","6":"Monde entier","7":"Equilibre (8-10 actifs)","8":"Compte-Titres (CTO)","9":"Interactive Brokers"})
+
+test("AV BoursoBank tout actifs monde modere large",
+    {"1":"5 a 10 ans","2":"Modere","3":"-20% maximum","4":"Aucun filtre",
+     "5":"ETF,Actions,Or,Immobilier","6":"Monde entier","7":"Large (15+ actifs)","8":"Assurance-Vie","9":"BoursoBank"})
+
+# ========== BILAN ==========
+print(f"\n{'='*60}", flush=True)
+print(f"BILAN VAGUE 2: {PASS} PASS | {WARN} WARN | {FAIL} FAIL / 20", flush=True)
+print(f"Score: {round(PASS/20*100)}%", flush=True)
+print(f"Target: 18/20 PASS (90%)", flush=True)
+print(f"\nDetail:", flush=True)
+for name, score, verdict in RESULTS:
+    status = "PASS" if score >= 7 else "WARN" if score >= 5 else "FAIL"
+    print(f"  {status} {score}/10 | {name[:40]:<40s} | {verdict[:50]}", flush=True)
