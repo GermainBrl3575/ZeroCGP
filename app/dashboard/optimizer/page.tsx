@@ -459,7 +459,7 @@ function OptimizerInner() {
   // ── Calcul — Animation Markowitz ──
   if(step===100)return(<><style>{css}</style>
     <div style={{background:"#F9F8F6",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
-      <MarkowitzAnim calcPct={calcPct} currentStep={CALC_STEPS[Math.max(0,calcStepIdx)]}/>
+      <MarkowitzAnim calcPct={calcPct} currentStep={CALC_STEPS[Math.max(0,calcStepIdx)]} stepIdx={calcStepIdx}/>
     </div>
   </>);
 

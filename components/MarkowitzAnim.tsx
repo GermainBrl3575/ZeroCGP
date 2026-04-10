@@ -1,215 +1,277 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const CSS = `
-@keyframes calcFin { to { opacity:1 } }
-.ca-tag  { font-size:9px;letter-spacing:5px;text-transform:uppercase;color:rgba(5,11,20,.22);margin-bottom:.5rem;opacity:0;animation:calcFin 1s .3s forwards;font-family:'Inter',sans-serif;font-weight:400 }
-.ca-h1   { font-family:'Cormorant Garant',serif;font-size:clamp(20px,2.8vw,32px);font-weight:300;color:#050B14;line-height:1.25;letter-spacing:-.3px;opacity:0;animation:calcFin 1s .5s forwards;margin:0 }
-.ca-wrap { width:clamp(140px,18vw,240px);margin:1rem auto 0;opacity:0;animation:calcFin 1s .8s forwards }
-.ca-bar  { height:1.5px;background:rgba(5,11,20,.05);overflow:hidden }
-.ca-fill { height:100%;background:linear-gradient(90deg,#050B14,#4ade80);transition:width .6s cubic-bezier(.16,1,.3,1) }
-.ca-pct  { font-size:10px;font-weight:300;color:rgba(5,11,20,.22);margin-top:5px;letter-spacing:1px;text-align:center;font-family:'Inter',sans-serif }
-.ca-step { margin-top:.6rem;height:16px;opacity:0;animation:calcFin 1s 1s forwards;text-align:center }
-.ca-step span { font-size:11px;font-weight:300;color:rgba(5,11,20,.26);letter-spacing:.3px;font-family:'Inter',sans-serif }
-`;
+const NAVY = "#050B14";
+const GREEN = "#4ade80";
+const CREAM = "#F9F8F6";
 
-interface Props { calcPct: number; currentStep: string }
+interface Props { calcPct: number; currentStep: string; stepIdx: number }
 
-export default function MarkowitzAnim({ calcPct, currentStep }: Props) {
-  const svgRef  = useRef<SVGSVGElement>(null);
-  const doneRef = useRef(false);
+export default function MarkowitzAnim({ calcPct, currentStep, stepIdx }: Props) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const initRef = useRef(false);
+  const [phase, setPhase] = useState(0);
+
+  // Map step index (0-8) to animation phase (0-4)
+  useEffect(() => {
+    if (stepIdx <= 1) setPhase(1);      // Données: nodes appear
+    else if (stepIdx <= 3) setPhase(2); // Covariance: edges weave
+    else if (stepIdx <= 6) setPhase(3); // Frontier/Sharpe: green glow
+    else setPhase(4);                    // Final: pulse
+  }, [stepIdx]);
 
   useEffect(() => {
-    if (doneRef.current || !svgRef.current) return;
-    doneRef.current = true;
+    if (initRef.current || !svgRef.current) return;
+    initRef.current = true;
 
-    const svg   = svgRef.current;
-    const NS    = "http://www.w3.org/2000/svg";
-    const NAVY  = "#050B14";
-    const GREEN = "#4ade80";
-    const S     = 0.12;
+    const svg = svgRef.current;
+    const NS = "http://www.w3.org/2000/svg";
+    const W = 500, H = 500, CX = W / 2, CY = H / 2;
 
-    function pt(vol: number, ret: number) {
-      return { x: 60 + vol * 880, y: 540 - ret * 480 };
+    // Generate 12 nodes in organic constellation
+    const nodes: { x: number; y: number; el: SVGCircleElement; label: string }[] = [];
+    const LABELS = ["MSCI W", "SP500", "NASDAQ", "EU50", "EM", "GOV€", "GOLD", "REIT", "TECH", "HEALTH", "DIV", "BONDS"];
+    const R = 160;
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2 - Math.PI / 2;
+      // Organic offset
+      const rOff = R + (Math.sin(i * 2.7) * 25) + (Math.cos(i * 1.3) * 15);
+      const x = CX + Math.cos(angle) * rOff;
+      const y = CY + Math.sin(angle) * rOff;
+
+      const c = document.createElementNS(NS, "circle");
+      c.setAttribute("cx", String(x));
+      c.setAttribute("cy", String(y));
+      c.setAttribute("r", "0");
+      c.setAttribute("fill", NAVY);
+      c.setAttribute("opacity", "0");
+      svg.appendChild(c);
+
+      // Label
+      const t = document.createElementNS(NS, "text");
+      const labelX = CX + Math.cos(angle) * (rOff + 18);
+      const labelY = CY + Math.sin(angle) * (rOff + 18);
+      t.setAttribute("x", String(labelX));
+      t.setAttribute("y", String(labelY));
+      t.setAttribute("text-anchor", "middle");
+      t.setAttribute("dominant-baseline", "middle");
+      t.setAttribute("font-family", "'Inter', sans-serif");
+      t.setAttribute("font-size", "8");
+      t.setAttribute("font-weight", "300");
+      t.setAttribute("fill", NAVY);
+      t.setAttribute("opacity", "0");
+      t.setAttribute("letter-spacing", "0.5");
+      t.textContent = LABELS[i];
+      svg.appendChild(t);
+
+      nodes.push({ x, y, el: c, label: LABELS[i] });
     }
 
-    // Actifs
-    const assets = Array.from({ length: 35 }, () => {
-      const vol = 0.06 + Math.random() * 0.8;
-      const ret = Math.max(0.04, Math.min(0.92, 0.08 + vol * 0.55 + (Math.random() - .5) * 0.3));
-      return { ...pt(vol, ret) };
-    });
-
-    // Portfolios Monte Carlo
-    const portfolios = Array.from({ length: 2500 }, () => {
-      const ws: number[] = []; let s = 0;
-      for (let j = 0; j < 35; j++) { const w = Math.random(); ws.push(w); s += w; }
-      let pV = 0, pR = 0;
-      ws.forEach((w, j) => { pR += (w/s)*assets[j].y; pV += (w/s)*assets[j].x; }); // approximation visuelle
-      return { x: Math.max(80, Math.min(920, pV * (0.4 + Math.random() * 0.4))),
-               y: Math.max(60, Math.min(520, pR * (0.5 + Math.random() * 0.5))) };
-    });
-
-    // Frontière efficiente
-    const frontier: {x:number;y:number}[] = [];
-    for (let t = 0; t <= 1; t += 0.008) {
-      const ret = 0.1 + t * 0.78;
-      frontier.push(pt(0.07 + 0.18 * Math.pow(ret - 0.5, 2) + 0.06, ret));
-    }
-    const optPt = frontier[Math.floor(frontier.length * 0.68)];
-
-    // Créer groupes
-    const gCovar  = document.createElementNS(NS, "g");
-    const gCloud  = document.createElementNS(NS, "g");
-    const gAssets = document.createElementNS(NS, "g");
-    const pathEl  = document.createElementNS(NS, "path");
-    const gOpt    = document.createElementNS(NS, "g");
-    const gSharpe = document.createElementNS(NS, "g");
-    [gCloud, gCovar, gAssets, pathEl, gOpt, gSharpe].forEach(el => svg.appendChild(el));
-    pathEl.setAttribute("fill", "none");
-    pathEl.setAttribute("stroke", GREEN);
-    pathEl.setAttribute("stroke-width", "0");
-
-    const cloudEls = portfolios.map(p => {
-      const c = document.createElementNS(NS, "circle");
-      c.setAttribute("cx", String(p.x)); c.setAttribute("cy", String(p.y));
-      c.setAttribute("r", "0"); c.setAttribute("fill", NAVY); c.setAttribute("opacity", "0.1");
-      gCloud.appendChild(c); return c;
-    });
-    const assetEls = assets.map(a => {
-      const c = document.createElementNS(NS, "circle");
-      c.setAttribute("cx", String(a.x)); c.setAttribute("cy", String(a.y));
-      c.setAttribute("r", "0"); c.setAttribute("fill", NAVY);
-      gAssets.appendChild(c); return c;
-    });
-    const covarEls: {el:SVGLineElement; d:number}[] = [];
-    for (let i = 0; i < 35; i++) for (let j = i+1; j < 35; j++) {
-      const d = Math.hypot(assets[i].x - assets[j].x, assets[i].y - assets[j].y);
-      if (d < 250) {
+    // Generate edges between all node pairs
+    const edges: { el: SVGLineElement; d: number; i: number; j: number }[] = [];
+    for (let i = 0; i < 12; i++) {
+      for (let j = i + 1; j < 12; j++) {
+        const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y);
         const l = document.createElementNS(NS, "line");
-        l.setAttribute("x1", String(assets[i].x)); l.setAttribute("y1", String(assets[i].y));
-        l.setAttribute("x2", String(assets[j].x)); l.setAttribute("y2", String(assets[j].y));
-        l.setAttribute("stroke", NAVY); l.setAttribute("stroke-width", "1");
+        l.setAttribute("x1", String(nodes[i].x));
+        l.setAttribute("y1", String(nodes[i].y));
+        l.setAttribute("x2", String(nodes[j].x));
+        l.setAttribute("y2", String(nodes[j].y));
+        l.setAttribute("stroke", NAVY);
+        l.setAttribute("stroke-width", "0.3");
         l.setAttribute("stroke-opacity", "0");
-        gCovar.appendChild(l); covarEls.push({ el: l, d });
+        // Insert edges before nodes so nodes render on top
+        svg.insertBefore(l, svg.firstChild);
+        edges.push({ el: l, d, i, j });
       }
     }
 
-    function shuffle<T>(a: T[]): T[] {
-      const arr = [...a];
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      return arr;
-    }
-    function tr(el: Element, t: string) { (el as HTMLElement).style.transition = t; }
-
-    let T = 400;
-
-    // P1 actifs
-    shuffle([...Array(35).keys()]).forEach((ai, i) => {
-      setTimeout(() => { tr(assetEls[ai], `r ${S}s cubic-bezier(.34,1.56,.64,1)`); assetEls[ai].setAttribute("r", "6"); }, T + i*28);
-    });
-
-    // P2 lignes cov
-    const T2 = T + 35*28 + 500;
-    shuffle([...Array(covarEls.length).keys()]).forEach((ci, i) => {
-      const cv = covarEls[ci];
-      setTimeout(() => { tr(cv.el, `stroke-opacity ${S}s`); cv.el.setAttribute("stroke-opacity", cv.d < 150 ? "0.16" : "0.07"); }, T2 + i*8);
-    });
-
-    // P3 cloud
-    const T3 = T2 + covarEls.length*8 + 350;
-    cloudEls.forEach((c, i) => { setTimeout(() => { tr(c, `r ${S}s`); c.setAttribute("r", "3"); }, T3 + i*1.2); });
-
-    // P4 cloud vert
-    const T4 = T3 + cloudEls.length*1.2 + 300;
-    cloudEls.forEach((c, i) => {
-      setTimeout(() => { tr(c, `fill ${S}s,opacity ${S}s`); c.setAttribute("fill", GREEN); c.setAttribute("opacity", "0.13"); }, T4 + i*1.2);
-    });
-
-    // P5 frontière
-    const T5 = T4 + cloudEls.length*1.2 + 300;
-    const d  = "M " + frontier.map(p => `${p.x} ${p.y}`).join(" L ");
-    pathEl.setAttribute("d", d);
-    pathEl.setAttribute("stroke-width", "3");
-    pathEl.setAttribute("stroke-opacity", "0.9");
-    setTimeout(() => {
-      const len = typeof pathEl.getTotalLength === "function" ? pathEl.getTotalLength() : 2200;
-      pathEl.setAttribute("stroke-dasharray", String(len));
-      pathEl.setAttribute("stroke-dashoffset", String(len));
-      tr(pathEl, "stroke-dashoffset 2s cubic-bezier(.16,1,.3,1)");
-      pathEl.setAttribute("stroke-dashoffset", "0");
-    }, T5);
-
-    // P6 lignes vertes
-    const T6 = T5 + 2100;
-    covarEls.forEach((cv, i) => {
-      setTimeout(() => {
-        tr(cv.el, `stroke ${S}s,stroke-opacity ${S}s`);
-        cv.el.setAttribute("stroke", GREEN);
-        cv.el.setAttribute("stroke-opacity", cv.d < 150 ? "0.22" : "0.09");
-      }, T6 + i*8);
-    });
-
-    // P7 actifs verts
-    const T7 = T6 + covarEls.length*8 + 350;
-    assetEls.forEach((c, i) => {
-      setTimeout(() => {
-        tr(c, `fill ${S}s,r ${S}s cubic-bezier(.34,1.56,.64,1)`);
-        c.setAttribute("fill", GREEN); c.setAttribute("r", "8");
-        setTimeout(() => { tr(c, "r 0.3s ease"); c.setAttribute("r", "6"); }, 150);
-      }, T7 + i*22);
-    });
-
-    // P8 point optimal
-    const T8 = T7 + 35*22 + 500;
-    setTimeout(() => {
-      const oc = document.createElementNS(NS, "circle");
-      oc.setAttribute("cx", String(optPt.x)); oc.setAttribute("cy", String(optPt.y));
-      oc.setAttribute("r", "0"); oc.setAttribute("fill", GREEN);
-      gOpt.appendChild(oc);
-      const ring = document.createElementNS(NS, "circle");
-      ring.setAttribute("cx", String(optPt.x)); ring.setAttribute("cy", String(optPt.y));
-      ring.setAttribute("r", "0"); ring.setAttribute("fill", "none");
-      ring.setAttribute("stroke", GREEN); ring.setAttribute("stroke-width", "1");
-      ring.setAttribute("stroke-opacity", "0.3");
-      gOpt.appendChild(ring);
-      const label = document.createElementNS(NS, "text");
-      label.setAttribute("x", String(optPt.x + 22)); label.setAttribute("y", String(optPt.y - 10));
-      label.setAttribute("font-family", "Inter,sans-serif"); label.setAttribute("font-size", "10");
-      label.setAttribute("fill", NAVY); label.setAttribute("fill-opacity", "0"); label.setAttribute("letter-spacing", "2");
-      label.textContent = "PORTEFEUILLE OPTIMAL";
-      gOpt.appendChild(label);
-      requestAnimationFrame(() => {
-        tr(oc,   "r 0.2s cubic-bezier(.34,1.56,.64,1)"); oc.setAttribute("r", "10");
-        tr(ring, "r 2s cubic-bezier(.16,1,.3,1)");       ring.setAttribute("r", "25");
-        tr(label,"fill-opacity 1.5s");                   label.setAttribute("fill-opacity", "0.3");
-      });
-    }, T8);
-
+    // Store refs for phase transitions
+    (svg as unknown as Record<string, unknown>).__nodes = nodes;
+    (svg as unknown as Record<string, unknown>).__edges = edges;
   }, []);
 
+  // Phase-driven animations
+  useEffect(() => {
+    if (!svgRef.current) return;
+    const svg = svgRef.current;
+    const nodes = (svg as unknown as Record<string, unknown>).__nodes as { x: number; y: number; el: SVGCircleElement; label: string }[] | undefined;
+    const edges = (svg as unknown as Record<string, unknown>).__edges as { el: SVGLineElement; d: number; i: number; j: number }[] | undefined;
+    if (!nodes || !edges) return;
+
+    const allTexts = svg.querySelectorAll("text");
+
+    if (phase >= 1) {
+      // Phase 1: Nodes fade in with stagger
+      nodes.forEach((n, i) => {
+        setTimeout(() => {
+          n.el.style.transition = "r 0.8s cubic-bezier(.34,1.56,.64,1), opacity 0.8s ease";
+          n.el.setAttribute("r", "3");
+          n.el.setAttribute("opacity", "1");
+          if (allTexts[i]) {
+            allTexts[i].style.transition = "opacity 1s ease";
+            allTexts[i].setAttribute("opacity", "0.3");
+          }
+        }, i * 80);
+      });
+    }
+
+    if (phase >= 2) {
+      // Phase 2: Edges weave in (correlation network builds)
+      const sorted = [...edges].sort((a, b) => a.d - b.d); // closest first
+      sorted.forEach((e, i) => {
+        setTimeout(() => {
+          e.el.style.transition = "stroke-opacity 0.6s ease";
+          e.el.setAttribute("stroke-opacity", e.d < 200 ? "0.08" : "0.03");
+        }, 800 + i * 15);
+      });
+    }
+
+    if (phase >= 3) {
+      // Phase 3: Efficient connections glow green
+      const efficient = edges.filter(e => e.d < 250).slice(0, 20);
+      efficient.forEach((e, i) => {
+        setTimeout(() => {
+          e.el.style.transition = "stroke 0.5s ease, stroke-opacity 0.5s ease, filter 0.5s ease";
+          e.el.setAttribute("stroke", GREEN);
+          e.el.setAttribute("stroke-opacity", e.d < 180 ? "0.25" : "0.12");
+          e.el.style.filter = "drop-shadow(0 0 2px rgba(74,222,128,0.3))";
+        }, i * 60);
+      });
+      // Nodes get green tint
+      nodes.forEach((n, i) => {
+        setTimeout(() => {
+          n.el.style.transition = "fill 0.6s ease";
+          n.el.setAttribute("fill", GREEN);
+        }, 400 + i * 50);
+      });
+    }
+
+    if (phase >= 4) {
+      // Phase 4: Luminous pulse across network
+      const pulseEdges = edges.filter(e => e.d < 250);
+      pulseEdges.forEach((e, i) => {
+        setTimeout(() => {
+          e.el.setAttribute("stroke-opacity", "0.5");
+          e.el.style.filter = "drop-shadow(0 0 4px rgba(74,222,128,0.5))";
+          setTimeout(() => {
+            e.el.style.transition = "stroke-opacity 1.5s ease, filter 1.5s ease";
+            e.el.setAttribute("stroke-opacity", "0.2");
+            e.el.style.filter = "drop-shadow(0 0 2px rgba(74,222,128,0.2))";
+          }, 200);
+        }, i * 30);
+      });
+      // Central glow
+      nodes.forEach((n, i) => {
+        setTimeout(() => {
+          n.el.setAttribute("r", "5");
+          n.el.style.filter = "drop-shadow(0 0 6px rgba(74,222,128,0.4))";
+          setTimeout(() => {
+            n.el.style.transition = "r 1s ease, filter 1s ease";
+            n.el.setAttribute("r", "3");
+            n.el.style.filter = "drop-shadow(0 0 2px rgba(74,222,128,0.2))";
+          }, 300);
+        }, i * 40);
+      });
+    }
+  }, [phase]);
+
   return (
-    <div style={{ width:"min(88vw,900px)", textAlign:"center" }}>
-      <style>{CSS}</style>
-      <svg ref={svgRef}
-        viewBox="0 0 1000 600"
-        style={{ width:"100%", height:"auto", maxHeight:"52vh", display:"block" }}
-        preserveAspectRatio="xMidYMid meet"
-      />
-      <div style={{ marginTop:"1.2rem" }}>
-        <div className="ca-tag">Calcul en cours</div>
-        <h1 className="ca-h1">
-          Optimisation <em style={{ fontStyle:"normal", fontWeight:500 }}>du portefeuille…</em>
-        </h1>
-        <div className="ca-wrap">
-          <div className="ca-bar"><div className="ca-fill" style={{ width:`${calcPct}%` }}/></div>
-          <div className="ca-pct">{calcPct}%</div>
+    <div style={{ width: "100%", maxWidth: 900, margin: "0 auto" }}>
+      <style>{`
+        @keyframes fadeUp { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+        .mx-tag { font-size:9px; letter-spacing:5px; text-transform:uppercase; color:rgba(5,11,20,0.22);
+          font-family:'Inter',sans-serif; font-weight:400; animation:fadeUp 1s 0.3s both }
+        .mx-title { font-family:'Cormorant Garamond','Cormorant Garant',serif; font-size:clamp(22px,3vw,36px);
+          font-weight:300; color:${NAVY}; line-height:1.25; letter-spacing:-0.3px; margin:8px 0 0;
+          animation:fadeUp 1s 0.5s both }
+        .mx-title em { font-style:normal; font-weight:500 }
+      `}</style>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 40, minHeight: "70vh" }}>
+        {/* Left: Steps list */}
+        <div style={{ flex: "0 0 280px" }}>
+          <div className="mx-tag">Calcul en cours</div>
+          <h1 className="mx-title">Optimisation <em>du portefeuille…</em></h1>
+
+          <div style={{ marginTop: 32 }}>
+            {["Connexion aux données de marché", "Récupération des historiques",
+              "Construction matrice de covariance", "Shrinkage Ledoit-Wolf",
+              "Calcul frontière efficiente", "Maximisation ratio de Sharpe",
+              "Calcul VaR 95% et CVaR", "Validation des contraintes", "Génération du rapport"
+            ].map((label, i) => {
+              const done = stepIdx > i;
+              const active = stepIdx === i;
+              return (
+                <div key={i} style={{
+                  display: "flex", alignItems: "center", gap: 12, padding: "8px 0",
+                  opacity: done ? 1 : active ? 0.8 : 0.25,
+                  transition: "opacity 0.5s ease",
+                }}>
+                  <div style={{
+                    width: 6, height: 6, borderRadius: "50%", flexShrink: 0,
+                    background: done ? GREEN : active ? NAVY : "rgba(5,11,20,0.15)",
+                    boxShadow: done ? `0 0 6px ${GREEN}40` : "none",
+                    transition: "all 0.5s ease",
+                  }} />
+                  <span style={{
+                    fontFamily: "'Inter', sans-serif", fontSize: 12, fontWeight: 300,
+                    color: done ? "rgba(5,11,20,0.5)" : active ? NAVY : "rgba(5,11,20,0.3)",
+                    letterSpacing: 0.2,
+                    transition: "color 0.5s ease",
+                  }}>
+                    {label}
+                  </span>
+                  {active && (
+                    <span style={{
+                      width: 4, height: 4, borderRadius: "50%", background: NAVY,
+                      animation: "pulse 1.5s infinite",
+                    }} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Progress bar */}
+          <div style={{ marginTop: 24 }}>
+            <div style={{
+              height: 2, background: "rgba(5,11,20,0.05)", borderRadius: 1, overflow: "hidden",
+            }}>
+              <div style={{
+                height: "100%", borderRadius: 1,
+                background: `linear-gradient(90deg, ${NAVY}, ${GREEN})`,
+                width: `${calcPct}%`,
+                transition: "width 0.6s cubic-bezier(.16,1,.3,1)",
+              }} />
+            </div>
+            <div style={{
+              fontFamily: "'Inter', sans-serif", fontSize: 10, fontWeight: 300,
+              color: "rgba(5,11,20,0.22)", letterSpacing: 1, textAlign: "right",
+              marginTop: 6,
+            }}>
+              {calcPct}%
+            </div>
+          </div>
         </div>
-        <div className="ca-step"><span>{currentStep}</span></div>
+
+        {/* Right: SVG Connectivity Matrix */}
+        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg
+            ref={svgRef}
+            viewBox="0 0 500 500"
+            style={{ width: "100%", maxWidth: 420, height: "auto" }}
+            preserveAspectRatio="xMidYMid meet"
+          />
+        </div>
       </div>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1 }
+          50% { opacity: 0.3 }
+        }
+      `}</style>
     </div>
   );
 }
