@@ -462,6 +462,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   };
 
   let pool2 = smartDedup(baseFilter(true));
+  const _log: string[] = [];
+  _log.push(`E1:${pool2.length}(${pool2.map(a=>a.dedup).join(',')})`);
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 2 : Anti-doublon MSCI_WORLD
@@ -480,6 +482,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     });
   }
 
+  _log.push();
+
   /* ═══════════════════════════════════════════════════════
      ETAPE 3 : Anti-doublon EM
      ═══════════════════════════════════════════════════════ */
@@ -495,6 +499,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       pool2 = pool2.filter(a => !EM_COUNTRY.includes(a.dedup));
     }
   }
+
+  _log.push();
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 4 : Core-satellite par profil (zone monde)
@@ -579,6 +585,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
+  _log.push();
+
   /* ═══════════════════════════════════════════════════════
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
@@ -633,6 +641,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
     pool2 = smartDedup(pool2);
   }
+
+  _log.push();
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 6 : Enrichissement PEA
@@ -740,6 +750,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   if (hasWFinal && risk !== "aggressive") {
     pool2 = pool2.filter(a => !WORLD_SUBS.includes(a.dedup));
   }
+
+  _log.push();
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 8 : Remplissage doublons faibles si pool < target
@@ -871,7 +883,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const maxWt = symbols.length <= 5 ? Math.max(baseMaxWt, 0.35)
     : symbols.length <= 8 ? Math.max(baseMaxWt, 0.30) : baseMaxWt;
 
-  console.log(`[v7.1] risk=${risk} zone=${zMonde ? "monde" : zUSA ? "usa" : zEU ? "eu" : zEM ? "em" : "mix"} sup=${comptes.map(c => c.type).join("+")} pool=${pool2.length} uni=${symbols.length} maxWt=${maxWt}`);
+  _log.push(`E8:${pool2.length}`);
+  _log.push(`final:${symbols.length}(${symbols.join(',')})`);
+  console.log(`[SELECT] ${_log.join(' | ')} | risk=${risk} maxWt=${maxWt}`);
 
   return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt };
 }
@@ -935,6 +949,8 @@ function markowitz(
   const syms = Object.keys(returns); const N = syms.length;
   if (N < 2) return { weights: {} as Record<string, number>, ret: 0, vol: 0, sharpe: 0, var95: 0 };
   const T = Math.min(...syms.map(s => returns[s].length));
+  const perSym = syms.map(s => `${s}:${returns[s].length}w`);
+  console.log(`[MARKOWITZ] ${method} N=${N} T=${T} syms=[${perSym.join(',')}]`);
 
   // Moments (annualized) — use slice(-T) for alignment
   const mu = syms.map(s => (returns[s].slice(-T).reduce((a, b) => a + b, 0) / T) * 52);
@@ -1045,6 +1061,7 @@ export async function POST(req: NextRequest) {
     });
 
     const validSyms = Object.keys(returns);
+    console.log(`[POST] requested=${symbols.length} valid=${validSyms.length} dropped=[${symbols.filter(s=>!returns[s]).join(',')}] weeks=[${validSyms.map(s=>s+':'+returns[s].length+'w').join(',')}]`);
     if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 500 });
 
     const meta = await fetchMeta(validSyms, CAT);
@@ -1081,7 +1098,15 @@ export async function POST(req: NextRequest) {
       }));
       return { method, label, rec, ret: Math.round(opt.ret * 1000) / 10, vol: Math.round(opt.vol * 1000) / 10, sharpe: Math.round(opt.sharpe * 100) / 100, var95: Math.round(opt.var95 * 1000) / 10, weights, frontier };
     });
-    return NextResponse.json({ results, universe: validSyms.length });
+    // Include debug info in response
+    const msResult = results.find(r => r.method === "maxsharpe");
+    const debugInfo = {
+      requested: symbols.length,
+      valid: validSyms.length,
+      dropped: symbols.filter(s => !returns[s]),
+      weeks: Object.fromEntries(validSyms.map(s => [s, returns[s].length])),
+    };
+    return NextResponse.json({ results, universe: validSyms.length, debug: debugInfo });
   } catch (err) {
     console.error("Optimize error:", err);
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
