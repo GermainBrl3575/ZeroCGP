@@ -363,10 +363,9 @@ function OptimizerInner() {
         <div className="prog-wrap"><div className="prog" style={{width:`${progress}%`}}/></div>
       </div>
       <h2 className="q-section" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(26px,3vw,32px)",fontWeight:300,color:"#050B14",marginBottom:36,letterSpacing:"-.02em",lineHeight:1.15}}>{q.q}</h2>
-      {q.id==="Q5" ? (
-        /* ── Q5 : Classes d'actifs (chips multi-select) ── */
+      {isMulti ? (
         <div style={{maxWidth:560}}>
-          <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes</p>
+          <p style={{fontSize:12,color:"#8A9BB0",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes (au moins une)</p>
           <div style={{display:"flex",flexWrap:"wrap",marginBottom:32}}>
             {ASSET_CLASSES.map(c=>(
               <button key={c} onClick={()=>toggleClass(c)} className={`ac-chip ${multiSel.includes(c)?"on":"off"}`}>
@@ -376,91 +375,82 @@ function OptimizerInner() {
             ))}
           </div>
           <button onClick={advanceQ5} disabled={multiSel.length===0} className="btn-navy">
-            Confirmer ({multiSel.length} sélectionnée{multiSel.length>1?"s":""}) →
+            CONFIRMER ({multiSel.length} sélectionnée{multiSel.length>1?"s":""}) →
           </button>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block",fontWeight:300}}>← Précédent</button>}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"#8A9BB0",fontSize:12,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block"}}>← Précédent</button>}
         </div>
-      ) : q.id==="Q8" ? (
-        /* ── Q8+Q9 fusionnés : Supports d'investissement avec banque par support ── */
-        <div style={{maxWidth:580}} className="q-section">
-          <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:24,fontWeight:300}}>Ajoutez vos comptes. Pour chaque support, choisissez votre banque ou courtier.</p>
-          {(() => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            let comptes = [] as any[];
-            try { comptes = JSON.parse(answers[8]||"[]"); } catch { comptes = []; }
-            const SUPPORTS = [
-              {type:"PEA",label:"PEA",desc:"Fiscalité avantageuse après 5 ans · Plafond 150 000 €"},
-              {type:"CTO",label:"Compte-Titres (CTO)",desc:"Aucune restriction · Flat Tax 30%"},
-              {type:"AV",label:"Assurance-Vie",desc:"Enveloppe fiscale long terme · Fonds en UC"},
-              {type:"crypto",label:"Crypto",desc:"Bitcoin, Ethereum · Via exchange ou cold wallet"},
-            ];
-            const BANKS = {
-              PEA: ["BoursoBank","Fortuneo","Bourse Direct","BNP Paribas","Société Générale","Crédit Agricole","LCL","Hello Bank","Degiro","Trade Republic","Saxo Bank","Autre"],
-              CTO: ["Interactive Brokers","Degiro","BoursoBank","Fortuneo","Saxo Bank","Trade Republic","Revolut","Bourse Direct","Autre"],
-              AV: ["BoursoBank","Fortuneo","Linxea","Lucya Cardif","Autre"],
-              crypto: ["Binance","Coinbase","Kraken","Autre"],
-            } as Record<string,string[]>;
-            const hasSupport = (t: string) => comptes.some((c: any)=>c.type===t);
-            const toggleSupport = (t: string) => {
-              let next = hasSupport(t) ? comptes.filter((c: any)=>c.type!==t) : [...comptes, {type:t, banque:"", pct: 0}];
-              if (next.length > 0) {
-                const pctEach = Math.round(100 / next.length);
-                next = next.map((c: any,i: number) => ({...c, pct: i === next.length-1 ? 100 - pctEach*(next.length-1) : pctEach}));
-              }
-              setAnswers(a=>({...a,[8]:JSON.stringify(next)}));
-            };
-            const setBanque = (t: string, b: string) => {
-              const next = comptes.map((c: any) => c.type===t ? {...c,banque:b} : c);
-              setAnswers(a=>({...a,[8]:JSON.stringify(next)}));
-            };
-            const allHaveBanque = comptes.length > 0 && comptes.every((c: any)=>c.banque);
-            return (<>
-              {SUPPORTS.map(s => {
-                const active = hasSupport(s.type);
-                const compte = comptes.find(c=>c.type===s.type);
-                return (
-                  <div key={s.type} style={{marginBottom:14}}>
-                    <button onClick={()=>toggleSupport(s.type)}
-                      style={{width:"100%",display:"flex",alignItems:"center",gap:14,padding:"16px 18px",
-                        background:active?"rgba(5,11,20,.03)":"white",
-                        border:`1px solid ${active?"#050B14":"rgba(5,11,20,.08)"}`,
-                        borderRadius:active?"8px 8px 0 0":"8px",cursor:"pointer",fontFamily:"'Inter',sans-serif",
-                        fontSize:13,color:"#050B14",textAlign:"left",fontWeight:active?400:300,transition:"all .2s"}}>
-                      <span style={{width:18,height:18,borderRadius:4,border:`1.5px solid ${active?"#050B14":"rgba(5,11,20,.15)"}`,
-                        background:active?"#050B14":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                        {active&&<span style={{color:"white",fontSize:11}}>✓</span>}
+      ):(
+        <div style={{maxWidth:520}}>
+          {/* Q9 : dropdown banque */}
+          {q.id==="Q9" ? (
+            <div>
+              <select
+                value={answers[step]||""}
+                onChange={e=>{
+                  const v=e.target.value;
+                  setAnswers(a=>({...a,[step]:v}));
+                }}
+                style={{width:"100%",padding:"14px 16px",fontSize:14,border:"1.5px solid rgba(10,22,40,.15)",borderRadius:10,background:"white",color:NAVY,fontFamily:"'Inter',sans-serif",cursor:"pointer",appearance:"none",backgroundRepeat:"no-repeat",backgroundPosition:"right 14px center"}}
+              >
+                <option value="">-- Sélectionnez votre banque --</option>
+                {["BNP Paribas","Société Générale","LCL","Crédit Agricole","Caisse d'Épargne","Banque Populaire","BoursoBank","Fortuneo","Hello Bank","Degiro","Trade Republic","Interactive Brokers","Binance / Coinbase","Autre"].map(b=>(
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              {answers[step] && (
+                <button onClick={()=>startCalc()} className="q-btn" style={{marginTop:16,background:"#050B14",color:"white",borderColor:"#050B14",width:"100%"}}>
+                  Lancer l'optimisation →
+                </button>
+              )}
+            </div>
+          ) : q.isMulti ? (
+            /* Q8 : checkboxes multi-select avec tooltips */
+            <div style={{display:"flex",flexDirection:"column",gap:10}}>
+              {q.opts.map((opt:string)=>{
+                const selected=(answers[step]||"").split(",").filter(Boolean);
+                const isSel=selected.includes(opt);
+                const tooltip=(q as {tooltips?:Record<string,string>}).tooltips?.[opt];
+                return(
+                  <div key={opt} style={{display:"flex",alignItems:"center",gap:10}}>
+                    <button
+                      onClick={()=>{
+                        const cur=(answers[step]||"").split(",").filter(Boolean);
+                        const next=cur.includes(opt)?cur.filter(x=>x!==opt):[...cur,opt];
+                        setAnswers(a=>({...a,[step]:next.join(",")}));
+                      }}
+                      style={{flex:1,display:"flex",alignItems:"center",gap:12,padding:"14px 16px",
+                        background:isSel?"rgba(10,22,40,0.04)":"white",
+                        border:`1.5px solid ${isSel?NAVY:"rgba(10,22,40,.1)"}`,
+                        borderRadius:10,cursor:"pointer",fontFamily:"'Inter',sans-serif",
+                        fontSize:13,color:NAVY,textAlign:"left",fontWeight:isSel?600:400}}
+                    >
+                      <span style={{width:20,height:20,borderRadius:4,border:`2px solid ${isSel?NAVY:"rgba(10,22,40,.2)"}`,
+                        background:isSel?NAVY:"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                        {isSel&&<span style={{color:"white",fontSize:12,lineHeight:1}}>✓</span>}
                       </span>
-                      <div>
-                        <div>{s.label}</div>
-                        <div style={{fontSize:10,color:"rgba(5,11,20,.3)",fontWeight:300,marginTop:2}}>{s.desc}</div>
-                      </div>
-                      {compte && <div style={{marginLeft:"auto",fontSize:11,color:"rgba(5,11,20,.3)",fontWeight:300}}>{compte.pct}%</div>}
+                      {opt}
                     </button>
-                    {active && (
-                      <div style={{padding:"12px 18px",border:"1px solid rgba(5,11,20,.08)",borderTop:"none",borderRadius:"0 0 8px 8px",background:"white"}}>
-                        <select value={compte?.banque||""} onChange={e=>setBanque(s.type,e.target.value)}
-                          style={{width:"100%",padding:"10px 14px",fontSize:12,border:"1px solid rgba(5,11,20,.08)",borderRadius:6,
-                            background:"#FAFAF9",color:"#050B14",fontFamily:"'Inter',sans-serif",fontWeight:300,appearance:"none",cursor:"pointer"}}>
-                          <option value="">Choisir votre banque…</option>
-                          {(BANKS[s.type]||[]).map(b=><option key={b} value={b}>{b}</option>)}
-                        </select>
+                    {tooltip&&(
+                      <div style={{position:"relative",display:"inline-block"}}>
+                        <span
+                          title={tooltip}
+                          style={{display:"inline-flex",alignItems:"center",justifyContent:"center",
+                            width:20,height:20,borderRadius:"50%",border:"1.5px solid #8A9BB0",
+                            fontSize:11,color:"#8A9BB0",cursor:"help",fontWeight:700,userSelect:"none"}}
+                        >ⓘ</span>
                       </div>
                     )}
                   </div>
                 );
               })}
-              {allHaveBanque && (
-                <button onClick={()=>startCalc()} className="btn-navy" style={{marginTop:16,width:"100%"}}>
-                  Lancer l'optimisation →
+              {(answers[step]||"").split(",").filter(Boolean).length>0 && (
+                <button onClick={()=>setStep(s=>s+1)} className="q-btn" style={{marginTop:8,background:NAVY,color:"white",borderColor:NAVY}}>
+                  Continuer →
                 </button>
               )}
-            </>);
-          })()}
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
-        </div>
-      ) : (
-        <div style={{maxWidth:520}}>
-          {/* Questions standards : boutons radio */
+            </div>
+          ) : (
+            /* Questions standards : boutons radio */
             q.opts.map((opt:string)=>{
               const isSel=answers[step]===opt,isFlash=flash===opt;
               return(<button key={opt} onClick={()=>answer(opt)} className="q-btn" style={{background:isFlash?NAVY:isSel?"rgba(10,22,40,.03)":"white",borderColor:isFlash||isSel?NAVY:"rgba(10,22,40,.1)",color:isFlash?"white":NAVY,fontWeight:isSel?500:400}}>
