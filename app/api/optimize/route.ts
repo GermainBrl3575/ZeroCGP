@@ -290,7 +290,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   let risk = riskOrder[Math.min(riskOrder.indexOf(riskQ2), riskOrder.indexOf(riskQ3))] as
     "defensive" | "moderate" | "balanced" | "aggressive";
   if (isShort && riskOrder.indexOf(risk) > 1) risk = "moderate";
-  if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate"; // AV cap: not suited for aggressive
 
   // ── 3.3 Parse supports (q8) — JSON format or legacy string ──
   let comptes: Array<{ type: string; banque: string; pct: number }> = [];
@@ -314,6 +313,9 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const wCTO = comptes.some(c => c.type === "CTO");
   const wAV = comptes.some(c => c.type === "AV");
   const wCrypto = comptes.some(c => c.type === "crypto") || n5.includes("crypto");
+
+  // AV-only cap: dynamic/aggressive not suited for AV (limited pool)
+  if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate";
 
   const banquePEA = comptes.find(c => c.type === "PEA")?.banque || "";
   const banqueCTO = comptes.find(c => c.type === "CTO")?.banque || "";
@@ -408,7 +410,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     return {
       symbols: dedupFilter(cr).map(a => a.s).slice(0, maxAssets),
       minBondPct: 0, minGoldPct: 0, minReitPct: 0, minCryptoPct: 30, minEMPct: 0,
-      maxWt: 0.35,
+      maxWt: 0.35, risk, comptes,
     };
   }
 
