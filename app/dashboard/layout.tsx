@@ -99,15 +99,20 @@ function Ticker({data}:{data:any[]}){
 /* ═══ PAGE TRANSITION ═══ */
 function PageTransition({children}:{children:React.ReactNode}){
   const pathname=usePathname();
-  const [dc,sDc]=useState(children);
   const [vis,sVis]=useState(true);
-  const first=useRef(true);
+  const prevPath=useRef(pathname);
   useEffect(()=>{
-    if(first.current){first.current=false;sDc(children);sVis(true);return;}
-    sVis(false);const t=setTimeout(()=>{sDc(children);sVis(true);},500);return()=>clearTimeout(t);
+    if(prevPath.current===pathname)return;
+    prevPath.current=pathname;
+    sVis(false);
+    const t=setTimeout(()=>sVis(true),80);
+    return()=>clearTimeout(t);
   },[pathname]);
-  useEffect(()=>{sDc(children);},[children]);
-  return <div style={{opacity:vis?1:0,transform:vis?"translateY(0)":"translateY(10px)",transition:"opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)"}}>{dc}</div>;
+  return <div style={{
+    opacity:vis?1:0,
+    transform:vis?"translateY(0)":"translateY(8px)",
+    transition:"opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1)",
+  }}>{children}</div>;
 }
 
 /* ═══ EXPORTED COMPONENTS ═══ */
