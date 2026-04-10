@@ -222,31 +222,39 @@ function FrontierTooltip({ active, payload }: { active?: boolean; payload?: {val
   );
 }
 
+const GREEN = "#4ade80";
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=Inter:wght@300;400;500&display=swap');
-  .op{padding:40px 48px;background:#F5F4F1;min-height:100%;font-family:'Inter',sans-serif}
-  .op-ey{font-size:9px;font-weight:500;letter-spacing:.18em;color:${NAVY_MID};margin-bottom:12px}
-  .op-h1{font-family:'Cormorant Garant',serif;font-size:clamp(32px,4vw,48px);font-weight:300;color:${NAVY};letter-spacing:-.02em;line-height:1.05;margin-bottom:14px}
-  .op-sub{font-size:13px;font-weight:300;color:#5A6B80;line-height:1.7;margin-bottom:36px;max-width:520px}
-  .op-metrics{display:flex;gap:40px;margin-bottom:36px}
-  .op-mn{font-family:'Cormorant Garant',serif;font-size:36px;font-weight:300;color:${NAVY};line-height:1}
-  .op-ml{font-size:10px;color:#8A9BB0;margin-top:4px;letter-spacing:.06em}
-  .fl label{font-size:9px;font-weight:500;letter-spacing:.16em;color:#8A9BB0;display:block;margin-bottom:10px}
-  .fl input{background:white;border:1px solid rgba(10,22,40,.12);border-radius:8px;padding:12px 16px;font-size:14px;color:${NAVY};outline:none;transition:border-color 0.2s;font-family:'Inter',sans-serif;width:240px}
-  .fl input:focus{border-color:${NAVY_MID}}
-  .btn-navy{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.16em;background:${NAVY};color:white;border:none;padding:16px 40px;cursor:pointer;transition:opacity 0.2s;display:inline-block}
-  .btn-navy:hover{opacity:.82}.btn-navy:disabled{opacity:.4;cursor:not-allowed}
-  .btn-out{font-family:'Inter',sans-serif;font-size:10px;font-weight:500;letter-spacing:.14em;background:transparent;color:${NAVY};border:1px solid rgba(10,22,40,.2);padding:12px 24px;cursor:pointer;border-radius:8px;transition:all 0.2s}
-  .btn-out:hover{background:${NAVY};color:white}
-  .prog-wrap{height:2px;background:rgba(10,22,40,.07);border-radius:1px;margin-bottom:8px}
-  .prog{height:100%;background:${NAVY};border-radius:1px;transition:width 0.6s ease}
-  .q-btn{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:10px;padding:16px 20px;border:1.5px solid;font-size:14px;cursor:pointer;transition:all 0.15s;font-family:'Inter',sans-serif;margin-bottom:10px}
-  .m-card{border-radius:16px;padding:24px 20px;cursor:pointer;transition:all 0.2s;position:relative;border:2px solid}
-  .card-white{background:white;border-radius:14px;padding:24px;margin-bottom:16px}
-  .ac-chip{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:8px;border:1.5px solid;cursor:pointer;transition:all 0.15s;font-size:13px;font-family:'Inter',sans-serif;margin:5px}
-  .ac-chip.on{background:${NAVY};color:white;border-color:${NAVY}}
-  .ac-chip.off{background:white;color:${NAVY};border-color:rgba(10,22,40,.12)}
-  .ac-chip.off:hover{border-color:${NAVY}}
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Inter:wght@300;400;500;600&display=swap');
+  @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .op{padding:48px 56px;background:#F9F8F6;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
+  .op-ey{font-size:9px;font-weight:400;letter-spacing:.22em;color:rgba(5,11,20,.25);margin-bottom:16px;text-transform:uppercase}
+  .op-h1{font-family:'Cormorant Garamond',serif;font-size:clamp(34px,4.5vw,52px);font-weight:300;color:#050B14;letter-spacing:-.03em;line-height:1.08;margin-bottom:18px}
+  .op-h1 em{font-style:normal;font-weight:500}
+  .op-sub{font-size:13px;font-weight:300;color:rgba(5,11,20,.4);line-height:1.8;margin-bottom:40px;max-width:480px;letter-spacing:.01em}
+  .op-metrics{display:flex;gap:48px;margin-bottom:40px}
+  .op-mn{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;color:#050B14;line-height:1}
+  .op-ml{font-size:9px;color:rgba(5,11,20,.25);margin-top:6px;letter-spacing:.1em;text-transform:uppercase;font-weight:400}
+  .fl label{font-size:9px;font-weight:400;letter-spacing:.18em;color:rgba(5,11,20,.25);display:block;margin-bottom:10px;text-transform:uppercase}
+  .fl input{background:white;border:1px solid rgba(5,11,20,.08);border-radius:6px;padding:14px 18px;font-size:14px;color:#050B14;outline:none;transition:border-color 0.3s;font-family:'Inter',sans-serif;font-weight:300;width:260px}
+  .fl input:focus{border-color:rgba(5,11,20,.3)}
+  .btn-navy{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.18em;background:#050B14;color:white;border:none;padding:18px 44px;cursor:pointer;transition:all 0.25s;display:inline-block;text-transform:uppercase}
+  .btn-navy:hover{background:#1a2a42}.btn-navy:disabled{opacity:.3;cursor:not-allowed}
+  .btn-out{font-family:'Inter',sans-serif;font-size:10px;font-weight:400;letter-spacing:.16em;background:transparent;color:#050B14;border:1px solid rgba(5,11,20,.12);padding:14px 28px;cursor:pointer;border-radius:6px;transition:all 0.25s;text-transform:uppercase}
+  .btn-out:hover{background:#050B14;color:white;border-color:#050B14}
+  .prog-wrap{height:2px;background:rgba(5,11,20,.04);border-radius:1px;margin-bottom:8px}
+  .prog{height:100%;background:linear-gradient(90deg,#050B14,${GREEN});border-radius:1px;transition:width 0.7s cubic-bezier(.16,1,.3,1)}
+  .q-btn{width:100%;text-align:left;display:flex;align-items:center;justify-content:space-between;border-radius:8px;padding:18px 22px;border:1px solid;font-size:14px;cursor:pointer;transition:all 0.2s;font-family:'Inter',sans-serif;font-weight:300;margin-bottom:10px;letter-spacing:.01em}
+  .q-btn:hover{border-color:#050B14;background:rgba(5,11,20,.02)}
+  .m-card{border-radius:12px;padding:28px 24px;cursor:pointer;transition:all 0.25s;position:relative;border:1px solid}
+  .m-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(5,11,20,.06)}
+  .card-white{background:white;border-radius:10px;padding:28px;margin-bottom:18px;border:1px solid rgba(5,11,20,.04)}
+  .ac-chip{display:inline-flex;align-items:center;gap:8px;padding:11px 20px;border-radius:6px;border:1px solid;cursor:pointer;transition:all 0.2s;font-size:13px;font-family:'Inter',sans-serif;font-weight:300;margin:5px}
+  .ac-chip.on{background:#050B14;color:white;border-color:#050B14}
+  .ac-chip.off{background:white;color:#050B14;border-color:rgba(5,11,20,.08)}
+  .ac-chip.off:hover{border-color:rgba(5,11,20,.3)}
+  .q-section{animation:fadeUp .5s ease both}
+  .result-card{animation:fadeUp .5s ease both}
 `;
 
 function OptimizerInner() {
@@ -331,14 +339,14 @@ function OptimizerInner() {
 
   // ── Écran 0 ──
   if(step===0)return(<><style>{css}</style><div className="op">
-    <div className="op-ey">OPTIMISEUR MARKOWITZ</div>
-    <h1 className="op-h1">Créez votre<br/>portefeuille optimal.</h1>
-    <p className="op-sub">En 9 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie de Markowitz (1952).</p>
+    <div className="op-ey">Optimiseur Markowitz</div>
+    <h1 className="op-h1">Créez votre<br/>portefeuille <em>optimal.</em></h1>
+    <p className="op-sub">En 9 questions, notre algorithme calcule le portefeuille qui maximise votre rendement ajusté du risque selon la théorie moderne du portefeuille.</p>
     <div className="op-metrics">
-      {[["9","Questions"],["3","Méthodes"],["1000+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
+      {[["9","Questions"],["3","Méthodes"],["700+","Actifs"]].map(([n,l])=>(<div key={l}><div className="op-mn">{n}</div><div className="op-ml">{l}</div></div>))}
     </div>
-    <div className="fl" style={{marginBottom:28}}><label>CAPITAL À INVESTIR (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="Ex: 50 000"/></div>
-    <button onClick={()=>setStep(1)} className="btn-navy">CRÉER UN PORTEFEUILLE ZERO CGP →</button>
+    <div className="fl" style={{marginBottom:32}}><label>Capital à investir (€)</label><input type="number" value={capital} onChange={e=>setCapital(e.target.value)} placeholder="50 000"/></div>
+    <button onClick={()=>setStep(1)} className="btn-navy">Créer un portefeuille →</button>
   </div></>);
 
   // ── Questions ──
@@ -347,14 +355,14 @@ function OptimizerInner() {
     const progress=(step/QUESTIONS.length)*100;
     const isMulti=q.isMulti;
     return(<><style>{css}</style><div className="op">
-      <div style={{marginBottom:48}}>
-        <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
-          <span style={{fontSize:10,fontWeight:500,color:"#8A9BB0",letterSpacing:".14em"}}>{q.id} / 7</span>
-          <span style={{fontSize:10,color:"#8A9BB0"}}>{Math.round(progress)}%</span>
+      <div className="q-section" style={{marginBottom:48}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <span style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,.25)",letterSpacing:".18em",textTransform:"uppercase"}}>{q.id} — Question {step} sur 9</span>
+          <span style={{fontSize:9,color:"rgba(5,11,20,.2)",letterSpacing:".1em"}}>{Math.round(progress)}%</span>
         </div>
         <div className="prog-wrap"><div className="prog" style={{width:`${progress}%`}}/></div>
       </div>
-      <h2 style={{fontFamily:"'Cormorant Garant',serif",fontSize:28,fontWeight:300,color:NAVY,marginBottom:32,letterSpacing:"-.02em",lineHeight:1.15}}>{q.q}</h2>
+      <h2 className="q-section" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(26px,3vw,32px)",fontWeight:300,color:"#050B14",marginBottom:36,letterSpacing:"-.02em",lineHeight:1.15}}>{q.q}</h2>
       {isMulti ? (
         <div style={{maxWidth:560}}>
           <p style={{fontSize:12,color:"#8A9BB0",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes (au moins une)</p>
@@ -458,7 +466,7 @@ function OptimizerInner() {
 
   // ── Calcul — Animation Markowitz ──
   if(step===100)return(<><style>{css}</style>
-    <div style={{background:"#F9F8F6",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+    <div style={{background:"#F9F8F6",minHeight:"100%",display:"flex",alignItems:"center",justifyContent:"center",padding:"40px 20px"}}>
       <MarkowitzAnim calcPct={calcPct} currentStep={CALC_STEPS[Math.max(0,calcStepIdx)]} stepIdx={calcStepIdx}/>
     </div>
   </>);
@@ -469,18 +477,18 @@ function OptimizerInner() {
     const selR=results.find(r=>r.method===sel)??results[0];
     const cap=parseFloat(capital)||50000;
     return(<><style>{css}</style><div className="op" style={{paddingBottom:60}}>
-      <div className="op-ey">RÉSULTATS · PORTEFEUILLE ZERO CGP</div>
-      <h1 className="op-h1">3 portefeuilles optimaux.</h1>
+      <div className="op-ey">Résultats · Portefeuille Zero CGP</div>
+      <h1 className="op-h1">3 portefeuilles <em>optimaux.</em></h1>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
         {results.map(r=>{
           const isSel=r.method===sel;
-          return(<div key={r.method} onClick={()=>setSel(r.method)} className="m-card" style={{background:isSel?NAVY:"white",borderColor:isSel?NAVY:r.rec?"rgba(30,58,110,.28)":"rgba(10,22,40,.08)"}}>
-            {r.rec&&<div style={{position:"absolute",top:-11,right:14,background:NAVY_MID,color:"white",fontSize:8,fontWeight:600,padding:"3px 11px",letterSpacing:".12em"}}>RECOMMANDÉ</div>}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
-              <span style={{fontSize:9,fontWeight:500,letterSpacing:".12em",color:isSel?"rgba(255,255,255,.3)":"#8A9BB0"}}>{r.method.toUpperCase()}</span>
+          return(<div key={r.method} onClick={()=>setSel(r.method)} className="m-card result-card" style={{background:isSel?"#050B14":"white",borderColor:isSel?"#050B14":r.rec?"rgba(5,11,20,.15)":"rgba(5,11,20,.06)",animationDelay:`${results.indexOf(r)*0.1}s`}}>
+            {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:400,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase"}}>Recommandé</div>}
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
+              <span style={{fontSize:9,fontWeight:400,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
               <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
             </div>
-            <div style={{fontSize:15,fontWeight:500,marginBottom:22,color:isSel?"white":NAVY}}>{r.label}</div>
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:400,marginBottom:24,color:isSel?"white":"#050B14",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {([
                 ["Rendement",`+${(r.ret||0).toFixed(1)}%`,(r.ret||0)>0?(isSel?"#6EE7B7":"#16A34A"):"#DC2626","rendement"],
@@ -502,7 +510,7 @@ function OptimizerInner() {
 
       {selR.frontier&&selR.frontier.length>0&&(
         <div className="card-white">
-          <h3 style={{fontFamily:"'Cormorant Garant',serif",fontSize:18,fontWeight:400,color:NAVY,marginBottom:6}}>Frontière efficiente</h3>
+          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:"#050B14",marginBottom:8,letterSpacing:"-.01em"}}>Frontière efficiente</h3>
           <p style={{fontSize:11,color:"#5A6B80",marginBottom:16,fontWeight:300}}>Chaque point représente un portefeuille possible. La courbe montre le meilleur rendement atteignable pour chaque niveau de risque.</p>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={selR.frontier} margin={{top:10,right:20,bottom:5,left:10}}>
@@ -519,7 +527,7 @@ function OptimizerInner() {
       {selR.weights&&selR.weights.length>0&&(
         <div className="card-white">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <h3 style={{fontFamily:"'Cormorant Garant',serif",fontSize:18,fontWeight:400,color:NAVY}}>Allocation recommandée</h3>
+            <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:"#050B14",letterSpacing:"-.01em"}}>Allocation recommandée</h3>
             <div style={{fontSize:11,color:"#8A9BB0"}}>Capital : {eur(cap)}</div>
           </div>
           <p style={{fontSize:11,color:"#5A6B80",marginBottom:16,fontWeight:300}}>Cliquez sur un actif pour voir sa fiche détaillée, ses performances et ses actualités.</p>
@@ -540,7 +548,7 @@ function OptimizerInner() {
       {saveError&&<p style={{color:"#DC2626",fontSize:12,marginBottom:12}}>{saveError}</p>}
       <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
         <button className="btn-out" onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setCalcStepIdx(0);setAnswers({});setSaveError("");}}>Recommencer</button>
-        <button onClick={handleSave} disabled={saving} className="btn-navy">{saving?"ENREGISTREMENT...":"ENREGISTRER CE PORTEFEUILLE →"}</button>
+        <button onClick={handleSave} disabled={saving} className="btn-navy">{saving?"Enregistrement...":"Enregistrer ce portefeuille →"}</button>
       </div>
     </div></>);
   }
