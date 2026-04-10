@@ -290,7 +290,7 @@ function OptimizerInner() {
     const apiPromise: Promise<OptResult[]> = (async () => {
       try {
         const r = await fetch("/api/optimize",{method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({capital:cap,answers:{"1":answers[1]??"","2":answers[2]??"","3":answers[3]??"","4":answers[4]??"","5":multiSel.join(","),"6":answers[6]??"","7":answers[7]??""}}
+          body:JSON.stringify({capital:cap,answers:{"1":answers[1]??"","2":answers[2]??"","3":answers[3]??"","4":answers[4]??"","5":answers[5]||multiSel.join(","),"6":answers[6]??"","7":answers[7]??"","8":answers[8]??"","9":answers[9]??""}}
         )});
         if(r.ok){const d=await r.json();if(Array.isArray(d.results)&&d.results.length>0)return d.results.map((x:Record<string,unknown>)=>normalizeResult(x,cap));}
       } catch {}
