@@ -945,13 +945,13 @@ async function fetchReturns(symbols: string[], years = 10): Promise<Record<strin
   } finally { client.release(); }
 }
 
-async function fetchMeta(symbols: string[], CAT: Asset[]): Promise<Record<string, { name: string; type: string }>> {
+async function fetchMeta(symbols: string[], CAT: Asset[]): Promise<Record<string, { name: string; type: string; isin?: string }>> {
   const client = await pool.connect();
   try {
-    const { rows } = await client.query(`SELECT symbol,name,type FROM assets_master WHERE symbol=ANY($1)`, [symbols]);
-    const meta: Record<string, { name: string; type: string }> = {};
+    const { rows } = await client.query(`SELECT symbol,name,type,isin FROM assets_master WHERE symbol=ANY($1)`, [symbols]);
+    const meta: Record<string, { name: string; type: string; isin?: string }> = {};
     CAT.forEach(a => { meta[a.s] = { name: a.n, type: a.type }; });
-    rows.forEach(r => { if (!meta[r.symbol]) meta[r.symbol] = { name: r.name, type: r.type }; });
+    rows.forEach(r => { meta[r.symbol] = { name: r.name || meta[r.symbol]?.name || r.symbol, type: meta[r.symbol]?.type || r.type, isin: r.isin || undefined }; });
     return meta;
   } finally { client.release(); }
 }
@@ -1144,7 +1144,7 @@ function markowitz(
   return { weights, ret: finalRet, vol: finalVol, sharpe: finalSharpe, var95 };
 }
 
-type Weight = { symbol: string; name: string; type: string; weight: number; amount: number; support?: string };
+type Weight = { symbol: string; name: string; type: string; weight: number; amount: number; support?: string; isin?: string };
 type FPt = { vol: number; ret: number };
 type Result = { method: string; label: string; ret: number; vol: number; sharpe: number; var95: number; rec?: boolean; weights: Weight[]; frontier: FPt[] };
 
@@ -1203,6 +1203,7 @@ export async function POST(req: NextRequest) {
       const weights: Weight[] = rawW.map(([sym, w], i) => ({
         symbol: sym, name: meta[sym]?.name || sym, type: meta[sym]?.type || "etf",
         weight: roundedW[i], amount: Math.round(w / totalW * capital),
+        isin: meta[sym]?.isin || undefined,
       }));
       // Tag optimal support (non-breaking: frontend ignores unknown fields)
       weights.forEach(wt => {
