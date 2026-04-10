@@ -561,6 +561,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     ["US_AGG", "US_TOTAL"],           // AGG vs BND
     ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"],
     ["MSCI_EAFE", "FTSE_DEV"],
+    ["GOLD_EU", "GOLD_US", "GOLD_MINERS"],  // Max 1 gold exposure
   ];
   for (const group of OVERLAP_GROUPS) {
     const inGroup = pool2.filter(a => group.includes(a.dedup));
@@ -581,9 +582,14 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ═══════════════════════════════════════════════════════ */
   if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
     const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
+    const CTO_BASE_AGG = ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"];
+    const CTO_BASE_STD = ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "IGLN.L"];
+    // For "large" profile, add more assets to fill the pool
+    const CTO_LARGE = ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","V","MA","JNJ","LLY","JPM",
+      "MC.PA","RMS.PA","ASML.AS","SAP.DE","NOVO-B.CO","SU.PA","AIR.PA"];
     const CTO_ADD = risk === "aggressive"
-      ? ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"]
-      : ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "IGLN.L"]; // EM + gold UCITS alternatives
+      ? [...CTO_BASE_AGG, ...(maxAssets > 12 ? CTO_LARGE : [])]
+      : [...CTO_BASE_STD, ...(maxAssets > 12 ? ["AAPL","MSFT","MC.PA","ASML.AS"] : [])];
     for (const sym of CTO_ADD) {
       const asset = CAT.find(a => a.s === sym);
       if (!asset || blocked.has(sym) || pool2.find(a => a.s === sym || a.dedup === asset.dedup)) continue;
@@ -638,9 +644,11 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
     pool2 = smartDedup(pool2);
 
-    // Actions PEA if pool < 6
-    if (pool2.length < 6) {
-      const PEA_STOCKS = ["MC.PA", "RMS.PA", "AIR.PA", "SAN.PA", "OR.PA", "SU.PA", "ASML.AS", "SAP.DE", "NOVO-B.CO"];
+    // Actions PEA if pool < maxAssets (need more for "Large 15+")
+    if (pool2.length < Math.min(maxAssets, 12)) {
+      const PEA_STOCKS = ["MC.PA","RMS.PA","AIR.PA","SAN.PA","OR.PA","SU.PA","ASML.AS","SAP.DE",
+        "NOVO-B.CO","ENGI.PA","BNP.PA","SIE.DE","ALV.DE","IFX.DE","HO.PA","LR.PA","DSY.PA",
+        "CAP.PA","SGO.PA","VIE.PA","PUB.PA","KER.PA","GLE.PA","TTE.PA"];
       for (const sym of PEA_STOCKS) {
         const asset = CAT.find(a => a.s === sym);
         if (!asset || !asset.pea || pool2.find(a => a.s === sym) || blocked.has(sym)) continue;
