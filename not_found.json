@@ -1,0 +1,22 @@
+[
+  {
+    "symbol": "EESRI.PA",
+    "reason": "Not on Yahoo Finance, no alternative found"
+  },
+  {
+    "symbol": "EUBM.PA",
+    "reason": "Not on Yahoo Finance, OBLI.PA already covers EUR gov bonds"
+  },
+  {
+    "symbol": "GIL.PA",
+    "reason": "Not on Yahoo Finance, GAGG.PA already covers global bonds"
+  },
+  {
+    "symbol": "SUSL.PA",
+    "reason": "Not on Yahoo Finance, SUWS.L available for CTO"
+  },
+  {
+    "symbol": "PABF.PA",
+    "reason": "Not on Yahoo Finance"
+  }
+]

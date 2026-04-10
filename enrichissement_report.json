@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "MWRD.PA",
+    "status": "inserted",
+    "weeks": 118
+  },
+  {
+    "symbol": "EESRI.PA",
+    "status": "not_found",
+    "weeks": 0
+  },
+  {
+    "symbol": "PTPXE.PA",
+    "status": "inserted",
+    "weeks": 365
+  },
+  {
+    "symbol": "PJPN.PA",
+    "status": "inserted",
+    "weeks": 402
+  },
+  {
+    "symbol": "CJ1.PA",
+    "status": "inserted",
+    "weeks": 427
+  },
+  {
+    "symbol": "EUBM.PA",
+    "status": "not_found",
+    "weeks": 0
+  },
+  {
+    "symbol": "GIL.PA",
+    "status": "not_found",
+    "weeks": 0
+  },
+  {
+    "symbol": "SUSL.PA",
+    "status": "not_found",
+    "weeks": 0
+  },
+  {
+    "symbol": "PABF.PA",
+    "status": "not_found",
+    "weeks": 0
+  }
+]
