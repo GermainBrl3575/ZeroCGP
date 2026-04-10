@@ -385,8 +385,8 @@ function OptimizerInner() {
         <div style={{maxWidth:580}} className="q-section">
           <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:24,fontWeight:300}}>Ajoutez vos comptes. Pour chaque support, choisissez votre banque ou courtier.</p>
           {(() => {
-            // Parse existing comptes from answers[8]
-            let comptes: {type:string;banque:string;pct:number}[] = [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            let comptes = [] as any[];
             try { comptes = JSON.parse(answers[8]||"[]"); } catch { comptes = []; }
             const SUPPORTS = [
               {type:"PEA",label:"PEA",desc:"Fiscalité avantageuse après 5 ans · Plafond 150 000 €"},
@@ -394,32 +394,26 @@ function OptimizerInner() {
               {type:"AV",label:"Assurance-Vie",desc:"Enveloppe fiscale long terme · Fonds en UC"},
               {type:"crypto",label:"Crypto",desc:"Bitcoin, Ethereum · Via exchange ou cold wallet"},
             ];
-            const BANKS: Record<string,string[]> = {
+            const BANKS = {
               PEA: ["BoursoBank","Fortuneo","Bourse Direct","BNP Paribas","Société Générale","Crédit Agricole","LCL","Hello Bank","Degiro","Trade Republic","Saxo Bank","Autre"],
               CTO: ["Interactive Brokers","Degiro","BoursoBank","Fortuneo","Saxo Bank","Trade Republic","Revolut","Bourse Direct","Autre"],
               AV: ["BoursoBank","Fortuneo","Linxea","Lucya Cardif","Autre"],
               crypto: ["Binance","Coinbase","Kraken","Autre"],
-            };
-            const hasSupport = (t:string) => comptes.some(c=>c.type===t);
-            const toggleSupport = (t:string) => {
-              let next: typeof comptes;
-              if (hasSupport(t)) {
-                next = comptes.filter(c=>c.type!==t);
-              } else {
-                next = [...comptes, {type:t, banque:"", pct: 0}];
-              }
-              // Auto-distribute pct equally
+            } as Record<string,string[]>;
+            const hasSupport = (t: string) => comptes.some((c: any)=>c.type===t);
+            const toggleSupport = (t: string) => {
+              let next = hasSupport(t) ? comptes.filter((c: any)=>c.type!==t) : [...comptes, {type:t, banque:"", pct: 0}];
               if (next.length > 0) {
                 const pctEach = Math.round(100 / next.length);
-                next = next.map((c,i) => ({...c, pct: i === next.length-1 ? 100 - pctEach*(next.length-1) : pctEach}));
+                next = next.map((c: any,i: number) => ({...c, pct: i === next.length-1 ? 100 - pctEach*(next.length-1) : pctEach}));
               }
               setAnswers(a=>({...a,[8]:JSON.stringify(next)}));
             };
-            const setBanque = (t:string, b:string) => {
-              const next = comptes.map(c => c.type===t ? {...c,banque:b} : c);
+            const setBanque = (t: string, b: string) => {
+              const next = comptes.map((c: any) => c.type===t ? {...c,banque:b} : c);
               setAnswers(a=>({...a,[8]:JSON.stringify(next)}));
             };
-            const allHaveBanque = comptes.length > 0 && comptes.every(c=>c.banque);
+            const allHaveBanque = comptes.length > 0 && comptes.every((c: any)=>c.banque);
             return (<>
               {SUPPORTS.map(s => {
                 const active = hasSupport(s.type);
