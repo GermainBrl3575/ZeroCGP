@@ -370,9 +370,9 @@ function OptimizerInner() {
         <div style={{position:"absolute",top:1,left:0,right:0,height:1.5,background:"rgba(5,11,20,.04)",borderRadius:1}}/>
         <div style={{position:"absolute",top:1,left:0,height:1.5,borderRadius:1,width:`${progress}%`,background:"linear-gradient(90deg,rgba(5,11,20,.21),rgba(26,58,106,.9))",boxShadow:"0 0 6px rgba(26,58,106,.25)",transition:"width 0.7s cubic-bezier(.34,1.56,.64,1)"}}/>
       </div>
-      <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,marginBottom:32}}>{q.q}</h2>
+      <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,marginBottom:32,textAlign:"center"}}>{q.q}</h2>
       {q.id==="Q5" ? (
-        <div style={{maxWidth:560}}>
+        <div style={{maxWidth:560,margin:"0 auto"}}>
           <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes</p>
           <div style={{display:"flex",flexWrap:"wrap",marginBottom:32}}>
             {ASSET_CLASSES.map(c=>(
@@ -388,53 +388,64 @@ function OptimizerInner() {
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : q.id==="Q6" ? (
-        /* ── Q6 : Zones géographiques multi-select ── */
-        <div style={{maxWidth:540}}>
+        /* ── Q6 : Zones géographiques — toggle exclusif ── */
+        <div style={{maxWidth:540,margin:"0 auto"}}>
           {(() => {
             const ZONES = ["Monde entier","Amérique du Nord","Europe","Asie-Pacifique","Marchés Émergents","Amérique Latine","Afrique & Moyen-Orient"];
             const cur = (answers[step]||"Monde entier").split(",").filter(Boolean);
             const isMonde = cur.includes("Monde entier");
             const toggle = (z: string) => {
               if (z === "Monde entier") {
-                setAnswers(a => ({...a, [step]: "Monde entier"}));
+                // Toggle: si déjà monde → décocher (vider), sinon → cocher monde
+                if (isMonde) setAnswers(a => ({...a, [step]: ""}));
+                else setAnswers(a => ({...a, [step]: "Monde entier"}));
               } else {
-                let next = cur.filter(x => x !== "Monde entier");
+                let next = cur.filter(x => x !== "Monde entier" && x !== "");
                 if (next.includes(z)) next = next.filter(x => x !== z);
                 else next = [...next, z];
-                if (next.length === 0 || next.length >= 6) next = ["Monde entier"];
+                // Si toutes les 6 zones cochées → revenir à Monde entier
+                if (next.length >= 6) next = ["Monde entier"];
                 setAnswers(a => ({...a, [step]: next.join(",")}));
               }
             };
+            const hasSelection = isMonde || cur.filter(x => x && x !== "Monde entier").length > 0;
             return (<>
               {ZONES.map((z, idx) => {
                 const checked = z === "Monde entier" ? isMonde : (!isMonde && cur.includes(z));
                 const disabled = z !== "Monde entier" && isMonde;
                 return (
                   <div key={z} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`,marginBottom:8}}>
-                    <div onClick={() => !disabled && toggle(z)} style={{
+                    <div onClick={() => toggle(z)} style={{
                       borderRadius:6,border:`0.5px solid ${checked?"rgba(26,58,106,.35)":"rgba(5,11,20,0.09)"}`,
                       padding:"14px 18px",display:"flex",alignItems:"center",gap:12,
-                      cursor:disabled?"default":"pointer",opacity:disabled?0.35:1,
+                      cursor:"pointer",opacity:disabled?0.4:1,
                       background:checked?"rgba(5,11,20,.04)":"rgba(255,255,255,0.72)",
                       transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
                     }}>
                       <span style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${checked?"#1a3a6a":"rgba(5,11,20,.15)"}`,background:checked?"#1a3a6a":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
                         {checked&&<span style={{color:"white",fontSize:10}}>✓</span>}
                       </span>
-                      <span style={{fontSize:14,fontWeight:checked?500:400,color:"rgba(5,11,20,.88)",fontFamily:"'Inter',sans-serif"}}>{z}</span>
-                      {z==="Marchés Émergents"&&<span title="Classification financière présente dans plusieurs régions (Chine, Inde, Brésil...)" style={{fontSize:9,color:"rgba(5,11,20,.3)",cursor:"help",marginLeft:"auto"}}>ⓘ</span>}
+                      <span style={{fontSize:14,fontWeight:checked?500:400,color:"rgba(5,11,20,.88)",fontFamily:"'Inter',sans-serif",flex:1}}>{z}</span>
+                      {z==="Marchés Émergents"&&(
+                        <div style={{position:"relative",marginLeft:"auto"}}>
+                          <span onClick={e=>{e.stopPropagation();const t=e.currentTarget.nextElementSibling as HTMLElement;if(t)t.style.display=t.style.display==="block"?"none":"block";}} style={{width:18,height:18,borderRadius:"50%",border:"1px solid rgba(5,11,20,.12)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:9,color:"rgba(5,11,20,.3)",cursor:"pointer",fontWeight:600}}>i</span>
+                          <div style={{display:"none",position:"absolute",bottom:"calc(100% + 8px)",right:0,width:280,background:"#050B14",color:"rgba(255,255,255,.85)",borderRadius:8,padding:"12px 14px",fontSize:11.5,lineHeight:1.7,fontWeight:300,zIndex:50,boxShadow:"0 8px 24px rgba(0,0,0,.25)"}}>
+                            Les marchés émergents (Chine, Inde, Brésil, Corée...) offrent un potentiel de croissance supérieur mais avec une volatilité plus élevée. C'est une classification financière qui chevauche plusieurs zones géographiques.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
-              <button onClick={() => setStep(s => s+1)} className="btn-cta" style={{marginTop:16,width:"100%"}}>Continuer →</button>
+              <button onClick={() => setStep(s => s+1)} disabled={!hasSelection} className="btn-cta" style={{marginTop:16,width:"100%",opacity:hasSelection?1:0.4,cursor:hasSelection?"pointer":"not-allowed"}}>Continuer →</button>
             </>);
           })()}
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : q.id==="Q7" ? (
         /* ── Q7 : Diversification — libellés modifiés, valeurs backend inchangées ── */
-        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540,margin:"0 auto"}}>
           {(q.opts as {label:string;value:string}[]).map((opt,idx) => {
             const isSel = answers[step] === opt.value;
             const isFlash = flash === opt.value;
@@ -454,7 +465,7 @@ function OptimizerInner() {
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : q.id==="Q8" ? (
-        <div>
+        <div style={{maxWidth:580,margin:"0 auto"}}>
           <SupportBuilder
             value={answers[8]||"[]"}
             onChange={(json: string)=>setAnswers(a=>({...a,[8]:json}))}
@@ -464,7 +475,7 @@ function OptimizerInner() {
         </div>
       ) : (
         /* ── Questions standards (Q1-Q4) : boutons radio ── */
-        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540}}>
+        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540,margin:"0 auto"}}>
           {q.opts.map((opt:string,idx:number)=>{
             const isSel=answers[step]===opt,isFlash=flash===opt;
             return(<div key={opt} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`}}>
