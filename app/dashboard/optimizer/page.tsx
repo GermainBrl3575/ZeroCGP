@@ -133,8 +133,12 @@ const QUESTIONS = [
   { id:"Q3", q:"Quelle perte annuelle pouvez-vous accepter ?",opts:["−10% maximum","−20% maximum","−35% maximum","Pas de limite"] },
   { id:"Q4", q:"Souhaitez-vous des filtres ESG ?",             opts:["Aucun filtre","Exclure armement & tabac","ESG strict uniquement"] },
   { id:"Q5", q:"Quelles classes d'actifs souhaitez-vous ?",   opts:[], isMulti:true },
-  { id:"Q6", q:"Quelles zones géographiques privilégiez-vous ?", opts:["Monde entier","USA dominante","Europe","Marchés émergents"] },
-  { id:"Q7", q:"Quel niveau de diversification visez-vous ?", opts:["Concentré (5 actifs)","Équilibré (8–10 actifs)","Large (15+ actifs)"] },
+  { id:"Q6", q:"Quelles zones géographiques privilégiez-vous ?", opts:[], isMulti:true },
+  { id:"Q7", q:"Quel niveau de diversification visez-vous ?", opts:[
+    {label:"Simple à suivre (3-5 actifs)",value:"Concentre"},
+    {label:"Équilibré (6-10 actifs)",value:"Equilibre"},
+    {label:"Maximum de diversification (10-15 actifs)",value:"Large"},
+  ] },
   { id:"Q8", q:"Quels comptes d'investissement possédez-vous ?", opts:[], isMulti:true },
 ];
 
@@ -383,6 +387,72 @@ function OptimizerInner() {
           </button>
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block",fontWeight:300}}>← Précédent</button>}
         </div>
+      ) : q.id==="Q6" ? (
+        /* ── Q6 : Zones géographiques multi-select ── */
+        <div style={{maxWidth:540}}>
+          {(() => {
+            const ZONES = ["Monde entier","Amérique du Nord","Europe","Asie-Pacifique","Marchés Émergents","Amérique Latine","Afrique & Moyen-Orient"];
+            const cur = (answers[step]||"Monde entier").split(",").filter(Boolean);
+            const isMonde = cur.includes("Monde entier");
+            const toggle = (z: string) => {
+              if (z === "Monde entier") {
+                setAnswers(a => ({...a, [step]: "Monde entier"}));
+              } else {
+                let next = cur.filter(x => x !== "Monde entier");
+                if (next.includes(z)) next = next.filter(x => x !== z);
+                else next = [...next, z];
+                if (next.length === 0 || next.length >= 6) next = ["Monde entier"];
+                setAnswers(a => ({...a, [step]: next.join(",")}));
+              }
+            };
+            return (<>
+              {ZONES.map((z, idx) => {
+                const checked = z === "Monde entier" ? isMonde : (!isMonde && cur.includes(z));
+                const disabled = z !== "Monde entier" && isMonde;
+                return (
+                  <div key={z} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`,marginBottom:8}}>
+                    <div onClick={() => !disabled && toggle(z)} style={{
+                      borderRadius:6,border:`0.5px solid ${checked?"rgba(26,58,106,.35)":"rgba(5,11,20,0.09)"}`,
+                      padding:"14px 18px",display:"flex",alignItems:"center",gap:12,
+                      cursor:disabled?"default":"pointer",opacity:disabled?0.35:1,
+                      background:checked?"rgba(5,11,20,.04)":"rgba(255,255,255,0.72)",
+                      transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
+                    }}>
+                      <span style={{width:16,height:16,borderRadius:3,border:`1.5px solid ${checked?"#1a3a6a":"rgba(5,11,20,.15)"}`,background:checked?"#1a3a6a":"white",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
+                        {checked&&<span style={{color:"white",fontSize:10}}>✓</span>}
+                      </span>
+                      <span style={{fontSize:14,fontWeight:checked?500:400,color:"rgba(5,11,20,.88)",fontFamily:"'Inter',sans-serif"}}>{z}</span>
+                      {z==="Marchés Émergents"&&<span title="Classification financière présente dans plusieurs régions (Chine, Inde, Brésil...)" style={{fontSize:9,color:"rgba(5,11,20,.3)",cursor:"help",marginLeft:"auto"}}>ⓘ</span>}
+                    </div>
+                  </div>
+                );
+              })}
+              <button onClick={() => setStep(s => s+1)} className="btn-cta" style={{marginTop:16,width:"100%"}}>Continuer →</button>
+            </>);
+          })()}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+        </div>
+      ) : q.id==="Q7" ? (
+        /* ── Q7 : Diversification — libellés modifiés, valeurs backend inchangées ── */
+        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540}}>
+          {(q.opts as {label:string;value:string}[]).map((opt,idx) => {
+            const isSel = answers[step] === opt.value;
+            const isFlash = flash === opt.value;
+            return (
+              <div key={opt.value} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`}}>
+                <div onClick={() => { setFlash(opt.value); setTimeout(() => { setAnswers(a => ({...a,[step]:opt.value})); setFlash(null); setStep(s => s+1); }, 250); }} style={{
+                  borderRadius:6,border:isFlash?".5px solid rgba(26,58,106,.45)":isSel?".5px solid rgba(5,11,20,.13)":"0.5px solid rgba(5,11,20,0.09)",
+                  padding:"17px 22px",fontSize:14,fontWeight:isFlash?500:400,letterSpacing:"-.005em",cursor:"pointer",fontFamily:"'Inter',sans-serif",
+                  background:isFlash?"linear-gradient(145deg,#050B14,#0c1a2e)":isSel?"rgba(255,255,255,.88)":"rgba(255,255,255,0.72)",
+                  color:isFlash?"rgba(255,255,255,.93)":"rgba(5,11,20,.88)",
+                  boxShadow:isFlash?"0 4px 20px rgba(26,58,106,.25),inset 0 1px 0 rgba(255,255,255,.04)":"0 1px 2px rgba(0,0,0,0.015)",
+                  transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
+                }}>{opt.label}</div>
+              </div>
+            );
+          })}
+          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+        </div>
       ) : q.id==="Q8" ? (
         <div>
           <SupportBuilder
@@ -393,6 +463,7 @@ function OptimizerInner() {
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : (
+        /* ── Questions standards (Q1-Q4) : boutons radio ── */
         <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540}}>
           {q.opts.map((opt:string,idx:number)=>{
             const isSel=answers[step]===opt,isFlash=flash===opt;
