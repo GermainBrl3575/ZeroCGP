@@ -508,83 +508,106 @@ function OptimizerInner() {
 
   // ── Résultats ──
   if(step===200){
-    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><Sheet><p style={{color:"#8A9BB0"}}>Aucun resultat.</p><button className="btn-cta" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></Sheet></div></>);
+    if(!results||results.length===0)return(<><style>{css}</style><div className="op"><Sheet><p style={{color:"rgba(5,11,20,.4)"}}>Aucun résultat.</p><button className="btn-cta" style={{marginTop:16}} onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setAnswers({});}}>Recommencer</button></Sheet></div></>);
     const selR=results.find(r=>r.method===sel)??results[0];
     const cap=parseFloat(capital)||50000;
-    return(<><style>{css}</style><div className="op" style={{paddingBottom:60}}>
-      <div className="op-ey" style={{animation:"fadeUp .5s ease both"}}>Resultats . Portefeuille Zero CGP</div>
-      <h1 className="op-h1">3 portefeuilles <em>optimaux.</em></h1>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:20}}>
-        {results.map(r=>{
-          const isSel=r.method===sel;
-          return(<div key={r.method} onClick={()=>setSel(r.method)} className="m-card result-card" style={{background:isSel?"#050B14":"white",borderColor:isSel?"#050B14":r.rec?"rgba(5,11,20,.15)":"rgba(5,11,20,.06)",animationDelay:`${results.indexOf(r)*0.1}s`}}>
-            {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:400,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase"}}>Recommandé</div>}
+    const SAP="#1a3a6a";const SAPG="rgba(26,58,106,.25)";
+    const cRet="rgba(22,90,52,.75)";const cVar="rgba(155,50,48,.75)";const cMid="rgba(5,11,20,.5)";
+    const TC:Record<string,{bg:string;c:string}>={etf:{bg:"rgba(26,58,106,.08)",c:SAP},stock:{bg:"rgba(22,90,52,.08)",c:"rgba(22,90,52,.8)"},bond:{bg:"rgba(5,11,20,.06)",c:"rgba(5,11,20,.5)"},gold:{bg:"rgba(180,140,0,.08)",c:"rgba(160,120,0,.7)"},crypto:{bg:"rgba(180,80,0,.08)",c:"rgba(180,80,0,.7)"},reit:{bg:"rgba(120,60,140,.08)",c:"rgba(120,60,140,.7)"}};
+    return(<><style>{css}</style><div className="op">
+      <Sheet>
+      {/* Header */}
+      <div style={{fontSize:10,fontWeight:500,letterSpacing:".15em",color:SAP,opacity:.65,marginBottom:16,textTransform:"uppercase"}}>Résultats · Portefeuille Zero CGP</div>
+      <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:38,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.15,marginBottom:28}}>3 portefeuilles optimaux.</h1>
+
+      {/* 3 cards */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:28}}>
+        {results.map((r,ri)=>{const isSel=r.method===sel;return(
+          <div key={r.method} onClick={()=>setSel(r.method)} style={{
+            borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
+            background:isSel?"linear-gradient(145deg,#050B14,#0c1a2e)":"rgba(255,255,255,.72)",
+            border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
+            boxShadow:isSel?`0 6px 28px ${SAPG}`:"0 2px 12px rgba(0,0,0,.018)",
+            transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
+            animation:`cardIn .45s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${ri*0.08}s`,
+          }}>
+            {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
-              <span style={{fontSize:9,fontWeight:400,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
+              <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
               <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
             </div>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18,fontWeight:400,marginBottom:24,color:isSel?"white":"#050B14",letterSpacing:"-.01em"}}>{r.label}</div>
+            <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {([
-                ["Rendement",`+${(r.ret||0).toFixed(1)}%`,(r.ret||0)>0?(isSel?"#6EE7B7":"#16A34A"):"#DC2626","rendement"],
-                ["Volatilité",`${(r.vol||0).toFixed(1)}%`,isSel?"rgba(255,255,255,.4)":"#8A9BB0","volatilite"],
-                ["Sharpe",(r.sharpe||0).toFixed(2),(r.sharpe||0)>0.7?(isSel?"#6EE7B7":"#16A34A"):"#8A9BB0","sharpe"],
-                ["VaR 95%",`−${(r.var95||0).toFixed(1)}%`,isSel?"#FCA5A5":"#DC2626","var95"],
-              ] as [string,string,string,string][]).map(([lbl,val,col,key])=>(
+                ["Rendement",`+${(r.ret||0).toFixed(1)}%`,(r.ret||0)>0?(isSel?"rgba(130,220,170,.85)":cRet):cVar],
+                ["Volatilité",`${(r.vol||0).toFixed(1)}%`,isSel?"rgba(255,255,255,.4)":cMid],
+                ["Sharpe",(r.sharpe||0).toFixed(2),isSel?"rgba(255,255,255,.5)":cMid],
+                ["VaR 95%",`−${(r.var95||0).toFixed(1)}%`,isSel?"rgba(250,180,180,.7)":cVar],
+              ] as [string,string,string][]).map(([lbl,val,col])=>(
                 <div key={lbl}>
-                  <div style={{fontSize:9,marginBottom:4,display:"flex",alignItems:"center",gap:5,color:isSel?"rgba(255,255,255,.25)":"#8A9BB0"}}>
-                    {lbl}<div onClick={e=>e.stopPropagation()}><InfoBubble text={METRIC_INFO[key]??""} dark={isSel}/></div>
-                  </div>
-                  <div style={{fontSize:20,fontWeight:700,color:col}}>{val}</div>
+                  <div style={{fontSize:9,fontWeight:500,marginBottom:4,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</div>
+                  <div style={{fontSize:20,fontWeight:500,color:col,fontVariantNumeric:"tabular-nums"}}>{val}</div>
                 </div>
               ))}
             </div>
-          </div>);
-        })}
+          </div>
+        );})}
       </div>
 
+      {/* Frontier chart */}
       {selR.frontier&&selR.frontier.length>0&&(
-        <div className="card-white">
-          <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:"#050B14",marginBottom:8,letterSpacing:"-.01em"}}>Frontière efficiente</h3>
-          <p style={{fontSize:11,color:"#5A6B80",marginBottom:16,fontWeight:300}}>Chaque point représente un portefeuille possible. La courbe montre le meilleur rendement atteignable pour chaque niveau de risque.</p>
+        <div style={{background:"rgba(255,255,255,.5)",borderRadius:10,padding:24,marginBottom:20,border:".5px solid rgba(5,11,20,.05)"}}>
+          <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)",marginBottom:6,letterSpacing:"-.02em"}}>Frontière efficiente</h3>
+          <p style={{fontSize:11,color:"rgba(5,11,20,.4)",marginBottom:16,fontWeight:400}}>Chaque point représente un portefeuille possible.</p>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={selR.frontier} margin={{top:10,right:20,bottom:5,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(10,22,40,.05)"/>
-              <XAxis dataKey="vol" unit="%" tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false}/>
-              <YAxis dataKey="ret" unit="%" tick={{fontSize:10,fill:"#aaa"}} tickLine={false} axisLine={false} width={45}/>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(5,11,20,.04)"/>
+              <XAxis dataKey="vol" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false}/>
+              <YAxis dataKey="ret" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false} width={45}/>
               <Tooltip content={<FrontierTooltip/>}/>
-              <Line type="monotone" dataKey="ret" stroke={NAVY_MID} strokeWidth={2.5} dot={{r:3,fill:NAVY_MID,stroke:"white",strokeWidth:1.5}} activeDot={{r:5,fill:NAVY,stroke:"white",strokeWidth:2}}/>
+              <Line type="monotone" dataKey="ret" stroke={SAP} strokeWidth={2} dot={{r:2.5,fill:SAP,stroke:"white",strokeWidth:1}} activeDot={{r:4,fill:"#050B14",stroke:"white",strokeWidth:2}}/>
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
+      {/* Allocation */}
       {selR.weights&&selR.weights.length>0&&(
-        <div className="card-white">
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-            <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,fontWeight:300,color:"#050B14",letterSpacing:"-.01em"}}>Allocation recommandée</h3>
-            <div style={{fontSize:11,color:"#8A9BB0"}}>Capital : {eur(cap)}</div>
+        <div style={{marginBottom:24}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em"}}>Allocation recommandée</h3>
+            <div style={{fontSize:11,fontWeight:500,color:"rgba(5,11,20,.36)"}}>Capital : {eur(cap)}</div>
           </div>
-          <p style={{fontSize:11,color:"#5A6B80",marginBottom:16,fontWeight:300}}>Cliquez sur un actif pour voir sa fiche détaillée, ses performances et ses actualités.</p>
-          {selR.weights.map(w=>(
-          <AssetCard
-            key={w.symbol}
-            symbol={w.symbol}
-            name={w.name}
-            weight={w.weight}
-            amount={w.amount}
-            type={w.type||"stock"}
-            perf={assetHistories[w.symbol]}
-          />
-        ))}
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {selR.weights.map((w,wi)=>{const tc=TC[w.type]||TC.etf;return(
+              <div key={w.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${wi*0.04}s`}}>
+                <div style={{borderRadius:6,border:".5px solid rgba(5,11,20,.09)",padding:"17px 22px",background:"rgba(255,255,255,.72)",boxShadow:"0 1px 2px rgba(0,0,0,.015)"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:12}}>
+                    <span style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,background:tc.bg,color:tc.c,textTransform:"uppercase",letterSpacing:".04em"}}>{w.type}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,.88)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.symbol} <span style={{fontWeight:400,color:"rgba(5,11,20,.4)"}}>{w.name}</span></div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{w.weight.toFixed(1)}%</div>
+                      <div style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.4)",fontVariantNumeric:"tabular-nums"}}>{eur(w.amount)}</div>
+                    </div>
+                  </div>
+                  <div style={{marginTop:10,height:2,background:"rgba(26,58,106,.08)",borderRadius:1,overflow:"hidden"}}>
+                    <div style={{height:"100%",width:`${w.weight}%`,background:`linear-gradient(90deg,${SAP}40,${SAP})`,borderRadius:1,transition:"width 0.7s cubic-bezier(.16,1,.3,1)"}}/>
+                  </div>
+                </div>
+              </div>
+            );})}
+          </div>
         </div>
       )}
 
-      {saveError&&<p style={{color:"#DC2626",fontSize:12,marginBottom:12}}>{saveError}</p>}
-      <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+      {saveError&&<p style={{color:"rgba(155,50,48,.8)",fontSize:12,marginBottom:12}}>{saveError}</p>}
+      <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:8}}>
         <button className="btn-out" onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setCalcStepIdx(0);setAnswers({});setSaveError("");}}>Recommencer</button>
-        <button onClick={handleSave} disabled={saving} className="btn-cta">{saving?"Enregistrement...":"Enregistrer ce portefeuille \u2192"}</button>
+        <button onClick={handleSave} disabled={saving} className="btn-cta">{saving?"Enregistrement...":"Enregistrer ce portefeuille"}</button>
       </div>
+      </Sheet>
     </div></>);
   }
   return null;
