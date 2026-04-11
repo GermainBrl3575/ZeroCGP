@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -151,6 +151,11 @@ export function OptionCard({label,selected,onClick}:{label:string;selected:boole
 }
 
 /* ═══ LAYOUT ═══ */
+function getUrlId():string{
+  if(typeof window==="undefined")return "";
+  return new URLSearchParams(window.location.search).get("id")??"";
+}
+
 export default function DashboardLayout({children}:{children:React.ReactNode}){
   const pathname=usePathname();
   const router=useRouter();
@@ -158,31 +163,53 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [profHov,sPH]=useState(false);
   const [userHov,sUH]=useState(false);
   const [loaded,sLd]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [portfolios,setPortfolios]=useState<{id:string;name:string;type:string}[]>([]);
   const [activeId,setActiveId]=useState("");
   const [userInitials,setUserInitials]=useState("U");
   const [userName,setUserName]=useState("Mon compte");
+  const [dropOpen,setDropOpen]=useState(false);
   const mk=useMk();
 
   useEffect(()=>{setTimeout(()=>sLd(true),80);},[]);
 
-  // Load portfolios + user from Supabase
-  useEffect(()=>{
-    (async()=>{
-      const {data:{user}}=await supabase.auth.getUser();
-      if(!user){router.push("/auth/login");return;}
-      // User info
-      const email=user.email||"";
-      const name=user.user_metadata?.full_name||user.user_metadata?.name||email.split("@")[0]||"User";
-      setUserName(name);
-      setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
-      // Portfolios
-      const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",user.id).order("created_at",{ascending:false});
-      if(pfs&&pfs.length>0){setPortfolios(pfs);setActiveId(pfs[0].id);}
-    })();
-  },[]);
+  // Load portfolios + user from Supabase (exact same logic as before refonte)
+  const loadPortfolios=useCallback(async()=>{
+    const {data}=await supabase.auth.getUser();
+    if(!data.user){router.push("/auth/login");return;}
+    // User info
+    const email=data.user.email||"";
+    const name=data.user.user_metadata?.full_name||data.user.user_metadata?.name||email.split("@")[0]||"User";
+    setUserName(name);
+    setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
+    // Portfolios
+    const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",data.user.id).order("created_at",{ascending:false});
+    if(pfs&&pfs.length>0){
+      setPortfolios(pfs);
+      const urlId=getUrlId();
+      if(urlId&&pfs.find((p:any)=>p.id===urlId)){setActiveId(urlId);}
+      else{setActiveId((prev:string)=>prev&&pfs.find((p:any)=>p.id===prev)?prev:pfs[0].id);}
+    }
+    setLoading(false);
+  },[router]);
 
+  // Reload on pathname change (navigating between pages)
+  useEffect(()=>{loadPortfolios();},[loadPortfolios,pathname]);
+
+  // Sync activeId from URL ?id= (back/forward navigation)
+  useEffect(()=>{
+    function syncUrlId(){
+      const urlId=getUrlId();
+      if(urlId&&portfolios.find(p=>p.id===urlId)){setActiveId(urlId);}
+    }
+    window.addEventListener("popstate",syncUrlId);
+    return()=>window.removeEventListener("popstate",syncUrlId);
+  },[portfolios]);
+
+  function selectPortfolio(id:string){setDropOpen(false);router.push(`/dashboard/portfolio?id=${id}`);}
   async function handleLogout(){await supabase.auth.signOut();router.push("/");}
+
+  if(loading)return <div style={{minHeight:"100vh",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"rgba(5,11,20,.2)",fontSize:11,letterSpacing:".2em",fontFamily:"'Inter',sans-serif"}}>CHARGEMENT...</div></div>;
 
   return <>
     <style>{`
@@ -206,10 +233,21 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
         <div style={{position:"absolute",top:0,left:14,right:14,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06) 30%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.06) 70%,transparent)",zIndex:1}}/>
         <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",flex:1}}>
           <div style={{padding:"26px 22px 20px",fontSize:11.5,fontWeight:500,letterSpacing:".3em",color:"rgba(255,255,255,.58)",textTransform:"uppercase"}}>Zero CGP</div>
-          <div onMouseEnter={()=>sPH(true)} onMouseLeave={()=>sPH(false)} style={{margin:"0 12px 20px",padding:"11px 13px",borderRadius:8,cursor:"pointer",background:profHov?"linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))":"linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",border:profHov?".5px solid rgba(255,255,255,.1)":".5px solid rgba(255,255,255,.055)",boxShadow:profHov?"inset 0 1px 0 rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.2)":"inset 0 1px 0 rgba(255,255,255,.03),0 2px 6px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,transition:`all ${EASE}`,transform:profHov?"translateY(-.5px)":"none"}}>
+          <div onMouseEnter={()=>sPH(true)} onMouseLeave={()=>sPH(false)} onClick={()=>setDropOpen(!dropOpen)} style={{margin:"0 12px 20px",padding:"11px 13px",borderRadius:8,cursor:"pointer",position:"relative",background:profHov?"linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))":"linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",border:profHov?".5px solid rgba(255,255,255,.1)":".5px solid rgba(255,255,255,.055)",boxShadow:profHov?"inset 0 1px 0 rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.2)":"inset 0 1px 0 rgba(255,255,255,.03),0 2px 6px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,transition:`all ${EASE}`,transform:profHov?"translateY(-.5px)":"none"}}>
             <div style={{width:28,height:28,borderRadius:7,background:profHov?"linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.07))":"linear-gradient(135deg,rgba(201,168,76,.1),rgba(201,168,76,.04))",border:`.5px solid rgba(201,168,76,${profHov?.28:.18})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8.5,fontWeight:600,letterSpacing:".04em",color:C.gold,transition:`all ${EASE}`}}>0CGP</div>
-            <span style={{fontSize:12.5,fontWeight:400,flex:1,color:profHov?"rgba(255,255,255,.82)":"rgba(255,255,255,.68)",transition:`color ${EASE}`}}>{portfolios.find(p=>p.id===activeId)?.name||"Portfolio"}</span>
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={profHov?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)"} strokeWidth="1.5" strokeLinecap="round" style={{transition:`all ${EASE}`,transform:profHov?"rotate(180deg)":"none"}}><polyline points="6 9 12 15 18 9"/></svg>
+            <span style={{fontSize:12.5,fontWeight:400,flex:1,color:profHov?"rgba(255,255,255,.82)":"rgba(255,255,255,.68)",transition:`color ${EASE}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{portfolios.find(p=>p.id===activeId)?.name||"Portfolio"}</span>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={profHov?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)"} strokeWidth="1.5" strokeLinecap="round" style={{transition:`all ${EASE}`,transform:dropOpen?"rotate(180deg)":"none"}}><polyline points="6 9 12 15 18 9"/></svg>
+            {dropOpen&&portfolios.length>0&&(
+              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#0E1F3A",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,overflow:"hidden",zIndex:50,boxShadow:"0 8px 24px rgba(0,0,0,.3)"}}>
+                {portfolios.map(pf=>(
+                  <div key={pf.id} onClick={()=>selectPortfolio(pf.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 13px",fontSize:11,color:"rgba(255,255,255,.5)",cursor:"pointer",transition:`background ${EASE}`,background:pf.id===activeId?"rgba(255,255,255,.08)":"transparent"}}>
+                    <span style={{fontSize:8,fontWeight:600,padding:"2px 6px",borderRadius:3,letterSpacing:".06em",background:pf.type==="optimized"?"rgba(180,140,0,.35)":"rgba(30,58,110,.6)",color:pf.type==="optimized"?"rgba(255,220,60,.95)":"rgba(200,220,255,.85)"}}>{pf.type==="optimized"?"0CGP":"INIT"}</span>
+                    <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:pf.id===activeId?"rgba(255,255,255,.9)":"rgba(255,255,255,.6)"}}>{pf.name}</span>
+                  </div>
+                ))}
+                <div style={{borderTop:"1px solid rgba(255,255,255,.06)",padding:"8px 13px"}}><button onClick={()=>{router.push("/dashboard/entry");setDropOpen(false);}} style={{background:"none",border:"none",color:"rgba(255,255,255,.25)",fontSize:10,cursor:"pointer",padding:0}}>+ Nouveau portefeuille</button></div>
+              </div>
+            )}
           </div>
           <div style={{padding:"0 22px",marginBottom:8}}><div style={{fontSize:8.5,fontWeight:500,letterSpacing:".18em",textTransform:"uppercase",color:"rgba(255,255,255,.35)",marginBottom:7}}>Navigation</div><div style={{height:".3px",background:"linear-gradient(90deg,rgba(255,255,255,.07),rgba(255,255,255,.02),transparent)"}}/></div>
           <nav style={{flex:1,display:"flex",flexDirection:"column",gap:1,padding:"0 9px"}}>
