@@ -105,20 +105,30 @@ export default function SupportBuilder({ value, onChange, onSubmit }: Props) {
         );
       })}
 
-      {allHaveBanque && (
-        <button
-          onClick={onSubmit}
-          style={{
-            marginTop: 16, width: "100%", fontFamily: "'Inter',sans-serif",
-            fontSize: 10, fontWeight: 400, letterSpacing: ".18em",
-            background: NAVY, color: "white", border: "none",
-            padding: "18px 44px", cursor: "pointer", transition: "all 0.25s",
-            textTransform: "uppercase" as const,
-          }}
-        >
-          Lancer l'optimisation →
-        </button>
+      {comptes.length > 0 && !allHaveBanque && (
+        <div style={{ marginTop: 12, fontSize: 11, fontWeight: 400, color: "rgba(175,60,60,.7)", fontFamily: "'Inter',sans-serif" }}>
+          Veuillez sélectionner une banque pour chaque compte.
+        </div>
       )}
+      {comptes.length === 0 && (
+        <div style={{ marginTop: 12, fontSize: 11, fontWeight: 400, color: "rgba(5,11,20,.36)", fontFamily: "'Inter',sans-serif" }}>
+          Sélectionnez au moins un compte pour continuer.
+        </div>
+      )}
+      <button
+        onClick={allHaveBanque ? onSubmit : undefined}
+        disabled={!allHaveBanque}
+        style={{
+          marginTop: 16, width: "100%", fontFamily: "'Inter',sans-serif",
+          fontSize: 10, fontWeight: 400, letterSpacing: ".18em",
+          background: allHaveBanque ? NAVY : "rgba(5,11,20,.15)", color: "white", border: "none",
+          opacity: allHaveBanque ? 1 : 0.5,
+          padding: "18px 44px", transition: "all 0.7s cubic-bezier(.16,1,.3,1)",
+          textTransform: "uppercase" as const,
+        }}
+      >
+        Lancer l'optimisation →
+      </button>
     </div>
   );
 }

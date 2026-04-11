@@ -135,15 +135,7 @@ const QUESTIONS = [
   { id:"Q5", q:"Quelles classes d'actifs souhaitez-vous ?",   opts:[], isMulti:true },
   { id:"Q6", q:"Quelles zones géographiques privilégiez-vous ?", opts:["Monde entier","USA dominante","Europe","Marchés émergents"] },
   { id:"Q7", q:"Quel niveau de diversification visez-vous ?", opts:["Concentré (5 actifs)","Équilibré (8–10 actifs)","Large (15+ actifs)"] },
-  { id:"Q8", q:"Quel support d'investissement souhaitez-vous ?", opts:["PEA","Compte-Titres (CTO)","Assurance-Vie","Crypto"], isMulti:true,
-    tooltips: {
-      "PEA": "Plan d'Épargne en Actions — fiscalité avantageuse après 5 ans, plafonné à 150 000 €. Limité aux ETF et actions européens éligibles.",
-      "Compte-Titres (CTO)": "Aucune restriction d'actifs ni de montant. Fiscalité standard (Flat Tax 30%).",
-      "Assurance-Vie": "Enveloppe fiscale long terme. Accès à des fonds en unités de compte selon les contrats disponibles.",
-      "Crypto": "Actifs numériques (Bitcoin, Ethereum...). Achetables via Binance, Coinbase ou conservés sur cold wallet (clé privée physique).",
-    }
-  },
-  { id:"Q9", q:"Quelle banque ou courtier utilisez-vous ?", opts:["BNP Paribas","Société Générale","LCL","Crédit Agricole","BoursoBank","Fortuneo","Degiro","Interactive Brokers","Binance / Coinbase"] },
+  { id:"Q8", q:"Quels comptes d'investissement possédez-vous ?", opts:[], isMulti:true },
 ];
 
 const CALC_STEPS = [
@@ -367,7 +359,7 @@ function OptimizerInner() {
     return(<><style>{css}</style><div className="op">
       <Sheet>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:12}}>
-        <span style={{fontFamily:"'Inter',sans-serif",fontSize:10.5,fontWeight:500,letterSpacing:".06em",color:"rgba(5,11,20,.36)"}}>{q.id} — Question {step} sur 9</span>
+        <span style={{fontFamily:"'Inter',sans-serif",fontSize:10.5,fontWeight:500,letterSpacing:".06em",color:"rgba(5,11,20,.36)"}}>{q.id} — Question {step} sur {QUESTIONS.length}</span>
         <span style={{fontFamily:"'Inter',sans-serif",fontSize:10.5,fontWeight:500,color:"#1a3a6a",fontVariantNumeric:"tabular-nums",opacity:.7}}>{Math.round(progress)}%</span>
       </div>
       <div style={{position:"relative",height:4,marginBottom:44}}>
@@ -398,25 +390,6 @@ function OptimizerInner() {
             onChange={(json: string)=>setAnswers(a=>({...a,[8]:json}))}
             onSubmit={()=>startCalc()}
           />
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
-        </div>
-      ) : q.id==="Q9" ? (
-        <div style={{maxWidth:520}}>
-          <select
-            value={answers[step]||""}
-            onChange={e=>setAnswers(a=>({...a,[step]:e.target.value}))}
-            style={{width:"100%",padding:"14px 16px",fontSize:14,border:"1px solid rgba(5,11,20,.08)",borderRadius:8,background:"white",color:"#050B14",fontFamily:"'Inter',sans-serif",fontWeight:300,cursor:"pointer"}}
-          >
-            <option value="">Sélectionnez votre banque…</option>
-            {["BNP Paribas","Société Générale","LCL","Crédit Agricole","Caisse d'Épargne","Banque Populaire","BoursoBank","Fortuneo","Hello Bank","Degiro","Trade Republic","Interactive Brokers","Binance / Coinbase","Autre"].map(b=>(
-              <option key={b} value={b}>{b}</option>
-            ))}
-          </select>
-          {answers[step]&&(
-            <button onClick={()=>startCalc()} className="btn-navy" style={{marginTop:16,width:"100%"}}>
-              Lancer l'optimisation →
-            </button>
-          )}
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : (
