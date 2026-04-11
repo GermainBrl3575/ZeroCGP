@@ -63,32 +63,48 @@ function Watermark() {
   </svg>;
 }
 
-/* ═══ MARKET TICKER ═══ */
-const mkAssets=[
-  {name:"MSCI World Index",ticker:"CW8",base:485.2,r:2.5},{name:"S&P 500 Index",ticker:"ESE",base:5842.1,r:18},
-  {name:"LVMH Moët Hennessy",ticker:"MC.PA",base:742.3,r:4.2},{name:"ASML Holding NV",ticker:"ASML",base:892.6,r:6.8},
-  {name:"Apple Inc.",ticker:"AAPL",base:198.4,r:1.5},{name:"Novo Nordisk A/S",ticker:"NOVO-B",base:824.5,r:5.1},
-  {name:"Euro Stoxx 50",ticker:"SX5E",base:4987.3,r:14},{name:"CAC 40",ticker:"PX1",base:7892.4,r:22},
-  {name:"Nasdaq 100",ticker:"NDX",base:18245.6,r:55},{name:"Amundi MSCI Emerging",ticker:"AEEM",base:412.8,r:2.1},
-];
-function useMk(){
-  const [p,sP]=useState(()=>mkAssets.map(a=>({...a,price:a.base+(Math.random()-.5)*a.r,chg:(Math.random()-.4)*1.1})));
-  useEffect(()=>{const id=setInterval(()=>sP(pr=>pr.map(x=>{const n=Math.max(x.base*.96,Math.min(x.base*1.04,x.price+(Math.random()-.48)*x.r*.05));return{...x,price:n,chg:((n-x.base)/x.base)*100};})),5000);return()=>clearInterval(id);},[]);
-  return p;
+/* ═══ MARKET TICKER (live from Yahoo Finance) ═══ */
+function useLiveTicker(){
+  const [data,setData]=useState<{symbol:string;name:string;price:number;changePercent:number}[]>([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{
+    let mounted=true;
+    const doFetch=()=>{
+      fetch("/api/market/live").then(r=>r.json()).then(d=>{
+        if(!mounted)return;
+        if(d.tickers&&d.tickers.length>0)setData(d.tickers);
+        setLoading(false);
+      }).catch(()=>{if(mounted){setLoading(false);setTimeout(doFetch,30000);}});
+    };
+    doFetch();
+    const id=setInterval(doFetch,60000);
+    return()=>{mounted=false;clearInterval(id);};
+  },[]);
+  return {data,loading};
 }
-function Ticker({data}:{data:any[]}){
+function TickerSkeleton(){
+  return <div style={{display:"flex",alignItems:"center",height:44,gap:24,padding:"11px 0"}}>
+    {Array.from({length:5}).map((_,i)=><div key={i} style={{flex:1,display:"flex",justifyContent:"space-between",alignItems:"center",paddingRight:12,borderRight:i<4?"0.5px solid rgba(5,11,20,0.05)":"none",marginRight:i<4?12:0}}>
+      <div><div style={{width:80,height:10,background:"rgba(5,11,20,.04)",borderRadius:3,marginBottom:4}}/><div style={{width:40,height:8,background:"rgba(5,11,20,.03)",borderRadius:3}}/></div>
+      <div style={{textAlign:"right"}}><div style={{width:50,height:10,background:"rgba(5,11,20,.04)",borderRadius:3,marginBottom:4}}/><div style={{width:35,height:8,background:"rgba(5,11,20,.03)",borderRadius:3,marginLeft:"auto"}}/></div>
+    </div>)}
+  </div>;
+}
+function Ticker({data,loading}:{data:any[];loading:boolean}){
+  if(loading&&data.length===0)return <TickerSkeleton/>;
+  if(data.length===0)return null;
   const n=5;const [sA,ssA]=useState(0);const [sB,ssB]=useState(n);const [shA,sshA]=useState(true);const tk=useRef(0);
   useEffect(()=>{const id=setInterval(()=>{tk.current+=1;const nx=(tk.current*n)%data.length;if(shA){ssB(nx);sshA(false);}else{ssA(nx);sshA(true);}},8000);return()=>clearInterval(id);},[shA,data.length]);
   const gi=(o:number)=>Array.from({length:n},(_,i)=>data[(o+i)%data.length]);
   const rl=(items:any[])=>items.map((p:any,i:number)=>(
-    <div key={p.ticker+i} style={{display:"flex",alignItems:"center",flex:1,paddingRight:12,borderRight:i<n-1?"0.5px solid rgba(5,11,20,0.05)":"none",marginRight:i<n-1?12:0}}>
+    <div key={p.symbol+i} style={{display:"flex",alignItems:"center",flex:1,paddingRight:12,borderRight:i<n-1?"0.5px solid rgba(5,11,20,0.05)":"none",marginRight:i<n-1?12:0}}>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontSize:11,fontWeight:500,color:C.navyText,letterSpacing:"-0.01em",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</div>
-        <div style={{fontSize:9,fontWeight:400,color:C.textLight,letterSpacing:"0.03em",marginTop:1}}>{p.ticker}</div>
+        <div style={{fontSize:9,fontWeight:400,color:C.textLight,letterSpacing:"0.03em",marginTop:1}}>{p.symbol}</div>
       </div>
       <div style={{textAlign:"right" as const,marginLeft:8}}>
-        <div style={{fontSize:11,fontWeight:500,color:C.navyText,fontVariantNumeric:"tabular-nums"}}>{p.price.toLocaleString("fr-FR",{minimumFractionDigits:1,maximumFractionDigits:1})}</div>
-        <div style={{fontSize:9.5,fontWeight:400,fontVariantNumeric:"tabular-nums",color:p.chg>=0?C.gUp:C.gDn,marginTop:1}}>{p.chg>=0?"+":""}{p.chg.toFixed(2)}%</div>
+        <div style={{fontSize:11,fontWeight:500,color:C.navyText,fontVariantNumeric:"tabular-nums"}}>{p.price.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div style={{fontSize:9.5,fontWeight:400,fontVariantNumeric:"tabular-nums",color:p.changePercent>=0?C.gUp:C.gDn,marginTop:1}}>{p.changePercent>=0?"+":""}{p.changePercent.toFixed(2)}%</div>
       </div>
     </div>
   ));
@@ -176,7 +192,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [editErr,setEditErr]=useState("");
   const [delConfirm,setDelConfirm]=useState(false);
   const dropRef=useRef<HTMLDivElement>(null);
-  const mk=useMk();
+  const {data:mk,loading:mkLoading}=useLiveTicker();
 
   useEffect(()=>{setTimeout(()=>sLd(true),80);},[]);
 
@@ -328,7 +344,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
       {/* MAIN */}
       <main style={{flex:1,overflow:"auto",display:"flex",flexDirection:"column",position:"relative",zIndex:1}}>
         <div style={{position:"absolute",inset:0,pointerEvents:"none",zIndex:0}}><Watermark/></div>
-        <div style={{padding:"0 44px",borderBottom:`.5px solid ${C.border}`,position:"relative",zIndex:1,background:"rgba(249,248,246,.9)",backdropFilter:"blur(6px)",opacity:loaded?1:0,transition:"opacity .8s ease .4s"}}><Ticker data={mk}/></div>
+        <div style={{padding:"0 44px",borderBottom:`.5px solid ${C.border}`,position:"relative",zIndex:1,background:"rgba(249,248,246,.9)",backdropFilter:"blur(6px)",opacity:loaded?1:0,transition:"opacity .8s ease .4s"}}><Ticker data={mk} loading={mkLoading}/></div>
         <div style={{flex:1,padding:"24px",overflow:"auto",position:"relative",zIndex:1}}><PageTransition>{children}</PageTransition></div>
       </main>
     </div>

@@ -4,6 +4,7 @@ import AssetCard from "@/components/AssetCard";
 import SupportBuilder from "@/components/ui/SupportBuilder";
 import Sheet from "@/components/ui/Sheet";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
+const WorldMapExposure = dynamic(() => import("@/components/WorldMapExposure"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -276,6 +277,25 @@ function OptimizerInner() {
   const [sel, setSel] = useState("maxsharpe");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  // Fetch geo exposure when results are shown
+  useEffect(() => {
+    if (step !== 200 || !results || results.length === 0) return;
+    const selR = results.find(r => r.method === sel) ?? results[0];
+    if (!selR?.weights || selR.weights.length === 0) return;
+    setGeoLoading(true);
+    fetch("/api/geo-exposure", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ weights: selR.weights }),
+    })
+      .then(r => r.json())
+      .then(data => { if (!data.error) setGeoExposure(data); })
+      .catch(() => {})
+      .finally(() => setGeoLoading(false));
+  }, [step, sel, results]);
 
   function toggleClass(c: string) {
     setMultiSel(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev,c]);
@@ -568,6 +588,13 @@ function OptimizerInner() {
               <Line type="monotone" dataKey="ret" stroke={SAP} strokeWidth={2} dot={{r:2.5,fill:SAP,stroke:"white",strokeWidth:1}} activeDot={{r:4,fill:"#050B14",stroke:"white",strokeWidth:2}}/>
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* World Map Geo Exposure */}
+      {(geoLoading || Object.keys(geoExposure).length > 0) && (
+        <div style={{marginBottom:24}}>
+          <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading} />
         </div>
       )}
 
