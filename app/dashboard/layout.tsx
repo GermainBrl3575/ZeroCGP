@@ -169,6 +169,13 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [userInitials,setUserInitials]=useState("U");
   const [userName,setUserName]=useState("Mon compte");
   const [dropOpen,setDropOpen]=useState(false);
+  const [editModal,setEditModal]=useState(false);
+  const [editTarget,setEditTarget]=useState<{id:string;name:string;type:string}|null>(null);
+  const [editName,setEditName]=useState("");
+  const [editType,setEditType]=useState("manual");
+  const [editErr,setEditErr]=useState("");
+  const [delConfirm,setDelConfirm]=useState(false);
+  const dropRef=useRef<HTMLDivElement>(null);
   const mk=useMk();
 
   useEffect(()=>{setTimeout(()=>sLd(true),80);},[]);
@@ -207,11 +214,58 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   },[portfolios]);
 
   function selectPortfolio(id:string){setDropOpen(false);router.push(`/dashboard/portfolio?id=${id}`);}
+  function openEdit(pf:{id:string;name:string;type:string},e:React.MouseEvent){
+    e.stopPropagation();setEditTarget(pf);setEditName(pf.name);setEditType(pf.type);
+    setEditErr("");setDelConfirm(false);setEditModal(true);setDropOpen(false);
+  }
+  async function handleSaveEdit(){
+    if(!editTarget||!editName.trim()){setEditErr("Nom obligatoire.");return;}
+    const {error}=await supabase.from("portfolios").update({name:editName.trim(),type:editType}).eq("id",editTarget.id);
+    if(error){setEditErr("Erreur.");return;}
+    setEditModal(false);window.location.reload();
+  }
+  async function handleDelete(){
+    if(!editTarget)return;
+    await supabase.from("portfolio_assets").delete().eq("portfolio_id",editTarget.id);
+    await supabase.from("portfolios").delete().eq("id",editTarget.id);
+    setEditModal(false);router.push("/dashboard/portfolio");window.location.reload();
+  }
+  // Close dropdown on click outside
+  useEffect(()=>{
+    function handleClick(e:MouseEvent){if(dropRef.current&&!dropRef.current.contains(e.target as Node))setDropOpen(false);}
+    if(dropOpen)document.addEventListener("mousedown",handleClick);
+    return()=>document.removeEventListener("mousedown",handleClick);
+  },[dropOpen]);
   async function handleLogout(){await supabase.auth.signOut();router.push("/");}
 
   if(loading)return <div style={{minHeight:"100vh",background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{color:"rgba(5,11,20,.2)",fontSize:11,letterSpacing:".2em",fontFamily:"'Inter',sans-serif"}}>CHARGEMENT...</div></div>;
 
-  return <>
+  return <>{editModal&&editTarget&&(
+    <div onClick={()=>setEditModal(false)} style={{position:"fixed",inset:0,background:"rgba(5,11,20,.5)",backdropFilter:"blur(4px)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:12,padding:"32px 36px",width:400,boxShadow:"0 24px 64px rgba(0,0,0,.2)"}}>
+        <div style={{fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em",marginBottom:6}}>Modifier le portefeuille</div>
+        <div style={{fontSize:11,color:"rgba(5,11,20,.4)",marginBottom:22}}>Renommer, changer le type ou supprimer.</div>
+        <label style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:"rgba(5,11,20,.36)",display:"block",marginBottom:7,textTransform:"uppercase"}}>Nom</label>
+        <input value={editName} onChange={e=>{setEditName(e.target.value);setEditErr("");}} style={{width:"100%",background:"#FAFAF8",border:"0.5px solid rgba(5,11,20,.08)",borderRadius:6,padding:"11px 13px",fontSize:13,color:"rgba(5,11,20,.88)",outline:"none",marginBottom:14}}/>
+        <label style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:"rgba(5,11,20,.36)",display:"block",marginBottom:7,textTransform:"uppercase"}}>Type</label>
+        <div style={{display:"flex",background:"rgba(5,11,20,.04)",borderRadius:6,padding:3,gap:3,marginBottom:18}}>
+          <button onClick={()=>setEditType("manual")} style={{flex:1,padding:"8px 4px",fontSize:9,fontWeight:500,border:"none",borderRadius:4,cursor:"pointer",textAlign:"center",background:editType==="manual"?"#050B14":"transparent",color:editType==="manual"?"white":"rgba(5,11,20,.36)",transition:`all ${EASE}`}}>INIT — Saisi</button>
+          <button onClick={()=>setEditType("optimized")} style={{flex:1,padding:"8px 4px",fontSize:9,fontWeight:500,border:"none",borderRadius:4,cursor:"pointer",textAlign:"center",background:editType==="optimized"?"#050B14":"transparent",color:editType==="optimized"?"white":"rgba(5,11,20,.36)",transition:`all ${EASE}`}}>0CGP — Optimisé</button>
+        </div>
+        {editErr&&<div style={{fontSize:11,color:"rgba(180,40,40,.8)",marginBottom:10}}>{editErr}</div>}
+        <div style={{display:"flex",gap:8}}>
+          {!delConfirm?(<>
+            <button onClick={()=>setEditModal(false)} style={{flex:1,padding:"12px 6px",fontSize:10,fontWeight:500,letterSpacing:".1em",border:"none",borderRadius:6,cursor:"pointer",background:"rgba(5,11,20,.04)",color:"rgba(5,11,20,.4)",transition:`all ${EASE}`}}>ANNULER</button>
+            <button onClick={()=>setDelConfirm(true)} style={{flex:1,padding:"12px 6px",fontSize:10,fontWeight:500,letterSpacing:".1em",border:"1px solid #FECACA",borderRadius:6,cursor:"pointer",background:"#FEF2F2",color:"#DC2626",transition:`all ${EASE}`}}>SUPPRIMER</button>
+            <button onClick={handleSaveEdit} style={{flex:1,padding:"12px 6px",fontSize:10,fontWeight:500,letterSpacing:".1em",border:"none",borderRadius:6,cursor:"pointer",background:"#050B14",color:"white",transition:`all ${EASE}`}}>ENREGISTRER</button>
+          </>):(<>
+            <button onClick={()=>setDelConfirm(false)} style={{flex:1,padding:"12px 6px",fontSize:10,fontWeight:500,border:"none",borderRadius:6,cursor:"pointer",background:"rgba(5,11,20,.04)",color:"rgba(5,11,20,.4)"}}>RETOUR</button>
+            <button onClick={handleDelete} style={{flex:1,padding:"12px 6px",fontSize:10,fontWeight:500,border:"none",borderRadius:6,cursor:"pointer",background:"#DC2626",color:"white"}}>CONFIRMER</button>
+          </>)}
+        </div>
+      </div>
+    </div>
+  )}
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
       *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif !important}
@@ -233,19 +287,20 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
         <div style={{position:"absolute",top:0,left:14,right:14,height:1,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.06) 30%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.06) 70%,transparent)",zIndex:1}}/>
         <div style={{position:"relative",zIndex:2,display:"flex",flexDirection:"column",flex:1}}>
           <div style={{padding:"26px 22px 20px",fontSize:11.5,fontWeight:500,letterSpacing:".3em",color:"rgba(255,255,255,.58)",textTransform:"uppercase"}}>Zero CGP</div>
-          <div onMouseEnter={()=>sPH(true)} onMouseLeave={()=>sPH(false)} onClick={()=>setDropOpen(!dropOpen)} style={{margin:"0 12px 20px",padding:"11px 13px",borderRadius:8,cursor:"pointer",position:"relative",background:profHov?"linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))":"linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",border:profHov?".5px solid rgba(255,255,255,.1)":".5px solid rgba(255,255,255,.055)",boxShadow:profHov?"inset 0 1px 0 rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.2)":"inset 0 1px 0 rgba(255,255,255,.03),0 2px 6px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,transition:`all ${EASE}`,transform:profHov?"translateY(-.5px)":"none"}}>
+          <div ref={dropRef} onMouseEnter={()=>sPH(true)} onMouseLeave={()=>sPH(false)} onClick={()=>setDropOpen(!dropOpen)} style={{margin:"0 12px 20px",padding:"11px 13px",borderRadius:8,cursor:"pointer",position:"relative",background:profHov?"linear-gradient(145deg,rgba(255,255,255,.065),rgba(255,255,255,.025))":"linear-gradient(145deg,rgba(255,255,255,.035),rgba(255,255,255,.01))",border:profHov?".5px solid rgba(255,255,255,.1)":".5px solid rgba(255,255,255,.055)",boxShadow:profHov?"inset 0 1px 0 rgba(255,255,255,.05),0 3px 10px rgba(0,0,0,.2)":"inset 0 1px 0 rgba(255,255,255,.03),0 2px 6px rgba(0,0,0,.15)",display:"flex",alignItems:"center",gap:10,transition:`all ${EASE}`,transform:profHov?"translateY(-.5px)":"none"}}>
             <div style={{width:28,height:28,borderRadius:7,background:profHov?"linear-gradient(135deg,rgba(201,168,76,.18),rgba(201,168,76,.07))":"linear-gradient(135deg,rgba(201,168,76,.1),rgba(201,168,76,.04))",border:`.5px solid rgba(201,168,76,${profHov?.28:.18})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:8.5,fontWeight:600,letterSpacing:".04em",color:C.gold,transition:`all ${EASE}`}}>0CGP</div>
             <span style={{fontSize:12.5,fontWeight:400,flex:1,color:profHov?"rgba(255,255,255,.82)":"rgba(255,255,255,.68)",transition:`color ${EASE}`,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{portfolios.find(p=>p.id===activeId)?.name||"Portfolio"}</span>
             <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={profHov?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)"} strokeWidth="1.5" strokeLinecap="round" style={{transition:`all ${EASE}`,transform:dropOpen?"rotate(180deg)":"none"}}><polyline points="6 9 12 15 18 9"/></svg>
             {dropOpen&&portfolios.length>0&&(
-              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"calc(100% + 4px)",left:0,right:0,background:"#0E1F3A",border:"1px solid rgba(255,255,255,.08)",borderRadius:6,overflow:"hidden",zIndex:50,boxShadow:"0 8px 24px rgba(0,0,0,.3)"}}>
-                {portfolios.map(pf=>(
-                  <div key={pf.id} onClick={()=>selectPortfolio(pf.id)} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 13px",fontSize:11,color:"rgba(255,255,255,.5)",cursor:"pointer",transition:`background ${EASE}`,background:pf.id===activeId?"rgba(255,255,255,.08)":"transparent"}}>
-                    <span style={{fontSize:8,fontWeight:600,padding:"2px 6px",borderRadius:3,letterSpacing:".06em",background:pf.type==="optimized"?"rgba(180,140,0,.35)":"rgba(30,58,110,.6)",color:pf.type==="optimized"?"rgba(255,220,60,.95)":"rgba(200,220,255,.85)"}}>{pf.type==="optimized"?"0CGP":"INIT"}</span>
-                    <span style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:pf.id===activeId?"rgba(255,255,255,.9)":"rgba(255,255,255,.6)"}}>{pf.name}</span>
+              <div onClick={e=>e.stopPropagation()} style={{position:"absolute",top:"calc(100% + 6px)",left:0,right:0,zIndex:100,background:"rgba(10,20,40,.95)",backdropFilter:"blur(12px)",border:".5px solid rgba(255,255,255,.08)",borderRadius:8,overflow:"hidden",boxShadow:"0 8px 32px rgba(0,0,0,.3)"}}>
+                {portfolios.map(pf=>{const isActive=pf.id===activeId;return(
+                  <div key={pf.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",fontSize:12,fontWeight:isActive?500:300,cursor:"pointer",transition:`all ${EASE}`,background:isActive?"rgba(255,255,255,.06)":"transparent",color:isActive?"rgba(255,255,255,.9)":"rgba(255,255,255,.5)"}}>
+                    <span style={{fontSize:8,fontWeight:600,padding:"2px 6px",borderRadius:3,letterSpacing:".06em",flexShrink:0,background:pf.type==="optimized"?"rgba(180,140,0,.35)":"rgba(30,58,110,.6)",color:pf.type==="optimized"?"rgba(255,220,60,.95)":"rgba(200,220,255,.85)"}}>{pf.type==="optimized"?"0CGP":"INIT"}</span>
+                    <span onClick={()=>selectPortfolio(pf.id)} style={{flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",transition:`color ${EASE}`}}>{pf.name}</span>
+                    <button onClick={e=>openEdit(pf,e)} style={{background:"rgba(255,255,255,.05)",border:".5px solid rgba(255,255,255,.08)",color:"rgba(255,255,255,.3)",fontSize:9,padding:"2px 7px",borderRadius:3,cursor:"pointer",transition:`all ${EASE}`,flexShrink:0}}>✎</button>
                   </div>
-                ))}
-                <div style={{borderTop:"1px solid rgba(255,255,255,.06)",padding:"8px 13px"}}><button onClick={()=>{router.push("/dashboard/entry");setDropOpen(false);}} style={{background:"none",border:"none",color:"rgba(255,255,255,.25)",fontSize:10,cursor:"pointer",padding:0}}>+ Nouveau portefeuille</button></div>
+                );})}
+                <div style={{borderTop:".5px solid rgba(255,255,255,.06)",padding:"10px 14px"}}><button onClick={()=>{router.push("/dashboard/entry");setDropOpen(false);}} style={{background:"none",border:"none",color:"rgba(255,255,255,.3)",fontSize:11,fontWeight:300,cursor:"pointer",padding:0,transition:`color ${EASE}`}}>+ Nouveau portefeuille</button></div>
               </div>
             )}
           </div>
