@@ -412,7 +412,8 @@ function OptimizerInner() {
         <div style={{maxWidth:540,margin:"0 auto"}}>
           {(() => {
             const ZONES = ["Monde entier","Amérique du Nord","Europe","Asie-Pacifique","Marchés Émergents","Amérique Latine","Afrique & Moyen-Orient"];
-            const cur = (answers[step]||"Monde entier").split(",").filter(Boolean);
+            const raw = answers[step];
+            const cur = raw === undefined ? ["Monde entier"] : raw === "" ? [] : raw.split(",").filter(Boolean);
             const isMonde = cur.includes("Monde entier");
             const toggle = (z: string) => {
               if (z === "Monde entier") {
