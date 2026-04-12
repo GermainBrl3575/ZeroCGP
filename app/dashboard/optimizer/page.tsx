@@ -110,7 +110,7 @@ function InfoBubble({ text, dark }: { text: string; dark?: boolean }) {
           transform:"translateX(-50%)",width:240,
           background:NAVY,color:"white",borderRadius:10,
           padding:"12px 14px",fontSize:11.5,lineHeight:1.7,
-          fontWeight:300,zIndex:300,boxShadow:"0 8px 24px rgba(0,0,0,.25)",
+          fontWeight:300,zIndex:9999,boxShadow:"0 8px 24px rgba(0,0,0,.25)",
         }}>
           {text}
           <div style={{position:"absolute",top:"100%",left:"50%",transform:"translateX(-50%)",
@@ -279,11 +279,11 @@ function OptimizerInner() {
   const [saveError, setSaveError] = useState("");
   const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
   const [geoLoading, setGeoLoading] = useState(false);
-  const [geoOpen, setGeoOpen] = useState(false);
+  const [tab, setTab] = useState<"allocation"|"geo">("allocation");
 
-  // Fetch geo exposure only when accordion is opened
+  // Fetch geo exposure only when geo tab is selected
   useEffect(() => {
-    if (!geoOpen || step !== 200 || !results || results.length === 0) return;
+    if (tab !== "geo" || step !== 200 || !results || results.length === 0) return;
     if (Object.keys(geoExposure).length > 0) return;
     const selR = results.find(r => r.method === sel) ?? results[0];
     if (!selR?.weights || selR.weights.length === 0) return;
@@ -297,7 +297,7 @@ function OptimizerInner() {
       .then(data => { if (!data.error) setGeoExposure(data); })
       .catch(() => {})
       .finally(() => setGeoLoading(false));
-  }, [geoOpen, step, sel, results]);
+  }, [tab, step, sel, results]);
 
   function toggleClass(c: string) {
     setMultiSel(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev,c]);
@@ -544,7 +544,7 @@ function OptimizerInner() {
       <h1 style={{fontFamily:"'Inter',sans-serif",fontSize:38,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.15,marginBottom:28}}>3 portefeuilles optimaux.</h1>
 
       {/* 3 cards */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:28}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:28,position:"relative",zIndex:1}}>
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
@@ -562,13 +562,16 @@ function OptimizerInner() {
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
               {([
-                ["Rendement",`+${(r.ret||0).toFixed(1)}%`,(r.ret||0)>0?(isSel?"rgba(130,220,170,.85)":cRet):cVar],
-                ["Volatilité",`${(r.vol||0).toFixed(1)}%`,isSel?"rgba(255,255,255,.4)":cMid],
-                ["Sharpe",(r.sharpe||0).toFixed(2),isSel?"rgba(255,255,255,.5)":cMid],
-                ["VaR 95%",`−${(r.var95||0).toFixed(1)}%`,isSel?"rgba(250,180,180,.7)":cVar],
-              ] as [string,string,string][]).map(([lbl,val,col])=>(
+                ["Rendement",`+${(r.ret||0).toFixed(1)}%`,(r.ret||0)>0?(isSel?"rgba(130,220,170,.85)":cRet):cVar,"C'est le gain moyen par an. +10% veut dire que 10 000 € deviennent environ 11 000 € après un an."],
+                ["Volatilité",`${(r.vol||0).toFixed(1)}%`,isSel?"rgba(255,255,255,.4)":cMid,"C'est à quel point votre argent fait les montagnes russes. Plus c'est bas, plus c'est stable."],
+                ["Sharpe",(r.sharpe||0).toFixed(2),isSel?"rgba(255,255,255,.5)":cMid,"Est-ce que le risque en vaut la peine ? Au-dessus de 0.7 c'est bien, au-dessus de 1 c'est très bien."],
+                ["VaR 95%",`−${(r.var95||0).toFixed(1)}%`,isSel?"rgba(250,180,180,.7)":cVar,"Dans le pire des cas raisonnables, voilà combien vous pourriez perdre en un an. 95 fois sur 100, la perte sera inférieure à ce chiffre."],
+              ] as [string,string,string,string][]).map(([lbl,val,col,tip])=>(
                 <div key={lbl}>
-                  <div style={{fontSize:9,fontWeight:500,marginBottom:4,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
+                    <span style={{fontSize:9,fontWeight:500,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</span>
+                    <span onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={tip} dark={isSel}/></span>
+                  </div>
                   <div style={{fontSize:20,fontWeight:500,color:col,fontVariantNumeric:"tabular-nums"}}>{val}</div>
                 </div>
               ))}
@@ -577,58 +580,66 @@ function OptimizerInner() {
         );})}
       </div>
 
-      {/* Frontier chart */}
-      {selR.frontier&&selR.frontier.length>0&&(
-        <div style={{background:"rgba(255,255,255,.5)",borderRadius:10,padding:24,marginBottom:20,border:".5px solid rgba(5,11,20,.05)"}}>
-          <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)",marginBottom:6,letterSpacing:"-.02em"}}>Frontière efficiente</h3>
-          <p style={{fontSize:11,color:"rgba(5,11,20,.4)",marginBottom:16,fontWeight:400}}>Chaque point représente un portefeuille possible.</p>
-          <ResponsiveContainer width="100%" height={180}>
-            <LineChart data={selR.frontier} margin={{top:10,right:20,bottom:5,left:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(5,11,20,.04)"/>
-              <XAxis dataKey="vol" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false}/>
-              <YAxis dataKey="ret" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false} width={45}/>
-              <Tooltip content={<FrontierTooltip/>}/>
-              <Line type="monotone" dataKey="ret" stroke={SAP} strokeWidth={2} dot={{r:2.5,fill:SAP,stroke:"white",strokeWidth:1}} activeDot={{r:4,fill:"#050B14",stroke:"white",strokeWidth:2}}/>
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* World Map Geo Exposure — accordéon */}
-      <div onClick={()=>setGeoOpen(!geoOpen)} style={{
-        display:"flex",alignItems:"center",justifyContent:"space-between",
-        padding:"16px 0",cursor:"pointer",
-        borderBottom:geoOpen?"none":".5px solid rgba(5,11,20,0.07)",
-        marginBottom:geoOpen?0:24,
-      }}>
-        <div>
-          <span style={{fontSize:10,fontWeight:500,letterSpacing:".15em",textTransform:"uppercase",color:"#1a3a6a",opacity:.65}}>Exposition géographique</span>
-          <span style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,0.36)",marginLeft:12}}>Où sont vos actifs ?</span>
-        </div>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(5,11,20,0.3)" strokeWidth="1.5" strokeLinecap="round" style={{transition:"transform 0.5s cubic-bezier(.16,1,.3,1)",transform:geoOpen?"rotate(180deg)":"rotate(0deg)"}}>
-          <polyline points="6 9 12 15 18 9"/>
-        </svg>
+      {/* Tabs */}
+      <div style={{display:"flex",gap:0,marginBottom:28,borderBottom:".5px solid rgba(5,11,20,0.07)"}}>
+        {([{id:"allocation",label:"Allocation"},{id:"geo",label:"Exposition géographique"}] as const).map(t=>(
+          <div key={t.id} onClick={()=>setTab(t.id)} style={{
+            padding:"12px 24px",cursor:"pointer",
+            fontSize:12,fontWeight:tab===t.id?500:400,
+            color:tab===t.id?"rgba(5,11,20,0.88)":"rgba(5,11,20,0.36)",
+            borderBottom:tab===t.id?"1.5px solid #1a3a6a":"1.5px solid transparent",
+            transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
+            fontFamily:"Inter,sans-serif",letterSpacing:"-.005em",
+          }}>{t.label}</div>
+        ))}
       </div>
-      {geoOpen&&<div style={{animation:"fadeUp .5s ease both",marginBottom:24}}>
-        <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading}/>
-      </div>}
 
-      {/* Allocation */}
-      {selR.weights&&selR.weights.length>0&&(
+      {/* Tab content with crossfade */}
+      <div key={sel+tab} style={{animation:"fadeUp .45s cubic-bezier(.23,1,.32,1) both"}}>
+
+      {tab==="allocation"&&(<>
+        {/* Frontier chart */}
+        {selR.frontier&&selR.frontier.length>0&&(
+          <div style={{background:"rgba(255,255,255,.5)",borderRadius:10,padding:24,marginBottom:20,border:".5px solid rgba(5,11,20,.05)"}}>
+            <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)",marginBottom:6,letterSpacing:"-.02em"}}>Frontière efficiente</h3>
+            <p style={{fontSize:11,color:"rgba(5,11,20,.4)",marginBottom:16,fontWeight:400}}>Chaque point représente un portefeuille possible.</p>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={selR.frontier} margin={{top:10,right:20,bottom:5,left:10}}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(5,11,20,.04)"/>
+                <XAxis dataKey="vol" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false}/>
+                <YAxis dataKey="ret" unit="%" tick={{fontSize:10,fill:"rgba(5,11,20,.25)"}} tickLine={false} axisLine={false} width={45}/>
+                <Tooltip content={<FrontierTooltip/>}/>
+                <Line type="monotone" dataKey="ret" stroke={SAP} strokeWidth={2} dot={{r:2.5,fill:SAP,stroke:"white",strokeWidth:1}} activeDot={{r:4,fill:"#050B14",stroke:"white",strokeWidth:2}}/>
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Allocation */}
+        {selR.weights&&selR.weights.length>0&&(
+          <div style={{marginBottom:24}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+              <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em"}}>Allocation recommandée</h3>
+              <div style={{fontSize:11,fontWeight:500,color:"rgba(5,11,20,.36)"}}>Capital : {eur(cap)}</div>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:0}}>
+              {selR.weights.map((w,wi)=>(
+                <div key={w.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${wi*0.04}s`}}>
+                  <AssetCard symbol={w.symbol} name={w.name} weight={w.weight} amount={w.amount} type={w.type}/>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </>)}
+
+      {tab==="geo"&&(
         <div style={{marginBottom:24}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em"}}>Allocation recommandée</h3>
-            <div style={{fontSize:11,fontWeight:500,color:"rgba(5,11,20,.36)"}}>Capital : {eur(cap)}</div>
-          </div>
-          <div style={{display:"flex",flexDirection:"column",gap:0}}>
-            {selR.weights.map((w,wi)=>(
-              <div key={w.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${wi*0.04}s`}}>
-                <AssetCard symbol={w.symbol} name={w.name} weight={w.weight} amount={w.amount} type={w.type}/>
-              </div>
-            ))}
-          </div>
+          <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading}/>
         </div>
       )}
+
+      </div>
 
       {saveError&&<p style={{color:"rgba(155,50,48,.8)",fontSize:12,marginBottom:12}}>{saveError}</p>}
       <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:8}}>
