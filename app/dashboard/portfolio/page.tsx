@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { Asset } from "@/types";
 import { TYPE_COLOR } from "@/lib/utils";
 import Treemap from "@/components/Treemap";
+import { SkeletonPortfolio } from "@/components/ui/Skeleton";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
 const PERIODS = ["1J","1S","1M","3M","6M","1A","MAX"];
@@ -163,11 +164,7 @@ function PortfolioInner() {
   const gainPct = total>0?gain/total*100:0;
   const isOpt   = pfType==="optimized";
 
-  if (loading) return (
-    <div style={{display:"flex",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400}}>
-      <div style={{color:"#8A9BB0",fontSize:11,letterSpacing:".2em"}}>CHARGEMENT...</div>
-    </div>
-  );
+  if (loading) return <SkeletonPortfolio />;
 
   if (!assets.length) return (
     <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",minHeight:400,gap:16}}>

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useMemo } from "react";
 import * as d3 from "d3";
+import { SkeletonMap } from "@/components/ui/Skeleton";
 
 const C = {
   cream: "#F9F8F6", navy: "#050B14", navyText: "rgba(5,11,20,0.88)", navyMid: "#0c1a2e",
@@ -142,7 +143,7 @@ export default function WorldMapExposure({ weights, geoExposure, loading }: Prop
         <div style={{ position:"absolute", bottom:16, right:16, zIndex:10 }}>
           <div style={{ fontSize:9, fontWeight:400, color:C.textLight, textAlign:"right" }}>{zoomLevel > 1 ? `${zoomLevel.toFixed(1)}× · Double-clic pour réinitialiser` : "Molette pour zoomer"}</div>
         </div>
-        {(loading || !worldData) && (<div style={{ height:420, display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ fontSize:11, fontWeight:400, color:C.textLight, letterSpacing:".1em" }}>{loading ? "Analyse de l'exposition géographique…" : "Chargement de la carte…"}</span></div>)}
+        {(loading || !worldData) && <SkeletonMap />}
         {worldData && !loading && (
           <svg ref={svgRef} viewBox="0 0 840 420" style={{ width:"100%", height:"auto", display:"block", cursor:"grab", borderRadius:12, touchAction:"none" }}>
             <rect width="840" height="420" fill={C.cream} />
