@@ -89,9 +89,10 @@ export default function WorldMapExposure({ weights, geoExposure, loading }: Prop
   }, []);
 
   useEffect(() => {
-    if (!svgRef.current || !gRef.current) return;
+    if (!svgRef.current || !gRef.current || !worldData) return;
     const svg = d3.select(svgRef.current); const g = d3.select(gRef.current);
     const zoom = d3.zoom<SVGSVGElement, unknown>().scaleExtent([1, 8]).translateExtent([[0,0],[840,420]])
+      .filter((event) => !event.ctrlKey && event.type !== "dblclick")
       .on("zoom", (event) => { g.attr("transform", event.transform.toString()); setZoomLevel(event.transform.k); });
     svg.call(zoom);
     svg.on("dblclick.zoom", () => { svg.transition().duration(700).ease(d3.easeCubicOut).call(zoom.transform, d3.zoomIdentity); });
@@ -136,7 +137,7 @@ export default function WorldMapExposure({ weights, geoExposure, loading }: Prop
         </div>
         {(loading || !worldData) && (<div style={{ height:420, display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ fontSize:11, fontWeight:400, color:C.textLight, letterSpacing:".1em" }}>{loading ? "Analyse de l'exposition géographique…" : "Chargement de la carte…"}</span></div>)}
         {worldData && !loading && (
-          <svg ref={svgRef} viewBox="0 0 840 420" style={{ width:"100%", height:"auto", display:"block", cursor:"grab", borderRadius:12 }}>
+          <svg ref={svgRef} viewBox="0 0 840 420" style={{ width:"100%", height:"auto", display:"block", cursor:"grab", borderRadius:12, touchAction:"none" }}>
             <rect width="840" height="420" fill={C.cream} />
             <g ref={gRef}>
               <path d={pathGen(d3.geoGraticule10()) as string} fill="none" stroke={C.navy} strokeWidth="0.12" opacity="0.05" />

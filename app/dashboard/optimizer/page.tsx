@@ -151,7 +151,7 @@ const CALC_STEPS = [
 ];
 const CALC_DURATION = 5500;
 
-type Weight = { symbol:string; name:string; type:string; weight:number; amount:number };
+type Weight = { symbol:string; name:string; type:string; weight:number; amount:number; support?:string; isin?:string };
 type FrontierPt = { vol:number; ret:number };
 type OptResult = { method:string; label:string; ret:number; vol:number; sharpe:number; var95:number; rec?:boolean; weights:Weight[]; frontier:FrontierPt[]; };
 
@@ -166,6 +166,7 @@ function normalizeResult(r: Record<string, unknown>, capital: number): OptResult
       name:   String(w.name ?? w.symbol ?? ""),
       type:   String(w.type ?? "etf") as "etf"|"stock"|"crypto"|"bond"|"reit",
       isin:   String(w.isin ?? ""),
+      support: w.support ? String(w.support) : undefined,
       weight: Number(w.weight ?? 0),
       amount: Number(w.amount ?? Math.round(capital * Number(w.weight ?? 0))),
     }))
@@ -285,6 +286,7 @@ function OptimizerInner() {
     if (step !== 200 || !results || results.length === 0) return;
     const selR = results.find(r => r.method === sel) ?? results[0];
     if (!selR?.weights || selR.weights.length === 0) return;
+    setGeoExposure({});
     setGeoLoading(true);
     fetch("/api/geo-exposure", {
       method: "POST",
@@ -545,11 +547,12 @@ function OptimizerInner() {
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
-            background:isSel?"linear-gradient(145deg,#050B14,#0c1a2e)":"rgba(255,255,255,.72)",
+            background:isSel?"linear-gradient(145deg,#0c1a2e,#1a3a6a)":"rgba(255,255,255,.72)",
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
-            boxShadow:isSel?`0 6px 28px ${SAPG}`:"0 2px 12px rgba(0,0,0,.018)",
+            boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
             transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
             animation:`cardIn .45s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${ri*0.08}s`,
+            position:"relative",zIndex:1,
           }}>
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
@@ -605,26 +608,12 @@ function OptimizerInner() {
             <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em"}}>Allocation recommandée</h3>
             <div style={{fontSize:11,fontWeight:500,color:"rgba(5,11,20,.36)"}}>Capital : {eur(cap)}</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {selR.weights.map((w,wi)=>{const tc=TC[w.type]||TC.etf;return(
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>
+            {selR.weights.map((w,wi)=>(
               <div key={w.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${wi*0.04}s`}}>
-                <div style={{borderRadius:6,border:".5px solid rgba(5,11,20,.09)",padding:"17px 22px",background:"rgba(255,255,255,.72)",boxShadow:"0 1px 2px rgba(0,0,0,.015)"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <span style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,background:tc.bg,color:tc.c,textTransform:"uppercase",letterSpacing:".04em"}}>{w.type}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,.88)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.symbol} <span style={{fontWeight:400,color:"rgba(5,11,20,.4)"}}>{w.name}</span></div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{w.weight.toFixed(1)}%</div>
-                      <div style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.4)",fontVariantNumeric:"tabular-nums"}}>{eur(w.amount)}</div>
-                    </div>
-                  </div>
-                  <div style={{marginTop:10,height:2,background:"rgba(26,58,106,.08)",borderRadius:1,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${w.weight}%`,background:`linear-gradient(90deg,${SAP}40,${SAP})`,borderRadius:1,transition:"width 0.7s cubic-bezier(.16,1,.3,1)"}}/>
-                  </div>
-                </div>
+                <AssetCard symbol={w.symbol} name={w.name} weight={w.weight} amount={w.amount} type={w.type} supports={w.support?[w.support]:undefined}/>
               </div>
-            );})}
+            ))}
           </div>
         </div>
       )}
