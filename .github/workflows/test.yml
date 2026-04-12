@@ -16,9 +16,26 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm test -- --coverage --ci
-      - name: Coverage summary
+      - name: Run tests with coverage
+        run: npx jest --coverage --coverageReporters=text --coverageReporters=json-summary --ci
+      - name: Display coverage summary
         if: always()
         run: |
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "Tests completed. See logs for details." >> $GITHUB_STEP_SUMMARY
+          echo "════════════════════════════════"
+          echo "       COVERAGE REPORT          "
+          echo "════════════════════════════════"
+          if [ -f coverage/coverage-summary.json ]; then
+            python3 -c "
+          import json
+          d = json.load(open('coverage/coverage-summary.json'))['total']
+          for k in ['lines','functions','branches','statements']:
+            print(f'{k.capitalize():12s}: {d[k][\"pct\"]}%')
+          print()
+          print(f'Target     : 70%')
+          pct = d['lines']['pct']
+          print(f'Status     : {\"PASSED\" if pct >= 70 else \"BELOW TARGET\"} ({pct}%)')
+          "
+          else
+            echo "No coverage data (tests may have failed)"
+          fi
+          echo "════════════════════════════════"
