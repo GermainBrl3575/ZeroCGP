@@ -279,7 +279,27 @@ function OptimizerInner() {
   const [saveError, setSaveError] = useState("");
   const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
   const [geoLoading, setGeoLoading] = useState(false);
-  const [tab, setTab] = useState<"allocation"|"geo">("allocation");
+  const [tab, setTab] = useState<"allocation"|"geo"|"apply">("allocation");
+  const [assetPrices, setAssetPrices] = useState<Record<string,number>>({});
+  const [pricesLoading, setPricesLoading] = useState(false);
+
+  // Fetch asset prices when apply tab is selected
+  useEffect(() => {
+    if (tab !== "apply" || step !== 200 || !results || results.length === 0) return;
+    if (Object.keys(assetPrices).length > 0) return;
+    const selR = results.find(r => r.method === sel) ?? results[0];
+    if (!selR?.weights || selR.weights.length === 0) return;
+    setPricesLoading(true);
+    fetch("/api/asset-prices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ symbols: selR.weights.map(w => w.symbol) }),
+    })
+      .then(r => r.json())
+      .then(data => { if (data.prices) setAssetPrices(data.prices); })
+      .catch(() => {})
+      .finally(() => setPricesLoading(false));
+  }, [tab, step, sel, results]);
 
   // Fetch geo exposure only when geo tab is selected
   useEffect(() => {
@@ -582,7 +602,7 @@ function OptimizerInner() {
 
       {/* Tabs */}
       <div style={{display:"flex",gap:0,marginBottom:28,borderBottom:".5px solid rgba(5,11,20,0.07)"}}>
-        {([{id:"allocation",label:"Allocation"},{id:"geo",label:"Exposition géographique"}] as const).map(t=>(
+        {([{id:"allocation",label:"Allocation"},{id:"geo",label:"Exposition géographique"},{id:"apply",label:"Appliquer le portefeuille"}] as const).map(t=>(
           <div key={t.id} onClick={()=>setTab(t.id)} style={{
             padding:"12px 24px",cursor:"pointer",
             fontSize:12,fontWeight:tab===t.id?500:400,
@@ -638,6 +658,114 @@ function OptimizerInner() {
           <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading}/>
         </div>
       )}
+
+      {tab==="apply"&&selR.weights&&selR.weights.length>0&&(()=>{
+        const supports = answers[8] || "[]";
+        let userSupports: string[] = [];
+        try { userSupports = JSON.parse(supports).map((c:{type:string})=>c.type); } catch { userSupports = []; }
+        const hasPEA = userSupports.includes("PEA");
+
+        function getSupport(sym: string): string {
+          if (sym.match(/BTC|ETH|SOL|ADA|DOT|AVAX/i)) return "Crypto";
+          if (sym.endsWith(".PA") || sym.endsWith(".AS") || sym.endsWith(".DE") || sym.endsWith(".MI") || sym.endsWith(".MC") || sym.endsWith(".BR")) return hasPEA ? "PEA" : "CTO";
+          if (sym.endsWith(".L") || sym.endsWith(".SW") || sym.endsWith(".ST")) return "CTO";
+          if (!sym.includes(".")) return "CTO";
+          return "CTO";
+        }
+
+        const orders = selR.weights.map(w => {
+          const support = getSupport(w.symbol);
+          const price = assetPrices[w.symbol] || 0;
+          const qty = price > 0 ? Math.floor(w.amount / price) : 0;
+          const invested = qty * price;
+          const remainder = w.amount - invested;
+          return { ...w, support, price, qty, invested, remainder };
+        });
+
+        const bySupport: Record<string,number> = {};
+        orders.forEach(o => { bySupport[o.support] = (bySupport[o.support]||0) + 1; });
+        const totalInvested = orders.reduce((s, o) => s + (o.price > 0 ? o.invested : o.amount), 0);
+        const totalRemainder = cap - totalInvested;
+        const supportSummary = Object.entries(bySupport).map(([s,n]) => `${n} sur ${s}`).join(" · ");
+        const SAP = "#1a3a6a";
+        const TC: Record<string,{bg:string;c:string}> = {etf:{bg:"rgba(26,58,106,.08)",c:SAP},stock:{bg:"rgba(22,90,52,.08)",c:"rgba(22,90,52,.8)"},bond:{bg:"rgba(5,11,20,.06)",c:"rgba(5,11,20,.5)"},gold:{bg:"rgba(180,140,0,.08)",c:"rgba(160,120,0,.7)"},crypto:{bg:"rgba(180,80,0,.08)",c:"rgba(180,80,0,.7)"},reit:{bg:"rgba(120,60,140,.08)",c:"rgba(120,60,140,.7)"}};
+
+        return (
+          <div style={{marginBottom:24}}>
+            <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em",marginBottom:6}}>Comment investir ?</h3>
+            <p style={{fontSize:13,fontWeight:400,color:"rgba(5,11,20,.52)",marginBottom:24,fontFamily:"Inter,sans-serif",lineHeight:1.7}}>
+              Voici exactement quoi acheter, combien, et sur quel support pour reproduire ce portefeuille avec votre capital de {eur(cap)}.
+            </p>
+
+            {/* Summary */}
+            <div style={{display:"flex",gap:24,marginBottom:24,padding:"16px 20px",background:"rgba(26,58,106,.04)",borderRadius:8,border:".5px solid rgba(26,58,106,.08)"}}>
+              <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>ORDRES</div><div style={{fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{orders.length}</div></div>
+              <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>RÉPARTITION</div><div style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.65)"}}>{supportSummary}</div></div>
+              <div style={{marginLeft:"auto"}}><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>CAPITAL</div><div style={{fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(cap)}</div></div>
+            </div>
+
+            {pricesLoading && <div style={{textAlign:"center",padding:24,color:"rgba(5,11,20,.3)",fontSize:11,letterSpacing:".1em"}}>Récupération des prix en temps réel…</div>}
+
+            {/* Order cards */}
+            {orders.map((o, oi) => {
+              const tc = TC[o.type] || TC.etf;
+              return (
+                <div key={o.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${oi*0.04}s`}}>
+                  <div style={{borderRadius:6,border:".5px solid rgba(5,11,20,.09)",padding:"20px 22px",background:"rgba(255,255,255,.72)",boxShadow:"0 1px 2px rgba(0,0,0,.015)",marginBottom:o.price>0?2:10}}>
+                    {/* Line 1: badge + symbol + name */}
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+                      <span style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,background:tc.bg,color:tc.c,textTransform:"uppercase",letterSpacing:".04em"}}>{o.type}</span>
+                      <span style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{o.symbol}</span>
+                      <span style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.4)"}}>{o.name}</span>
+                    </div>
+                    {/* Line 2: 4 columns */}
+                    <div style={{display:"grid",gridTemplateColumns:o.price>0?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:16}}>
+                      {o.price > 0 && (
+                        <div>
+                          <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Quantité</div>
+                          <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{o.qty} <span style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,.4)"}}>parts</span></div>
+                        </div>
+                      )}
+                      {o.price > 0 && (
+                        <div>
+                          <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Prix unitaire</div>
+                          <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.65)",fontVariantNumeric:"tabular-nums"}}>{eur(o.price)}</div>
+                        </div>
+                      )}
+                      <div>
+                        <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Montant</div>
+                        <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{eur(o.price>0?o.invested:o.amount)}</div>
+                      </div>
+                      <div>
+                        <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Support</div>
+                        <div style={{fontSize:13,fontWeight:500,color:"#1a3a6a"}}>{o.support}</div>
+                      </div>
+                    </div>
+                  </div>
+                  {o.price > 0 && o.remainder > 0.01 && (
+                    <div style={{fontSize:10,color:"rgba(5,11,20,.3)",padding:"4px 22px 10px",fontFamily:"Inter,sans-serif"}}>
+                      Reste non investi : {eur(o.remainder)} (sera en liquidités sur votre {o.support})
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Totals */}
+            {Object.keys(assetPrices).length > 0 && (
+              <div style={{display:"flex",gap:24,marginTop:20,padding:"16px 20px",background:"rgba(5,11,20,.02)",borderRadius:8,border:".5px solid rgba(5,11,20,.05)"}}>
+                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>CAPITAL TOTAL</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(cap)}</div></div>
+                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>INVESTI</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(totalInvested)}</div></div>
+                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>LIQUIDITÉS</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.52)"}}>{eur(totalRemainder)}</div></div>
+              </div>
+            )}
+
+            <p style={{fontSize:11,color:"rgba(5,11,20,.36)",marginTop:24,fontFamily:"Inter,sans-serif",lineHeight:1.6}}>
+              Les quantités sont indicatives et basées sur les cours actuels. Les prix réels peuvent varier au moment de l'exécution.
+            </p>
+          </div>
+        );
+      })()}
 
       </div>
 
