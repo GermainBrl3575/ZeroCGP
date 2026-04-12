@@ -279,10 +279,12 @@ function OptimizerInner() {
   const [saveError, setSaveError] = useState("");
   const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
   const [geoLoading, setGeoLoading] = useState(false);
+  const [geoOpen, setGeoOpen] = useState(false);
 
-  // Fetch geo exposure when results are shown
+  // Fetch geo exposure only when accordion is opened
   useEffect(() => {
-    if (step !== 200 || !results || results.length === 0) return;
+    if (!geoOpen || step !== 200 || !results || results.length === 0) return;
+    if (Object.keys(geoExposure).length > 0) return;
     const selR = results.find(r => r.method === sel) ?? results[0];
     if (!selR?.weights || selR.weights.length === 0) return;
     setGeoLoading(true);
@@ -295,7 +297,7 @@ function OptimizerInner() {
       .then(data => { if (!data.error) setGeoExposure(data); })
       .catch(() => {})
       .finally(() => setGeoLoading(false));
-  }, [step, sel, results]);
+  }, [geoOpen, step, sel, results]);
 
   function toggleClass(c: string) {
     setMultiSel(prev => prev.includes(c) ? prev.filter(x=>x!==c) : [...prev,c]);
@@ -592,12 +594,24 @@ function OptimizerInner() {
         </div>
       )}
 
-      {/* World Map Geo Exposure */}
-      {(geoLoading || Object.keys(geoExposure).length > 0) && (
-        <div style={{marginBottom:24}}>
-          <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading} />
+      {/* World Map Geo Exposure — accordéon */}
+      <div onClick={()=>setGeoOpen(!geoOpen)} style={{
+        display:"flex",alignItems:"center",justifyContent:"space-between",
+        padding:"16px 0",cursor:"pointer",
+        borderBottom:geoOpen?"none":".5px solid rgba(5,11,20,0.07)",
+        marginBottom:geoOpen?0:24,
+      }}>
+        <div>
+          <span style={{fontSize:10,fontWeight:500,letterSpacing:".15em",textTransform:"uppercase",color:"#1a3a6a",opacity:.65}}>Exposition géographique</span>
+          <span style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,0.36)",marginLeft:12}}>Où sont vos actifs ?</span>
         </div>
-      )}
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(5,11,20,0.3)" strokeWidth="1.5" strokeLinecap="round" style={{transition:"transform 0.5s cubic-bezier(.16,1,.3,1)",transform:geoOpen?"rotate(180deg)":"rotate(0deg)"}}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      {geoOpen&&<div style={{animation:"fadeUp .5s ease both",marginBottom:24}}>
+        <WorldMapExposure weights={selR.weights} geoExposure={geoExposure} loading={geoLoading}/>
+      </div>}
 
       {/* Allocation */}
       {selR.weights&&selR.weights.length>0&&(
@@ -606,26 +620,12 @@ function OptimizerInner() {
             <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em"}}>Allocation recommandée</h3>
             <div style={{fontSize:11,fontWeight:500,color:"rgba(5,11,20,.36)"}}>Capital : {eur(cap)}</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {selR.weights.map((w,wi)=>{const tc=TC[w.type]||TC.etf;return(
+          <div style={{display:"flex",flexDirection:"column",gap:0}}>
+            {selR.weights.map((w,wi)=>(
               <div key={w.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${wi*0.04}s`}}>
-                <div style={{borderRadius:6,border:".5px solid rgba(5,11,20,.09)",padding:"17px 22px",background:"rgba(255,255,255,.72)",boxShadow:"0 1px 2px rgba(0,0,0,.015)"}}>
-                  <div style={{display:"flex",alignItems:"center",gap:12}}>
-                    <span style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,background:tc.bg,color:tc.c,textTransform:"uppercase",letterSpacing:".04em"}}>{w.type}</span>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,.88)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{w.symbol} <span style={{fontWeight:400,color:"rgba(5,11,20,.4)"}}>{w.name}</span></div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{w.weight.toFixed(1)}%</div>
-                      <div style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.4)",fontVariantNumeric:"tabular-nums"}}>{eur(w.amount)}</div>
-                    </div>
-                  </div>
-                  <div style={{marginTop:10,height:2,background:"rgba(26,58,106,.08)",borderRadius:1,overflow:"hidden"}}>
-                    <div style={{height:"100%",width:`${w.weight}%`,background:`linear-gradient(90deg,${SAP}40,${SAP})`,borderRadius:1,transition:"width 0.7s cubic-bezier(.16,1,.3,1)"}}/>
-                  </div>
-                </div>
+                <AssetCard symbol={w.symbol} name={w.name} weight={w.weight} amount={w.amount} type={w.type}/>
               </div>
-            );})}
+            ))}
           </div>
         </div>
       )}

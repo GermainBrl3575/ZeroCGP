@@ -136,7 +136,7 @@ export default function WorldMapExposure({ weights, geoExposure, loading }: Prop
         </div>
         {(loading || !worldData) && (<div style={{ height:420, display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ fontSize:11, fontWeight:400, color:C.textLight, letterSpacing:".1em" }}>{loading ? "Analyse de l'exposition géographique…" : "Chargement de la carte…"}</span></div>)}
         {worldData && !loading && (
-          <svg ref={svgRef} viewBox="0 0 840 420" style={{ width:"100%", height:"auto", display:"block", cursor:"grab", borderRadius:12 }}>
+          <svg ref={svgRef} viewBox="0 0 840 420" style={{ width:"100%", height:"auto", display:"block", cursor:"grab", borderRadius:12, touchAction:"none" }}>
             <rect width="840" height="420" fill={C.cream} />
             <g ref={gRef}>
               <path d={pathGen(d3.geoGraticule10()) as string} fill="none" stroke={C.navy} strokeWidth="0.12" opacity="0.05" />
