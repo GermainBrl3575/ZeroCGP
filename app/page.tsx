@@ -262,6 +262,9 @@ input[type=range]::-webkit-slider-thumb {
   -webkit-appearance:none; width:12px; height:12px; border-radius:50%;
   background:#1A1A1A; border:2px solid #F9F8F6; box-shadow:0 0 0 1px rgba(26,26,26,0.2);
 }
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:0.01ms!important;animation-iteration-count:1!important;transition-duration:0.01ms!important;}
+}
 `;
 
 // ══════════════════════════════════════════════════════════════
@@ -803,6 +806,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [inView,  setInView ] = useState(false);
   const [focused, setFocused] = useState<number|null>(null);
+  const [counts,  setCounts ] = useState([0,0,0,0,0]);
 
   useEffect(() => {
     const obs = new IntersectionObserver(
@@ -812,6 +816,19 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
     if (sectionRef.current) obs.observe(sectionRef.current);
     return () => obs.disconnect();
   }, []);
+
+  // Counting number animation
+  useEffect(() => {
+    if (!inView) return;
+    const targets = [1,2,3,4,5];
+    const steps = 15; let frame = 0;
+    const id = setInterval(() => {
+      frame++;
+      setCounts(frame >= steps ? targets : targets.map(() => Math.floor(Math.random()*9)));
+      if (frame >= steps) clearInterval(id);
+    }, 800/steps);
+    return () => clearInterval(id);
+  }, [inView]);
 
   const feurLocal = (n: number) =>
     new Intl.NumberFormat("fr-FR", {
@@ -891,12 +908,16 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
             fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300, fontStyle:"italic",
             letterSpacing:"-.02em", lineHeight:1.06,
             color:"rgba(255,255,255,0.95)", margin:"0 0 6px",
+            opacity:inView?1:0, transform:inView?"translateY(0)":"translateY(20px)",
+            transition:"opacity 0.7s cubic-bezier(.23,1,.32,1), transform 0.7s cubic-bezier(.23,1,.32,1)",
           }}>7 questions.</h2>
           <h2 style={{
             fontFamily:"'Cormorant Garant',serif",
             fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300,
             letterSpacing:"-.02em", lineHeight:1.06,
             color:"rgba(255,255,255,0.38)", margin:0,
+            opacity:inView?1:0, transform:inView?"translateY(0)":"translateY(20px)",
+            transition:"opacity 0.7s cubic-bezier(.23,1,.32,1) 0.1s, transform 0.7s cubic-bezier(.23,1,.32,1) 0.1s",
           }}>Un portefeuille sur mesure.</h2>
         </div>
 
@@ -921,9 +942,9 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                   flex:1, padding:"26px 20px 30px",
                   borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
                   position:"relative", overflow:"hidden", cursor:"default",
-                  transition:TR,
-                  transform:  isThis  ? "scale(1.04)" : "scale(1)",
-                  opacity:    isDimmed ? 0.12          : 1,
+                  transition:`${TR}, opacity 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s, transform 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s`,
+                  transform:  isThis ? "scale(1.04)" : inView ? "scale(1) translateY(0)" : "scale(1) translateY(30px)",
+                  opacity:    isDimmed ? 0.12 : inView ? 1 : 0,
                   filter:     isDimmed ? "blur(2.5px)" : "none",
                   background: isThis  ? "rgba(255,255,255,0.04)" : "transparent",
                   zIndex: isThis ? 2 : 1,
@@ -947,7 +968,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                   marginBottom:16, letterSpacing:"-.01em",
                   transition:TR,
                   color: isThis ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
-                }}>{n}</div>
+                }}>{inView ? String(counts[i]).padStart(2,"0") : "00"}</div>
 
                 {/* Titre */}
                 <div style={{
@@ -1258,14 +1279,16 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                 title:"Diversification institutionnelle",
                 desc:"MSCI World, S&P 500, marchés émergents. Couverture mondiale à frais quasi-nuls (~0.20%/an). L'approche des fonds souverains.",
               },
-            ].map(({ tag, icon, title, desc }) => (
+            ].map(({ tag, icon, title, desc }, ci) => (
               <div key={tag} style={{
                 background:"rgba(255,255,255,0.04)",
                 backdropFilter:"blur(20px)",
                 WebkitBackdropFilter:"blur(20px)",
                 border:DIV, borderRadius:12, padding:"22px",
                 position:"relative", overflow:"hidden",
-                transition:"border-color .3s",
+                transition:`border-color .3s, opacity 0.7s cubic-bezier(.23,1,.32,1) ${0.3+ci*0.15}s, transform 0.7s cubic-bezier(.23,1,.32,1) ${0.3+ci*0.15}s`,
+                opacity:inView?1:0,
+                transform:inView?"translateX(0)":(ci===0?"translateX(-40px)":"translateX(40px)"),
               }}>
                 <div style={{
                   position:"absolute", top:-20, right:-20,
@@ -1528,6 +1551,8 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                       style={{
                         display:"grid", gridTemplateColumns:"1fr 90px 106px",
                         position:"relative", overflow:"hidden",
+                        opacity:inView?1:0, transform:inView?"translateY(0)":"translateY(12px)",
+                        transition:`opacity 0.5s cubic-bezier(.23,1,.32,1) ${0.4+idx*0.08}s, transform 0.5s cubic-bezier(.23,1,.32,1) ${0.4+idx*0.08}s`,
                         borderRadius:4, cursor:"default",
                         background: isKey ? "rgba(248,113,113,0.03)" : "transparent",
                       }}>
