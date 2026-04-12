@@ -63,11 +63,15 @@ export async function GET(req: NextRequest) {
   const capitalInitial = assets.reduce((s, a) => s + (a.target_amount || 0), 0);
   let valeurActuelle = 0;
 
+  const isOptimized = portfolio.type === "optimized" || portfolio.type === "active";
   const enrichedAssets = assets.map(a => {
     const yahoo = yahooData[a.symbol];
     const currentPrice = yahoo?.currentPrice || 0;
-    const qty = a.quantity || (a.target_amount && currentPrice > 0 ? a.target_amount / currentPrice : 0);
-    const currentValue = currentPrice * qty;
+    // For optimized portfolios, quantity in DB is meaningless (amount/100) — use target_amount / price
+    const qty = isOptimized && a.target_amount > 0 && currentPrice > 0
+      ? a.target_amount / currentPrice
+      : (a.quantity || (a.target_amount && currentPrice > 0 ? a.target_amount / currentPrice : 0));
+    const currentValue = isOptimized ? (currentPrice > 0 ? currentPrice * qty : a.target_amount || 0) : currentPrice * qty;
     valeurActuelle += currentValue;
 
     const closes = yahoo?.closes || [];
