@@ -37,14 +37,14 @@ function NavIcon({ type, active, hovered }: { type:string; active:boolean; hover
   const c = active ? "rgba(255,255,255,.95)" : hovered ? "rgba(255,255,255,.62)" : "rgba(255,255,255,.42)";
   const p: Record<string,unknown> = { width:16, height:16, viewBox:"0 0 24 24", fill:"none", stroke:c, strokeWidth:"0.8", strokeLinecap:"round", strokeLinejoin:"round", style:{transition:`stroke ${EASE}`} };
   const m: Record<string,JSX.Element> = {
-    grid:<svg {...p as any}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>,
-    diamond:<svg {...p as any}><path d="M12 2L2 12l10 10 10-10L12 2z"/>{active&&<circle cx="12" cy="12" r="2" fill={C.sapphireAccent} stroke="none" opacity=".5"/>}</svg>,
-    refresh:<svg {...p as any}><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>,
-    bell:<svg {...p as any}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><circle cx="12" cy="21" r="1.5"/></svg>,
-    layers:<svg {...p as any}><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>,
-    grid4:<svg {...p as any}><rect x="3" y="3" width="18" height="18" rx="1"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>,
-    triangle:<svg {...p as any}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>,
-    target:<svg {...p as any}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
+    grid:<svg {...p as any}><circle cx="12" cy="12" r="10"/><path d="M12 2V12H22"/><path d="M12 12L19.07 5.93" opacity=".4"/></svg>,
+    diamond:<svg {...p as any}><path d="M4 18L8 10L14 14L20 4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="20" cy="4" r="2.5"/><path d="M20 1.5V4H22.5" strokeWidth=".6"/></svg>,
+    refresh:<svg {...p as any}><rect x="2" y="14" width="5" height="8" rx="1" fill={c} opacity=".3"/><rect x="9" y="8" width="5" height="14" rx="1" fill={c} opacity=".3"/><rect x="16" y="11" width="5" height="11" rx="1" fill={c} opacity=".3"/><path d="M4.5 12L11.5 6L18.5 9" strokeLinecap="round" strokeWidth="1"/><path d="M16.5 9L18.5 9L18.5 7" strokeLinecap="round" strokeWidth=".8"/></svg>,
+    bell:<svg {...p as any}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><circle cx="12" cy="21" r="1.5"/>{active&&<circle cx="19" cy="5" r="3" fill={c} stroke="none" opacity=".7"/>}</svg>,
+    layers:<svg {...p as any}><circle cx="12" cy="12" r="10"/><path d="M12 6V12L16 14" strokeLinecap="round"/><path d="M4 18L2 20" strokeLinecap="round" opacity=".5"/></svg>,
+    grid4:<svg {...p as any}><circle cx="6" cy="6" r="3.5"/><circle cx="18" cy="18" r="3.5"/><circle cx="18" cy="6" r="3.5"/><line x1="8.5" y1="7.5" x2="15.5" y2="16.5" opacity=".5"/><line x1="9" y1="5" x2="14.5" y2="5" opacity=".5"/><line x1="18" y1="9.5" x2="18" y2="14.5" opacity=".5"/></svg>,
+    triangle:<svg {...p as any}><path d="M2 8L8 6L12 9L16 4" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 4L18 12L22 20" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1.5 1.5" opacity=".6"/><line x1="2" y1="22" x2="22" y2="22" strokeWidth=".4" opacity=".3"/></svg>,
+    target:<svg {...p as any}><path d="M2 20Q6 4,12 12Q18 20,22 6" strokeLinecap="round" strokeWidth=".6" opacity=".3"/><path d="M2 18Q7 8,12 14Q17 18,22 8" strokeLinecap="round" strokeWidth=".6" opacity=".4"/><path d="M2 16Q8 6,12 10Q16 16,22 4" strokeLinecap="round" strokeWidth=".6" opacity=".5"/><path d="M2 14Q6 2,12 8Q18 14,22 2" strokeLinecap="round" strokeWidth="1" opacity=".8"/></svg>,
   };
   return m[type] || null;
 }
