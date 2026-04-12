@@ -665,19 +665,24 @@ function OptimizerInner() {
         const supportInfo: Record<string,{label:string;fullName:string;color:string;bgColor:string;desc:string}> = {
           PEA:{label:"PEA",fullName:"Plan d'Épargne en Actions",color:"#1a3a6a",bgColor:"rgba(26,58,106,0.06)",desc:"Fiscalité avantageuse après 5 ans · Plafonné à 150 000 €"},
           CTO:{label:"CTO",fullName:"Compte-Titres Ordinaire",color:"rgba(22,90,52,0.8)",bgColor:"rgba(22,90,52,0.05)",desc:"Aucune restriction d'actifs · Flat Tax 30%"},
+          AV:{label:"AV",fullName:"Assurance-Vie",color:"#8B6914",bgColor:"rgba(139,105,20,0.05)",desc:"Enveloppe fiscale long terme · Fonds en unités de compte"},
           Crypto:{label:"Crypto",fullName:"Plateforme crypto",color:"#D97706",bgColor:"rgba(217,119,6,0.05)",desc:"Binance, Coinbase ou cold wallet"},
+          "Non compatible":{label:"⚠",fullName:"Support manquant",color:"rgba(217,119,6,0.8)",bgColor:"rgba(217,119,6,0.05)",desc:"Un Compte-Titres (CTO) serait nécessaire pour cet actif"},
         };
-        const supportsRaw = answers[8] || "[]";
-        let userSupports: string[] = [];
-        try { userSupports = JSON.parse(supportsRaw).map((c:{type:string})=>c.type); } catch { userSupports = []; }
-        const hasPEA = userSupports.includes("PEA");
+        let userComptes: {type:string;banque:string;pct:number}[] = [];
+        try { userComptes = JSON.parse(answers[8] || "[]"); } catch { userComptes = []; }
+        const hasPEA = userComptes.some(c=>c.type==="PEA");
+        const hasCTO = userComptes.some(c=>c.type==="CTO");
+        const hasAV = userComptes.some(c=>c.type==="AV");
+        const hasCrypto = userComptes.some(c=>c.type==="crypto");
 
         function getSupport(sym: string): string {
-          if (sym.match(/BTC|ETH|SOL|ADA|DOT|AVAX/i)) return "Crypto";
-          if (sym.endsWith(".PA")||sym.endsWith(".AS")||sym.endsWith(".DE")||sym.endsWith(".MI")||sym.endsWith(".MC")||sym.endsWith(".BR")) return hasPEA?"PEA":"CTO";
-          if (sym.endsWith(".L")||sym.endsWith(".SW")||sym.endsWith(".ST")) return "CTO";
-          if (!sym.includes(".")) return "CTO";
-          return "CTO";
+          const isPeaEligible = /\.(PA|DE|AS|MI|MC|BR|LS)$/.test(sym) || sym.startsWith("CW8") || sym.startsWith("PAEEM");
+          if (sym.match(/BTC|ETH|SOL|ADA|DOT|AVAX/i)) return hasCrypto ? "Crypto" : hasCTO ? "CTO" : "Non compatible";
+          if (isPeaEligible && hasPEA) return "PEA";
+          if (hasAV) return "AV";
+          if (hasCTO) return "CTO";
+          return "Non compatible";
         }
 
         function toggleCheck(sym: string) {
@@ -769,8 +774,10 @@ function OptimizerInner() {
                   {items.map((a,ai)=>{
                     const isChecked=checkedOrders.has(a.symbol);
                     const isCopied=copiedIsin===a.isin;
+                    const incompatible=a.support==="Non compatible";
                     return (
-                      <div key={a.symbol} style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",marginBottom:6,borderRadius:6,background:isChecked?"rgba(22,90,52,0.03)":"rgba(255,255,255,.72)",border:isChecked?".5px solid rgba(22,90,52,0.12)":"0.5px solid rgba(5,11,20,0.09)",boxShadow:"0 1px 2px rgba(0,0,0,.015)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)",opacity:isChecked?0.7:1,animation:"fadeUp .4s cubic-bezier(.23,1,.32,1) both",animationDelay:`${(gi*3+ai)*0.04}s`}}>
+                      <div key={a.symbol}>
+                      <div style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",marginBottom:incompatible?2:6,borderRadius:6,background:isChecked?"rgba(22,90,52,0.03)":incompatible?"rgba(217,119,6,0.02)":"rgba(255,255,255,.72)",border:isChecked?".5px solid rgba(22,90,52,0.12)":incompatible?".5px solid rgba(217,119,6,0.2)":"0.5px solid rgba(5,11,20,0.09)",boxShadow:"0 1px 2px rgba(0,0,0,.015)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)",opacity:isChecked?0.7:incompatible?0.5:1,animation:"fadeUp .4s cubic-bezier(.23,1,.32,1) both",animationDelay:`${(gi*3+ai)*0.04}s`}}>
                         {/* Checkbox */}
                         <div onClick={()=>toggleCheck(a.symbol)} style={{width:20,height:20,borderRadius:4,cursor:"pointer",flexShrink:0,border:isChecked?"none":".5px solid rgba(5,11,20,.15)",background:isChecked?"rgba(22,90,52,0.75)":"rgba(255,255,255,.5)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
                           {isChecked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
@@ -803,6 +810,8 @@ function OptimizerInner() {
                           <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,0.88)",fontVariantNumeric:"tabular-nums"}}>{(a.price>0?a.invested:a.amount).toLocaleString("fr-FR")} €</div>
                           <div style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,0.36)"}}>{a.weight.toFixed(1)}%</div>
                         </div>
+                      </div>
+                      {incompatible&&<div style={{fontSize:10,fontWeight:400,color:"rgba(217,119,6,0.8)",padding:"4px 18px 8px 54px",lineHeight:1.5}}>Cet actif n'est pas disponible sur vos supports sélectionnés. Un Compte-Titres (CTO) serait nécessaire.</div>}
                       </div>
                     );
                   })}
