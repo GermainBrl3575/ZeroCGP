@@ -817,16 +817,16 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
     return () => obs.disconnect();
   }, []);
 
-  // Counting number animation
+  // Counting number animation — fast flash, plays once
   useEffect(() => {
     if (!inView) return;
     const targets = [1,2,3,4,5];
-    const steps = 15; let frame = 0;
+    const steps = 8; let frame = 0;
     const id = setInterval(() => {
       frame++;
       setCounts(frame >= steps ? targets : targets.map(() => Math.floor(Math.random()*9)));
       if (frame >= steps) clearInterval(id);
-    }, 800/steps);
+    }, 400/steps);
     return () => clearInterval(id);
   }, [inView]);
 
@@ -925,29 +925,25 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         <div style={{
           width:"100%",
           borderTop:"0.5px solid rgba(255,255,255,0.10)",
-          transition:TR, opacity: isFocused ? 0.15 : 1,
         }}/>
 
         {/* Blocs */}
         <div style={{ display:"flex", width:"100%" }}>
           {STEPS.map(function({ n, num, t, d, detail }, i) {
-            const isThis   = focused === i;
-            const isDimmed = isFocused && !isThis;
             return (
               <div
                 key={n}
-                onMouseEnter={function() { setFocused(i); }}
-                onMouseLeave={function() { setFocused(null); }}
+                onMouseEnter={function(e) { e.currentTarget.style.transform = inView ? "translateY(-2px)" : "translateY(30px)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)"; }}
+                onMouseLeave={function(e) { e.currentTarget.style.transform = inView ? "translateY(0)" : "translateY(30px)"; e.currentTarget.style.borderColor = "transparent"; }}
                 style={{
                   flex:1, padding:"26px 20px 30px",
-                  borderRight: i < 3 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                  borderRight: i < 4 ? "0.5px solid rgba(255,255,255,0.08)" : "none",
+                  borderColor: "transparent",
                   position:"relative", overflow:"hidden", cursor:"default",
-                  transition:`${TR}, opacity 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s, transform 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s`,
-                  transform:  isThis ? "scale(1.04)" : inView ? "scale(1) translateY(0)" : "scale(1) translateY(30px)",
-                  opacity:    isDimmed ? 0.12 : inView ? 1 : 0,
-                  filter:     isDimmed ? "blur(2.5px)" : "none",
-                  background: isThis  ? "rgba(255,255,255,0.04)" : "transparent",
-                  zIndex: isThis ? 2 : 1,
+                  transition: inView ? "transform 0.25s ease, border-color 0.25s ease" : `opacity 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s, transform 0.7s cubic-bezier(.23,1,.32,1) ${0.3+i*0.15}s`,
+                  transform:  inView ? "translateY(0)" : "translateY(30px)",
+                  opacity:    inView ? 1 : 0,
+                  background: "transparent",
                 }}
               >
                 {/* Grand chiffre fond */}
@@ -956,9 +952,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                   fontFamily:"'Cormorant Garant',serif",
                   fontSize:140, fontWeight:300, color:"white",
                   lineHeight:1, userSelect:"none", pointerEvents:"none",
-                  transition:TR,
-                  opacity:   isThis ? 0.05 : 0,
-                  transform: isThis ? "translateY(0)" : "translateY(10px)",
+                  opacity:0.03,
                 }}>{num}</div>
 
                 {/* Numéro */}
@@ -966,8 +960,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                   fontFamily:"'Cormorant Garant',serif",
                   fontSize:40, fontWeight:300, lineHeight:1,
                   marginBottom:16, letterSpacing:"-.01em",
-                  transition:TR,
-                  color: isThis ? "rgba(255,255,255,0.22)" : "rgba(255,255,255,0.07)",
+                  color:"rgba(255,255,255,0.12)",
                 }}>{inView ? String(counts[i]).padStart(2,"0") : "00"}</div>
 
                 {/* Titre */}
@@ -975,8 +968,8 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                   fontFamily:"'Inter',sans-serif",
                   fontSize:10, fontWeight:500, letterSpacing:".12em",
                   textTransform:"uppercase",
-                  color: isThis ? "rgba(255,255,255,1.0)" : "rgba(255,255,255,0.88)",
-                  marginBottom:10, transition:TR,
+                  color:"rgba(255,255,255,0.88)",
+                  marginBottom:10,
                 }}>{t}</div>
 
                 {/* Description */}
@@ -990,12 +983,8 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                 <div style={{
                   fontFamily:"'Inter',sans-serif",
                   fontSize:11.5, fontWeight:300, letterSpacing:".03em",
-                  color:"rgba(241,245,249,0.72)", lineHeight:1.72,
-                  marginTop:12, transition:TR,
-                  opacity:   isThis ? 1 : 0,
-                  transform: isThis ? "translateY(0)" : "translateY(6px)",
-                  maxHeight: isThis ? "120px" : "0",
-                  overflow:"hidden",
+                  color:"rgba(241,245,249,0.55)", lineHeight:1.72,
+                  marginTop:10,
                 }}>{detail}</div>
 
                 {/* Gain bloc 04 */}
@@ -1005,7 +994,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                     fontFamily:"'Cormorant Garant',serif",
                     fontSize:13, fontWeight:300, fontStyle:"italic",
                     color:"#5CB88A", lineHeight:1.55,
-                    transition:TR, opacity: isThis ? 1 : 0.6,
+                    opacity:0.6,
                   }}>
                     Optimisé pour capturer vos {feurLocal(gain)} de gain.
                   </div>
@@ -1019,16 +1008,11 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
         <div style={{
           width:"100%",
           borderTop:"0.5px solid rgba(255,255,255,0.10)",
-          marginBottom:34, transition:TR,
-          opacity: isFocused ? 0.15 : 1,
+          marginBottom:34,
         }}/>
 
         {/* Bouton */}
-        <div style={{
-          transition:TR,
-          opacity: isFocused ? 0.12 : 1,
-          filter:  isFocused ? "blur(2px)" : "none",
-        }}>
+        <div>
           <motion.button
             className="btn-cta"
             whileHover={{ scale:1.04, boxShadow:"0 0 0 1px rgba(255,255,255,0.20), 0 8px 30px rgba(0,0,0,0.30)" }}
