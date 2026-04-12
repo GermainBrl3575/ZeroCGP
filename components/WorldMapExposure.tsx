@@ -96,7 +96,15 @@ export default function WorldMapExposure({ weights, geoExposure, loading }: Prop
     svg.call(zoom);
     svg.on("dblclick.zoom", () => { svg.transition().duration(700).ease(d3.easeCubicOut).call(zoom.transform, d3.zoomIdentity); });
     return () => { svg.on(".zoom", null); };
-  }, [worldData]);
+  }, [worldData, loading]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const preventScroll = (e: WheelEvent) => { e.preventDefault(); };
+    container.addEventListener("wheel", preventScroll, { passive: false });
+    return () => container.removeEventListener("wheel", preventScroll);
+  }, []);
 
   const countries = useMemo(() => {
     if (!worldData) return [];
