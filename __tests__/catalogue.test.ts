@@ -1,132 +1,82 @@
-/**
- * Catalogue and flags — tests for asset metadata correctness.
- * Validates av/pea flags, dedup groups, and weight normalization.
- */
+import { norm, dedupFilter, inferType, type Asset } from "@/lib/optimize";
 
-type Asset = {
-  s: string; av: boolean; pea: boolean; dedup?: string;
-  type: string; ter?: number;
-};
-
-// Catalogue flags matching the real DB rules
+// Mini catalogue matching real DB
 const CATALOGUE: Asset[] = [
-  // .PA → always av:true
-  { s:"CW8.PA",   av:true,  pea:true,  dedup:"MSCI_WORLD", type:"etf", ter:0.38 },
-  { s:"PANX.PA",  av:true,  pea:true,  dedup:"MSCI_WORLD", type:"etf", ter:0.38 },
-  { s:"ESE.PA",   av:true,  pea:true,  type:"etf", ter:0.15 },
-  { s:"PAEEM.PA", av:true,  pea:true,  type:"etf", ter:0.20 },
-  { s:"MC.PA",    av:true,  pea:true,  type:"stock" },
-  { s:"OBLI.PA",  av:true,  pea:false, type:"bond" },
-  // .DE → av:false except XGLE.DE
-  { s:"XGLE.DE",  av:true,  pea:false, type:"bond" },
-  { s:"SXR8.DE",  av:false, pea:false, type:"etf" },
-  { s:"EUNL.DE",  av:false, pea:false, type:"etf" },
-  // .L → av:false except SGLD.L and IBGS.L
-  { s:"SGLD.L",   av:true,  pea:false, type:"gold" },
-  { s:"IBGS.L",   av:true,  pea:false, type:"bond" },
-  { s:"SUWS.L",   av:false, pea:false, dedup:"MSCI_WORLD", type:"etf" },
-  { s:"VWRL.L",   av:false, pea:false, type:"etf" },
-  // US
-  { s:"AAPL",     av:false, pea:false, type:"stock" },
-  { s:"MSFT",     av:false, pea:false, type:"stock" },
+  { s:"CW8.PA",  n:"Amundi MSCI World",    zone:"monde",type:"etf",  dedup:"MSCI_WORLD",ter:0.12,pea:true, cto:true,av:true },
+  { s:"PANX.PA", n:"Amundi PEA MSCI World",zone:"monde",type:"etf",  dedup:"MSCI_WORLD",ter:0.13,pea:true, cto:true,av:true },
+  { s:"IWDA.AS", n:"iShares MSCI World",   zone:"monde",type:"etf",  dedup:"MSCI_WORLD",ter:0.20,pea:false,cto:true,av:false },
+  { s:"SUWS.L",  n:"iShares MSCI World ESG",zone:"monde",type:"etf", dedup:"MSCI_WORLD",ter:0.20,pea:false,cto:true,av:false,esg:true },
+  { s:"ESE.PA",  n:"BNP S&P 500",          zone:"usa",  type:"etf",  dedup:"SP500",     ter:0.15,pea:true, cto:true,av:true },
+  { s:"SXR8.DE", n:"iShares S&P 500 EUR",  zone:"usa",  type:"etf",  dedup:"SP500",     ter:0.07,pea:false,cto:true,av:false },
+  { s:"MC.PA",   n:"LVMH",                 zone:"europe",type:"stock",dedup:"MC",        ter:0,   pea:true, cto:true,av:true },
+  { s:"OBLI.PA", n:"Lyxor Euro Govt Bond", zone:"europe",type:"bond", dedup:"EUR_GOV",   ter:0.15,pea:false,cto:true,av:true },
+  { s:"XGLE.DE", n:"Xtrackers Euro Govt",  zone:"europe",type:"bond", dedup:"EUR_GOV_DE",ter:0.15,pea:false,cto:true,av:true },
+  { s:"SGLD.L",  n:"iShares Gold",         zone:"monde",type:"gold",  dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true,av:true },
+  { s:"IBGS.L",  n:"iShares EUR Govt 1-3", zone:"europe",type:"bond", dedup:"EUR_GOV_ST",ter:0.20,pea:false,cto:true,av:true },
+  { s:"EUNL.DE", n:"iShares MSCI World EUR",zone:"monde",type:"etf", dedup:"MSCI_WORLD_DE",ter:0.20,pea:false,cto:true,av:false },
 ];
 
-describe("AV flag rules", () => {
+describe("norm()", () => {
+  test("lowercases", () => { expect(norm("HELLO")).toBe("hello"); });
+  test("replaces accents: é→e", () => { expect(norm("Modéré")).toBe("modere"); });
+  test("replaces accents: à→a", () => { expect(norm("Déjà")).toBe("deja"); });
+  test("replaces ç→c", () => { expect(norm("français")).toBe("francais"); });
+  test("replaces î→i, ô→o, û→u", () => { expect(norm("île côte sûr")).toBe("ile cote sur"); });
+  test("no-op on plain ASCII", () => { expect(norm("hello world")).toBe("hello world"); });
+});
+
+describe("dedupFilter()", () => {
+  test("keeps lowest TER per dedup group", () => {
+    const filtered = dedupFilter(CATALOGUE);
+    const msci = filtered.filter(a => a.dedup === "MSCI_WORLD");
+    expect(msci).toHaveLength(1);
+    expect(msci[0].s).toBe("CW8.PA"); // ter 0.12 < 0.13 < 0.20
+  });
+
+  test("SP500 dedup keeps SXR8.DE (ter 0.07)", () => {
+    const filtered = dedupFilter(CATALOGUE);
+    const sp = filtered.filter(a => a.dedup === "SP500");
+    expect(sp).toHaveLength(1);
+    expect(sp[0].s).toBe("SXR8.DE");
+  });
+
+  test("unique dedups are all kept", () => {
+    const filtered = dedupFilter(CATALOGUE);
+    const dedups = new Set(filtered.map(a => a.dedup));
+    // Each dedup should appear exactly once
+    expect(filtered.length).toBe(dedups.size);
+  });
+
+  test("output length <= input length", () => {
+    const filtered = dedupFilter(CATALOGUE);
+    expect(filtered.length).toBeLessThanOrEqual(CATALOGUE.length);
+  });
+});
+
+describe("inferType()", () => {
+  test("EUR_GOV → bond", () => { expect(inferType("EUR_GOV", "etf")).toBe("bond"); });
+  test("GLOBAL_AGG → bond", () => { expect(inferType("GLOBAL_AGG", "etf")).toBe("bond"); });
+  test("GOLD_EU → gold", () => { expect(inferType("GOLD_EU", "etf")).toBe("gold"); });
+  test("GOLD_MINERS → gold", () => { expect(inferType("GOLD_MINERS", "stock")).toBe("gold"); });
+  test("US_REITS → reit", () => { expect(inferType("US_REITS", "etf")).toBe("reit"); });
+  test("BTC → crypto", () => { expect(inferType("BTC", "crypto")).toBe("crypto"); });
+  test("ETH → crypto", () => { expect(inferType("ETH", "crypto")).toBe("crypto"); });
+  test("stock type preserved", () => { expect(inferType("MC", "stock")).toBe("stock"); });
+  test("unknown dedup + etf → etf", () => { expect(inferType("MSCI_WORLD", "etf")).toBe("etf"); });
+  test("NAT_RES → commodity", () => { expect(inferType("NAT_RES", "etf")).toBe("commodity"); });
+});
+
+describe("AV flag rules on catalogue", () => {
   test("all .PA assets have av:true", () => {
-    const pa = CATALOGUE.filter(a => a.s.endsWith(".PA"));
-    expect(pa.length).toBeGreaterThan(0);
-    expect(pa.every(a => a.av)).toBe(true);
+    CATALOGUE.filter(a => a.s.endsWith(".PA")).forEach(a => expect(a.av).toBe(true));
   });
-
-  test("XGLE.DE has av:true (exception)", () => {
-    const xgle = CATALOGUE.find(a => a.s === "XGLE.DE");
-    expect(xgle?.av).toBe(true);
+  test("XGLE.DE has av:true", () => { expect(CATALOGUE.find(a => a.s === "XGLE.DE")?.av).toBe(true); });
+  test("SGLD.L has av:true", () => { expect(CATALOGUE.find(a => a.s === "SGLD.L")?.av).toBe(true); });
+  test("IBGS.L has av:true", () => { expect(CATALOGUE.find(a => a.s === "IBGS.L")?.av).toBe(true); });
+  test(".DE (except XGLE.DE) have av:false", () => {
+    CATALOGUE.filter(a => a.s.endsWith(".DE") && a.s !== "XGLE.DE").forEach(a => expect(a.av).toBe(false));
   });
-
-  test("SGLD.L has av:true (exception)", () => {
-    const sgld = CATALOGUE.find(a => a.s === "SGLD.L");
-    expect(sgld?.av).toBe(true);
-  });
-
-  test("IBGS.L has av:true (exception)", () => {
-    const ibgs = CATALOGUE.find(a => a.s === "IBGS.L");
-    expect(ibgs?.av).toBe(true);
-  });
-
-  test(".DE assets (except XGLE.DE) have av:false", () => {
-    const de = CATALOGUE.filter(a => a.s.endsWith(".DE") && a.s !== "XGLE.DE");
-    expect(de.length).toBeGreaterThan(0);
-    expect(de.every(a => !a.av)).toBe(true);
-  });
-
-  test(".L assets (except SGLD.L/IBGS.L) have av:false", () => {
-    const l = CATALOGUE.filter(a => a.s.endsWith(".L") && a.s !== "SGLD.L" && a.s !== "IBGS.L");
-    expect(l.length).toBeGreaterThan(0);
-    expect(l.every(a => !a.av)).toBe(true);
-  });
-});
-
-describe("Dedup groups", () => {
-  test("SUWS.L has dedup=MSCI_WORLD (same as CW8.PA)", () => {
-    const suws = CATALOGUE.find(a => a.s === "SUWS.L");
-    expect(suws?.dedup).toBe("MSCI_WORLD");
-  });
-
-  test("CW8.PA and PANX.PA share dedup=MSCI_WORLD", () => {
-    const cw8 = CATALOGUE.find(a => a.s === "CW8.PA");
-    const panx = CATALOGUE.find(a => a.s === "PANX.PA");
-    expect(cw8?.dedup).toBe("MSCI_WORLD");
-    expect(panx?.dedup).toBe("MSCI_WORLD");
-    expect(cw8?.dedup).toBe(panx?.dedup);
-  });
-
-  test("assets without dedup are independent", () => {
-    const noDup = CATALOGUE.filter(a => !a.dedup);
-    expect(noDup.length).toBeGreaterThan(5);
-  });
-});
-
-describe("Weight normalization", () => {
-  test("weights sum to 100% after normalization", () => {
-    const raw = [32.8, 25.1, 18.2, 12.5, 8.4, 3.0];
-    const total = raw.reduce((a, b) => a + b, 0);
-    const normalized = raw.map(w => (w / total) * 100);
-    const sum = normalized.reduce((a, b) => a + b, 0);
-    expect(Math.abs(sum - 100)).toBeLessThan(0.01);
-  });
-
-  test("normalization preserves relative order", () => {
-    const raw = [32.8, 25.1, 18.2, 12.5, 8.4];
-    const total = raw.reduce((a, b) => a + b, 0);
-    const normalized = raw.map(w => (w / total) * 100);
-    for (let i = 0; i < normalized.length - 1; i++) {
-      expect(normalized[i]).toBeGreaterThan(normalized[i + 1]);
-    }
-  });
-
-  test("zero weights stay zero after normalization", () => {
-    const raw = [50, 30, 20, 0, 0];
-    const total = raw.reduce((a, b) => a + b, 0);
-    const normalized = raw.map(w => total > 0 ? (w / total) * 100 : 0);
-    expect(normalized[3]).toBe(0);
-    expect(normalized[4]).toBe(0);
-    expect(Math.abs(normalized[0] + normalized[1] + normalized[2] - 100)).toBeLessThan(0.01);
-  });
-});
-
-describe("PEA flag rules", () => {
-  test("all .PA etf/stock assets have pea:true", () => {
-    const paEquity = CATALOGUE.filter(a => a.s.endsWith(".PA") && (a.type === "etf" || a.type === "stock"));
-    expect(paEquity.every(a => a.pea)).toBe(true);
-  });
-
-  test(".PA bonds have pea:false", () => {
-    const paBonds = CATALOGUE.filter(a => a.s.endsWith(".PA") && a.type === "bond");
-    expect(paBonds.every(a => !a.pea)).toBe(true);
-  });
-
-  test("US stocks have pea:false", () => {
-    const us = CATALOGUE.filter(a => !a.s.includes("."));
-    expect(us.every(a => !a.pea)).toBe(true);
+  test("SUWS.L has dedup MSCI_WORLD", () => {
+    expect(CATALOGUE.find(a => a.s === "SUWS.L")?.dedup).toBe("MSCI_WORLD");
   });
 });

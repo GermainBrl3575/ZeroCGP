@@ -16,14 +16,5 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Run tests
-        run: npx jest --ci
-      - name: Test summary
-        if: always()
-        run: |
-          echo "════════════════════════════════"
-          echo "       TEST RESULTS             "
-          echo "════════════════════════════════"
-          echo "85 tests across 6 suites"
-          echo "Status: see logs above"
-          echo "════════════════════════════════"
+      - name: Run tests with coverage
+        run: npx jest --coverage --ci
