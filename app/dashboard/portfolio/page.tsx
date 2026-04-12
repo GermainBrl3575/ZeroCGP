@@ -129,32 +129,29 @@ function PortfolioInner() {
         } catch {}
       }
 
-      // ── Performances historiques par actif (1M, 6M, 1A, 5A, 10A) ──
+      // ── Performances historiques par actif via Yahoo Finance ──
       const perfsMap: Record<string,{p1d:number;p1m:number;p3m:number;p6m:number;p1a:number;p5a:number;p10a:number}> = {};
-      await Promise.all(
-        final.map(async (a) => {
-          try {
-            const r = await fetch(`/api/market/history?symbol=${a.symbol}&period=10y`);
-            const d = await r.json();
-            if (!d.data?.length) return;
-            const prices = d.data as {date:string;close:number}[];
-            const last   = prices[prices.length-1].close;
-            const ago = (weeks: number) => {
-              const idx = Math.max(0, prices.length - 1 - weeks);
-              return prices[idx].close;
+      try {
+        const r = await fetch("/api/market/perf", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ symbols: final.map(a => a.symbol) }),
+        });
+        const d = await r.json();
+        if (d.perfs) {
+          for (const [sym, p] of Object.entries(d.perfs) as [string, Record<string,number>][]) {
+            perfsMap[sym] = {
+              p1d: p["1D"] ?? 0,
+              p1m: p["1M"] ?? 0,
+              p3m: p["3M"] ?? 0,
+              p6m: p["6M"] ?? 0,
+              p1a: p["1Y"] ?? 0,
+              p5a: p["5Y"] ?? 0,
+              p10a: 0,
             };
-            perfsMap[a.symbol] = {
-              p1d:  a.performance24h ?? 0,
-              p1m:  parseFloat(((last - ago(4))   / ago(4)   * 100).toFixed(2)),
-              p3m:  parseFloat(((last - ago(13))  / ago(13)  * 100).toFixed(2)),
-              p6m:  parseFloat(((last - ago(26))  / ago(26)  * 100).toFixed(2)),
-              p1a:  parseFloat(((last - ago(52))  / ago(52)  * 100).toFixed(2)),
-              p5a:  parseFloat(((last - ago(260)) / ago(260) * 100).toFixed(2)),
-              p10a: parseFloat(((last - ago(520)) / ago(520) * 100).toFixed(2)),
-            };
-          } catch {}
-        })
-      );
+          }
+        }
+      } catch {}
       setAssetPerfs(perfsMap);
       setLoading(false);
     }
