@@ -57,7 +57,7 @@ export default function RegisterPage() {
   ];
 
   return (
-    <AuthLayout leftTitle1={t1} leftTitle2={t2}
+    <AuthLayout title1={t1} title2={t2}
       leftSub={<>Créez votre compte en 30 secondes.<br/>Aucune carte bancaire requise.<br/>Vos données restent privées et sécurisées.</>}>
 
       <div style={{...stg(4),fontSize:10,fontWeight:500,letterSpacing:".12em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)",marginBottom:28,cursor:"pointer"}} onClick={()=>router.push("/")}>← Retour</div>

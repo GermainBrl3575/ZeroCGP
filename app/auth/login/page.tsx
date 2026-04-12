@@ -44,7 +44,7 @@ export default function LoginPage() {
   });
 
   return (
-    <AuthLayout leftTitle1={t1} leftTitle2={t2}
+    <AuthLayout title1={t1} title2={t2}
       leftSub={<>Votre portefeuille vous attend.<br/>Connectez-vous pour accéder<br/>à vos analyses et optimisations.</>}>
 
       <div style={{...stg(4),fontSize:10,fontWeight:500,letterSpacing:".12em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)",marginBottom:28,cursor:"pointer"}} onClick={()=>router.push("/")}>← Retour</div>
