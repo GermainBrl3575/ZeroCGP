@@ -386,6 +386,7 @@ function OptimizerInner() {
       const assets=selR.weights.filter(w=>w.weight>0).map(w=>({portfolio_id:pf.id,symbol:w.symbol,name:w.name,type:w.type,quantity:parseFloat((w.amount/100).toFixed(4)),weight:w.weight,target_amount:w.amount}));
       if(assets.length>0){const{error:ae}=await supabase.from("portfolio_assets").insert(assets);if(ae)throw new Error();}
       router.push(`/dashboard/portfolio?id=${pf.id}`);
+      router.refresh();
     }catch{setSaveError("Erreur enregistrement. Réessayez.");setSaving(false);}
   }
 
