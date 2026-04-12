@@ -85,18 +85,18 @@ const METRIC_INFO: Record<string, string> = {
 };
 
 // ─── Bulle info ────────────────────────────────────────────────────────────────
-function InfoBubble({ text, dark }: { text: string; dark?: boolean }) {
+function InfoBubble({ text, dark, onToggle }: { text: string; dark?: boolean; onToggle?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
-    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); onToggle?.(false); } };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
   return (
     <div ref={ref} style={{ position:"relative", display:"inline-flex", alignItems:"center" }}>
-      <button onClick={e=>{e.stopPropagation();setOpen(!open)}} style={{
+      <button onClick={e=>{e.stopPropagation();const next=!open;setOpen(next);onToggle?.(next);}} style={{
         width:16,height:16,borderRadius:"50%",
         background:dark?"rgba(255,255,255,0.15)":"rgba(30,58,110,0.12)",
         border:"none",color:dark?"rgba(255,255,255,0.7)":NAVY_MID,
@@ -277,6 +277,10 @@ function OptimizerInner() {
   const [sel, setSel] = useState("maxsharpe");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [saveModalOpen, setSaveModalOpen] = useState(false);
+  const [saveName, setSaveName] = useState("Portefeuille Zero CGP");
+  const [saveStatus, setSaveStatus] = useState<"simulated"|"active">("simulated");
+  const [bubbleOpenCard, setBubbleOpenCard] = useState<string|null>(null);
   const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
   const [geoLoading, setGeoLoading] = useState(false);
   const [tab, setTab] = useState<"allocation"|"geo"|"apply">("allocation");
@@ -368,16 +372,16 @@ function OptimizerInner() {
     },stepDur);
   }
 
-  async function handleSave(){
+  async function handleSave(name?: string, status?: string){
     setSaving(true);setSaveError("");
     const selR = results.find(r=>r.method===sel);
     if(!selR){setSaveError("Aucun résultat.");setSaving(false);return;}
     try{
       const{data:{user}}=await supabase.auth.getUser();
       if(!user){router.push("/auth/login");return;}
-      const{count}=await supabase.from("portfolios").select("id",{count:"exact",head:true}).eq("user_id",user.id).eq("type","optimized");
-      const n=(count??0)+1;
-      const{data:pf,error:pfErr}=await supabase.from("portfolios").insert({user_id:user.id,name:`Portefeuille Zero CGP ${n}`,type:"optimized"}).select().single();
+      const pfName = name || saveName || "Portefeuille Zero CGP";
+      const pfType = status === "active" ? "active" : "optimized";
+      const{data:pf,error:pfErr}=await supabase.from("portfolios").insert({user_id:user.id,name:pfName,type:pfType}).select().single();
       if(pfErr||!pf)throw new Error();
       const assets=selR.weights.filter(w=>w.weight>0).map(w=>({portfolio_id:pf.id,symbol:w.symbol,name:w.name,type:w.type,quantity:parseFloat((w.amount/100).toFixed(4)),weight:w.weight,target_amount:w.amount}));
       if(assets.length>0){const{error:ae}=await supabase.from("portfolio_assets").insert(assets);if(ae)throw new Error();}
@@ -570,6 +574,7 @@ function OptimizerInner() {
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
+            zIndex:bubbleOpenCard===r.method?50:1,
             background:isSel?"linear-gradient(145deg,#0c1a2e,#1a3a6a)":"rgba(255,255,255,.72)",
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
             boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
@@ -579,7 +584,7 @@ function OptimizerInner() {
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
+              <div onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel} onToggle={o=>setBubbleOpenCard(o?r.method:null)}/></div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -592,7 +597,7 @@ function OptimizerInner() {
                 <div key={lbl}>
                   <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
                     <span style={{fontSize:9,fontWeight:500,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</span>
-                    <span onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={tip} dark={isSel}/></span>
+                    <span onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200,opacity:isSel?1:0,pointerEvents:isSel?"auto":"none",transition:"opacity 0.5s cubic-bezier(.16,1,.3,1)"}}><InfoBubble text={tip} dark={isSel} onToggle={o=>setBubbleOpenCard(o?r.method:null)}/></span>
                   </div>
                   <div style={{fontSize:20,fontWeight:500,color:col,fontVariantNumeric:"tabular-nums"}}>{val}</div>
                 </div>
@@ -835,8 +840,43 @@ function OptimizerInner() {
       {saveError&&<p style={{color:"rgba(155,50,48,.8)",fontSize:12,marginBottom:12}}>{saveError}</p>}
       <div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:8}}>
         <button className="btn-out" onClick={()=>{setStep(0);setResults([]);setCalcPct(0);setCalcStepIdx(0);setAnswers({});setSaveError("");}}>Recommencer</button>
-        <button onClick={handleSave} disabled={saving} className="btn-cta">{saving?"Enregistrement...":"Enregistrer ce portefeuille"}</button>
+        <button onClick={()=>setSaveModalOpen(true)} disabled={saving} className="btn-cta">{saving?"Enregistrement...":"Enregistrer ce portefeuille"}</button>
       </div>
+
+      {/* Save modal */}
+      {saveModalOpen&&(
+        <div style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(5,11,20,0.5)",backdropFilter:"blur(4px)",display:"flex",alignItems:"center",justifyContent:"center",animation:"fadeIn .3s ease"}} onClick={()=>setSaveModalOpen(false)}>
+          <div onClick={e=>e.stopPropagation()} style={{background:"white",borderRadius:12,padding:"36px 40px",width:440,boxShadow:"0 20px 60px rgba(0,0,0,.15)",animation:"fadeUp .4s cubic-bezier(.23,1,.32,1)"}}>
+            <h3 style={{fontSize:20,fontWeight:500,color:"rgba(5,11,20,0.88)",letterSpacing:"-.02em",marginBottom:20,fontFamily:"Inter,sans-serif"}}>Enregistrer le portefeuille</h3>
+
+            <label style={{fontSize:10,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)",display:"block",marginBottom:8}}>Nom du portefeuille</label>
+            <input type="text" value={saveName} onChange={e=>setSaveName(e.target.value)} placeholder="Mon portefeuille optimisé" style={{width:"100%",padding:"14px 18px",fontSize:14,fontWeight:400,border:"0.5px solid rgba(5,11,20,.09)",borderRadius:6,background:"rgba(255,255,255,.72)",outline:"none",fontFamily:"Inter,sans-serif",marginBottom:24,transition:"border 0.7s cubic-bezier(.16,1,.3,1)",boxSizing:"border-box"}}/>
+
+            <label style={{fontSize:10,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)",display:"block",marginBottom:12}}>Statut du portefeuille</label>
+
+            <div onClick={()=>setSaveStatus("simulated")} style={{padding:"14px 18px",borderRadius:6,marginBottom:8,cursor:"pointer",border:saveStatus==="simulated"?".5px solid rgba(26,58,106,.45)":"0.5px solid rgba(5,11,20,.09)",background:saveStatus==="simulated"?"rgba(26,58,106,0.04)":"rgba(255,255,255,.72)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                <span style={{fontSize:9,fontWeight:600,padding:"2px 8px",borderRadius:4,background:"rgba(201,168,76,0.12)",color:"#c9a84c",letterSpacing:".04em"}}>0CGP</span>
+                <span style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,0.88)"}}>Simulation</span>
+              </div>
+              <div style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.4)",lineHeight:1.6,paddingLeft:50}}>Portefeuille optimisé par Zero CGP, non encore appliqué à vos comptes. Vous pourrez le comparer et l'appliquer plus tard.</div>
+            </div>
+
+            <div onClick={()=>setSaveStatus("active")} style={{padding:"14px 18px",borderRadius:6,marginBottom:24,cursor:"pointer",border:saveStatus==="active"?".5px solid rgba(22,90,52,.35)":"0.5px solid rgba(5,11,20,.09)",background:saveStatus==="active"?"rgba(22,90,52,0.03)":"rgba(255,255,255,.72)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:4}}>
+                <span style={{fontSize:9,fontWeight:600,padding:"2px 8px",borderRadius:4,background:"rgba(22,90,52,0.1)",color:"rgba(22,90,52,0.8)",letterSpacing:".04em"}}>ACTIF</span>
+                <span style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,0.88)"}}>Appliqué</span>
+              </div>
+              <div style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.4)",lineHeight:1.6,paddingLeft:50}}>Vous avez investi dans ce portefeuille. Zero CGP suivra ses performances et vous alertera si un rééquilibrage est nécessaire.</div>
+            </div>
+
+            <div style={{display:"flex",justifyContent:"flex-end",gap:10}}>
+              <button onClick={()=>setSaveModalOpen(false)} style={{padding:"12px 24px",border:"0.5px solid rgba(5,11,20,.09)",borderRadius:6,background:"transparent",cursor:"pointer",fontSize:11,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(5,11,20,0.6)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)",fontFamily:"Inter,sans-serif"}}>Annuler</button>
+              <button className="btn-cta" onClick={()=>{handleSave(saveName,saveStatus);setSaveModalOpen(false);}}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
       </Sheet>
     </div></>);
   }
