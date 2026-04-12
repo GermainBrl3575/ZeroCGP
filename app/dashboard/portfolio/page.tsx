@@ -40,7 +40,7 @@ function PortfolioInner() {
   const [period,   setPeriod]   = useState("1M");
   const [loading,  setLoading]  = useState(true);
   const [perfData, setPerfData] = useState<{j:string;v:number;p:number}[]>([]);
-  const [assetPerfs, setAssetPerfs] = useState<Record<string,{p1m:number;p6m:number;p1a:number;p5a:number;p10a:number}>>({});
+  const [assetPerfs, setAssetPerfs] = useState<Record<string,{p1d:number;p1m:number;p3m:number;p6m:number;p1a:number;p5a:number;p10a:number}>>({});
   const [showPct,  setShowPct]  = useState(false);
 
   useEffect(() => {
@@ -130,9 +130,9 @@ function PortfolioInner() {
       }
 
       // ── Performances historiques par actif (1M, 6M, 1A, 5A, 10A) ──
-      const perfsMap: Record<string,{p1m:number;p6m:number;p1a:number;p5a:number;p10a:number}> = {};
+      const perfsMap: Record<string,{p1d:number;p1m:number;p3m:number;p6m:number;p1a:number;p5a:number;p10a:number}> = {};
       await Promise.all(
-        final.slice(0, 8).map(async (a) => { // max 8 actifs pour limiter les requêtes
+        final.map(async (a) => {
           try {
             const r = await fetch(`/api/market/history?symbol=${a.symbol}&period=10y`);
             const d = await r.json();
@@ -144,7 +144,9 @@ function PortfolioInner() {
               return prices[idx].close;
             };
             perfsMap[a.symbol] = {
+              p1d:  a.performance24h ?? 0,
               p1m:  parseFloat(((last - ago(4))   / ago(4)   * 100).toFixed(2)),
+              p3m:  parseFloat(((last - ago(13))  / ago(13)  * 100).toFixed(2)),
               p6m:  parseFloat(((last - ago(26))  / ago(26)  * 100).toFixed(2)),
               p1a:  parseFloat(((last - ago(52))  / ago(52)  * 100).toFixed(2)),
               p5a:  parseFloat(((last - ago(260)) / ago(260) * 100).toFixed(2)),
@@ -244,7 +246,7 @@ function PortfolioInner() {
               ))}
             </div>
           </div>
-          <Treemap assets={assets}/>
+          <Treemap assets={assets} perfs={assetPerfs}/>
         </div>
 
         {!isOpt && (
