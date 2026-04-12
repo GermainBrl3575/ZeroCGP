@@ -282,6 +282,8 @@ function OptimizerInner() {
   const [tab, setTab] = useState<"allocation"|"geo"|"apply">("allocation");
   const [assetPrices, setAssetPrices] = useState<Record<string,number>>({});
   const [pricesLoading, setPricesLoading] = useState(false);
+  const [checkedOrders, setCheckedOrders] = useState<Set<string>>(new Set());
+  const [copiedIsin, setCopiedIsin] = useState<string|null>(null);
 
   // Fetch asset prices when apply tab is selected
   useEffect(() => {
@@ -660,109 +662,161 @@ function OptimizerInner() {
       )}
 
       {tab==="apply"&&selR.weights&&selR.weights.length>0&&(()=>{
-        const supports = answers[8] || "[]";
+        const supportInfo: Record<string,{label:string;fullName:string;color:string;bgColor:string;desc:string}> = {
+          PEA:{label:"PEA",fullName:"Plan d'Épargne en Actions",color:"#1a3a6a",bgColor:"rgba(26,58,106,0.06)",desc:"Fiscalité avantageuse après 5 ans · Plafonné à 150 000 €"},
+          CTO:{label:"CTO",fullName:"Compte-Titres Ordinaire",color:"rgba(22,90,52,0.8)",bgColor:"rgba(22,90,52,0.05)",desc:"Aucune restriction d'actifs · Flat Tax 30%"},
+          Crypto:{label:"Crypto",fullName:"Plateforme crypto",color:"#D97706",bgColor:"rgba(217,119,6,0.05)",desc:"Binance, Coinbase ou cold wallet"},
+        };
+        const supportsRaw = answers[8] || "[]";
         let userSupports: string[] = [];
-        try { userSupports = JSON.parse(supports).map((c:{type:string})=>c.type); } catch { userSupports = []; }
+        try { userSupports = JSON.parse(supportsRaw).map((c:{type:string})=>c.type); } catch { userSupports = []; }
         const hasPEA = userSupports.includes("PEA");
 
         function getSupport(sym: string): string {
           if (sym.match(/BTC|ETH|SOL|ADA|DOT|AVAX/i)) return "Crypto";
-          if (sym.endsWith(".PA") || sym.endsWith(".AS") || sym.endsWith(".DE") || sym.endsWith(".MI") || sym.endsWith(".MC") || sym.endsWith(".BR")) return hasPEA ? "PEA" : "CTO";
-          if (sym.endsWith(".L") || sym.endsWith(".SW") || sym.endsWith(".ST")) return "CTO";
+          if (sym.endsWith(".PA")||sym.endsWith(".AS")||sym.endsWith(".DE")||sym.endsWith(".MI")||sym.endsWith(".MC")||sym.endsWith(".BR")) return hasPEA?"PEA":"CTO";
+          if (sym.endsWith(".L")||sym.endsWith(".SW")||sym.endsWith(".ST")) return "CTO";
           if (!sym.includes(".")) return "CTO";
           return "CTO";
         }
 
-        const orders = selR.weights.map(w => {
+        function toggleCheck(sym: string) {
+          setCheckedOrders(prev => { const next = new Set(prev); if (next.has(sym)) next.delete(sym); else next.add(sym); return next; });
+        }
+
+        const enriched = selR.weights.map(w => {
+          const price = assetPrices[w.symbol]||0;
+          const base = baseSymbol(w.symbol);
+          const isin = ASSET_DB[base]?.isin || w.isin || "";
+          const targetAmount = w.amount;
+          const qty = price>0 ? Math.floor(targetAmount/price) : 0;
+          const invested = Math.round(qty*price);
+          const remainder = Math.round(targetAmount - qty*price);
           const support = getSupport(w.symbol);
-          const price = assetPrices[w.symbol] || 0;
-          const qty = price > 0 ? Math.floor(w.amount / price) : 0;
-          const invested = qty * price;
-          const remainder = w.amount - invested;
-          return { ...w, support, price, qty, invested, remainder };
+          return {...w,price,isin,qty,invested,remainder,support};
         });
 
-        const bySupport: Record<string,number> = {};
-        orders.forEach(o => { bySupport[o.support] = (bySupport[o.support]||0) + 1; });
-        const totalInvested = orders.reduce((s, o) => s + (o.price > 0 ? o.invested : o.amount), 0);
-        const totalRemainder = cap - totalInvested;
-        const supportSummary = Object.entries(bySupport).map(([s,n]) => `${n} sur ${s}`).join(" · ");
-        const SAP = "#1a3a6a";
-        const TC: Record<string,{bg:string;c:string}> = {etf:{bg:"rgba(26,58,106,.08)",c:SAP},stock:{bg:"rgba(22,90,52,.08)",c:"rgba(22,90,52,.8)"},bond:{bg:"rgba(5,11,20,.06)",c:"rgba(5,11,20,.5)"},gold:{bg:"rgba(180,140,0,.08)",c:"rgba(160,120,0,.7)"},crypto:{bg:"rgba(180,80,0,.08)",c:"rgba(180,80,0,.7)"},reit:{bg:"rgba(120,60,140,.08)",c:"rgba(120,60,140,.7)"}};
+        const groups: Record<string,typeof enriched> = {};
+        enriched.forEach(a => { if (!groups[a.support]) groups[a.support]=[]; groups[a.support].push(a); });
+        const totalInvested = enriched.reduce((s,a) => s + (a.price>0?a.invested:a.amount),0);
+        const totalOrders = enriched.length;
+        const completedOrders = enriched.filter(a => checkedOrders.has(a.symbol)).length;
 
         return (
           <div style={{marginBottom:24}}>
-            <h3 style={{fontFamily:"'Inter',sans-serif",fontSize:22,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.02em",marginBottom:6}}>Comment investir ?</h3>
-            <p style={{fontSize:13,fontWeight:400,color:"rgba(5,11,20,.52)",marginBottom:24,fontFamily:"Inter,sans-serif",lineHeight:1.7}}>
-              Voici exactement quoi acheter, combien, et sur quel support pour reproduire ce portefeuille avec votre capital de {eur(cap)}.
+            <h3 style={{fontSize:22,fontWeight:500,color:"rgba(5,11,20,0.88)",letterSpacing:"-.02em",marginBottom:6,fontFamily:"Inter,sans-serif"}}>Comment investir ?</h3>
+            <p style={{fontSize:13,fontWeight:400,color:"rgba(5,11,20,0.36)",marginBottom:20,fontFamily:"Inter,sans-serif",maxWidth:560}}>
+              Passez ces {totalOrders} ordres pour reproduire le portefeuille avec {eur(cap)}. Cochez chaque ordre une fois passé.
             </p>
 
-            {/* Summary */}
-            <div style={{display:"flex",gap:24,marginBottom:24,padding:"16px 20px",background:"rgba(26,58,106,.04)",borderRadius:8,border:".5px solid rgba(26,58,106,.08)"}}>
-              <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>ORDRES</div><div style={{fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{orders.length}</div></div>
-              <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>RÉPARTITION</div><div style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.65)"}}>{supportSummary}</div></div>
-              <div style={{marginLeft:"auto"}}><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>CAPITAL</div><div style={{fontSize:16,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(cap)}</div></div>
+            {/* Bandeau ISIN */}
+            <div style={{padding:"12px 18px",borderRadius:6,marginBottom:24,background:"rgba(26,58,106,0.04)",border:".5px solid rgba(26,58,106,0.08)",display:"flex",alignItems:"center",gap:12}}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1a3a6a" strokeWidth="1.5" strokeLinecap="round" opacity={0.5}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,0.52)",lineHeight:1.6}}>Tapez le code ISIN dans la barre de recherche de votre banque ou courtier pour retrouver chaque actif. Cliquez sur un code ISIN pour le copier.</span>
             </div>
 
-            {pricesLoading && <div style={{textAlign:"center",padding:24,color:"rgba(5,11,20,.3)",fontSize:11,letterSpacing:".1em"}}>Récupération des prix en temps réel…</div>}
+            {/* Barre de progression */}
+            <div style={{marginBottom:28}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:8}}>
+                <span style={{fontSize:10,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)"}}>Progression</span>
+                <span style={{fontSize:11,fontWeight:500,color:completedOrders===totalOrders?"rgba(22,90,52,0.75)":"#1a3a6a",fontVariantNumeric:"tabular-nums"}}>{completedOrders}/{totalOrders} ordres passés</span>
+              </div>
+              <div style={{height:3,borderRadius:2,background:"rgba(26,58,106,.06)",overflow:"hidden"}}>
+                <div style={{height:"100%",borderRadius:2,width:`${totalOrders>0?(completedOrders/totalOrders)*100:0}%`,background:completedOrders===totalOrders?"linear-gradient(90deg, rgba(22,90,52,0.5), rgba(22,90,52,0.75))":"linear-gradient(90deg, rgba(26,58,106,0.25), #1a3a6a)",boxShadow:completedOrders>0?"0 0 6px rgba(26,58,106,0.25)":"none",transition:"width 0.8s cubic-bezier(.16,1,.3,1), background 0.5s ease"}}/>
+              </div>
+            </div>
 
-            {/* Order cards */}
-            {orders.map((o, oi) => {
-              const tc = TC[o.type] || TC.etf;
+            {/* 3 Stats */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:36}}>
+              {[{label:"Capital total",value:eur(cap)},{label:"Capital investi",value:eur(totalInvested),sub:`${((totalInvested/cap)*100).toFixed(1)}%`},{label:"Liquidités restantes",value:eur(cap-totalInvested),sub:"Arrondis de parts"}].map(c=>(
+                <div key={c.label} style={{padding:"18px 20px",borderRadius:8,background:"rgba(255,255,255,.65)",border:"0.5px solid rgba(5,11,20,.09)",boxShadow:"0 2px 12px rgba(0,0,0,.018)"}}>
+                  <div style={{fontSize:9,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:"rgba(5,11,20,0.36)",marginBottom:8}}>{c.label}</div>
+                  <div style={{fontSize:22,fontWeight:500,color:"rgba(5,11,20,0.88)",fontVariantNumeric:"tabular-nums",letterSpacing:"-.02em"}}>{c.value}</div>
+                  {c.sub&&<div style={{fontSize:10,fontWeight:400,color:"rgba(5,11,20,0.36)",marginTop:4}}>{c.sub}</div>}
+                </div>
+              ))}
+            </div>
+
+            {pricesLoading&&<div style={{textAlign:"center",padding:24,color:"rgba(5,11,20,.3)",fontSize:11,letterSpacing:".1em"}}>Récupération des prix en temps réel…</div>}
+
+            {/* Groups by support */}
+            {Object.entries(groups).map(([support,items],gi)=>{
+              const info = supportInfo[support]||supportInfo.CTO;
+              const groupTotal = items.reduce((s,a)=>s+(a.price>0?a.invested:a.amount),0);
+              const groupRemainder = items.reduce((s,a)=>s+a.remainder,0);
+              const allChecked = items.every(a=>checkedOrders.has(a.symbol));
               return (
-                <div key={o.symbol} style={{animation:`cardIn .4s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${oi*0.04}s`}}>
-                  <div style={{borderRadius:6,border:".5px solid rgba(5,11,20,.09)",padding:"20px 22px",background:"rgba(255,255,255,.72)",boxShadow:"0 1px 2px rgba(0,0,0,.015)",marginBottom:o.price>0?2:10}}>
-                    {/* Line 1: badge + symbol + name */}
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
-                      <span style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,background:tc.bg,color:tc.c,textTransform:"uppercase",letterSpacing:".04em"}}>{o.type}</span>
-                      <span style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{o.symbol}</span>
-                      <span style={{fontSize:12,fontWeight:400,color:"rgba(5,11,20,.4)"}}>{o.name}</span>
+                <div key={support} style={{marginBottom:32}}>
+                  {/* Support header */}
+                  <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:16,paddingBottom:12,borderBottom:".5px solid rgba(5,11,20,0.07)"}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:allChecked?"rgba(22,90,52,0.75)":info.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:500,color:"white",transition:"background 0.5s cubic-bezier(.16,1,.3,1)",boxShadow:allChecked?"0 0 8px rgba(22,90,52,0.3)":"none"}}>
+                      {allChecked?"✓":gi+1}
                     </div>
-                    {/* Line 2: 4 columns */}
-                    <div style={{display:"grid",gridTemplateColumns:o.price>0?"1fr 1fr 1fr 1fr":"1fr 1fr 1fr",gap:16}}>
-                      {o.price > 0 && (
-                        <div>
-                          <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Quantité</div>
-                          <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{o.qty} <span style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,.4)"}}>parts</span></div>
-                        </div>
-                      )}
-                      {o.price > 0 && (
-                        <div>
-                          <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Prix unitaire</div>
-                          <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.65)",fontVariantNumeric:"tabular-nums"}}>{eur(o.price)}</div>
-                        </div>
-                      )}
-                      <div>
-                        <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Montant</div>
-                        <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)",fontVariantNumeric:"tabular-nums"}}>{eur(o.price>0?o.invested:o.amount)}</div>
+                    <div style={{flex:1}}>
+                      <div style={{display:"flex",alignItems:"baseline",gap:8}}>
+                        <span style={{fontSize:15,fontWeight:500,color:"rgba(5,11,20,0.88)"}}>{info.fullName}</span>
+                        <span style={{fontSize:9,fontWeight:500,padding:"2px 8px",borderRadius:4,background:info.bgColor,color:info.color,letterSpacing:".04em"}}>{info.label}</span>
                       </div>
-                      <div>
-                        <div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>Support</div>
-                        <div style={{fontSize:13,fontWeight:500,color:"#1a3a6a"}}>{o.support}</div>
-                      </div>
+                      <div style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.36)",marginTop:2}}>{info.desc}</div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontSize:16,fontWeight:500,color:"rgba(5,11,20,0.88)",fontVariantNumeric:"tabular-nums"}}>{groupTotal.toLocaleString("fr-FR")} €</div>
+                      <div style={{fontSize:10,fontWeight:400,color:"rgba(5,11,20,0.36)"}}>{items.length} ordre{items.length>1?"s":""}</div>
                     </div>
                   </div>
-                  {o.price > 0 && o.remainder > 0.01 && (
-                    <div style={{fontSize:10,color:"rgba(5,11,20,.3)",padding:"4px 22px 10px",fontFamily:"Inter,sans-serif"}}>
-                      Reste non investi : {eur(o.remainder)} (sera en liquidités sur votre {o.support})
-                    </div>
-                  )}
+
+                  {/* Asset rows */}
+                  {items.map((a,ai)=>{
+                    const isChecked=checkedOrders.has(a.symbol);
+                    const isCopied=copiedIsin===a.isin;
+                    return (
+                      <div key={a.symbol} style={{display:"flex",alignItems:"center",gap:16,padding:"14px 18px",marginBottom:6,borderRadius:6,background:isChecked?"rgba(22,90,52,0.03)":"rgba(255,255,255,.72)",border:isChecked?".5px solid rgba(22,90,52,0.12)":"0.5px solid rgba(5,11,20,0.09)",boxShadow:"0 1px 2px rgba(0,0,0,.015)",transition:"all 0.5s cubic-bezier(.16,1,.3,1)",opacity:isChecked?0.7:1,animation:"fadeUp .4s cubic-bezier(.23,1,.32,1) both",animationDelay:`${(gi*3+ai)*0.04}s`}}>
+                        {/* Checkbox */}
+                        <div onClick={()=>toggleCheck(a.symbol)} style={{width:20,height:20,borderRadius:4,cursor:"pointer",flexShrink:0,border:isChecked?"none":".5px solid rgba(5,11,20,.15)",background:isChecked?"rgba(22,90,52,0.75)":"rgba(255,255,255,.5)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.5s cubic-bezier(.16,1,.3,1)"}}>
+                          {isChecked&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+                        </div>
+                        {/* Badge type */}
+                        <div style={{fontSize:9,fontWeight:500,padding:"3px 8px",borderRadius:4,flexShrink:0,background:a.type==="etf"?"rgba(26,58,106,.08)":"rgba(22,90,52,.08)",color:a.type==="etf"?"#1a3a6a":"rgba(22,90,52,0.8)"}}>{(a.type||"stock").toUpperCase()}</div>
+                        {/* Name + ISIN */}
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{fontSize:13,fontWeight:500,color:"rgba(5,11,20,0.88)",textDecoration:isChecked?"line-through":"none",textDecorationColor:"rgba(5,11,20,.15)"}}>{a.name}</div>
+                          <div style={{display:"flex",alignItems:"center",gap:6,marginTop:3}}>
+                            <span onClick={()=>{navigator.clipboard.writeText(a.isin||"");setCopiedIsin(a.isin);setTimeout(()=>setCopiedIsin(null),1500);}} style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.4)",fontVariantNumeric:"tabular-nums",cursor:"pointer",transition:"color 0.3s ease"}} onMouseEnter={e=>(e.currentTarget.style.color="#1a3a6a")} onMouseLeave={e=>(e.currentTarget.style.color="rgba(5,11,20,0.4)")}>
+                              ISIN : {a.isin||"—"}
+                            </span>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(5,11,20,0.25)" strokeWidth="1.5" strokeLinecap="round" style={{cursor:"pointer",flexShrink:0}}><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            {isCopied&&<span style={{fontSize:9,fontWeight:500,color:"rgba(22,90,52,0.75)"}}>Copié !</span>}
+                          </div>
+                        </div>
+                        {/* Quantity */}
+                        <div style={{textAlign:"center",minWidth:70}}>
+                          <div style={{fontSize:18,fontWeight:500,color:"rgba(5,11,20,0.88)",fontVariantNumeric:"tabular-nums"}}>{a.qty||"—"}</div>
+                          <div style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,0.36)"}}>parts</div>
+                        </div>
+                        {/* Unit price */}
+                        <div style={{textAlign:"center",minWidth:80}}>
+                          <div style={{fontSize:13,fontWeight:400,color:"rgba(5,11,20,0.52)",fontVariantNumeric:"tabular-nums"}}>{a.price>0?`${a.price.toLocaleString("fr-FR",{minimumFractionDigits:2})} €`:"—"}</div>
+                          <div style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,0.36)"}}>/ part</div>
+                        </div>
+                        {/* Total */}
+                        <div style={{textAlign:"right",minWidth:80}}>
+                          <div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,0.88)",fontVariantNumeric:"tabular-nums"}}>{(a.price>0?a.invested:a.amount).toLocaleString("fr-FR")} €</div>
+                          <div style={{fontSize:9,fontWeight:400,color:"rgba(5,11,20,0.36)"}}>{a.weight.toFixed(1)}%</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Group remainder */}
+                  {groupRemainder>0&&<div style={{fontSize:10,fontWeight:400,color:"rgba(5,11,20,0.36)",paddingLeft:54,marginTop:6}}>Liquidités restantes sur {info.label} : {groupRemainder.toLocaleString("fr-FR")} € (arrondis de parts)</div>}
                 </div>
               );
             })}
 
-            {/* Totals */}
-            {Object.keys(assetPrices).length > 0 && (
-              <div style={{display:"flex",gap:24,marginTop:20,padding:"16px 20px",background:"rgba(5,11,20,.02)",borderRadius:8,border:".5px solid rgba(5,11,20,.05)"}}>
-                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>CAPITAL TOTAL</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(cap)}</div></div>
-                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>INVESTI</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.88)"}}>{eur(totalInvested)}</div></div>
-                <div><div style={{fontSize:9,fontWeight:500,color:"rgba(5,11,20,.3)",letterSpacing:".06em",marginBottom:4}}>LIQUIDITÉS</div><div style={{fontSize:14,fontWeight:500,color:"rgba(5,11,20,.52)"}}>{eur(totalRemainder)}</div></div>
-              </div>
-            )}
-
-            <p style={{fontSize:11,color:"rgba(5,11,20,.36)",marginTop:24,fontFamily:"Inter,sans-serif",lineHeight:1.6}}>
-              Les quantités sont indicatives et basées sur les cours actuels. Les prix réels peuvent varier au moment de l'exécution.
-            </p>
+            {/* Disclaimer */}
+            <div style={{marginTop:12,padding:"16px 20px",borderRadius:8,background:"rgba(26,58,106,0.02)",border:".5px solid rgba(26,58,106,0.06)"}}>
+              <div style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.52)",lineHeight:1.7}}>Les quantités sont calculées à partir des cours de marché actuels et arrondies à la part inférieure. Les prix réels peuvent varier au moment de l'exécution. Ce portefeuille n'est pas un conseil en investissement.</div>
+            </div>
           </div>
         );
       })()}
