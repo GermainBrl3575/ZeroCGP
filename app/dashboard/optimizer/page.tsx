@@ -546,16 +546,16 @@ function OptimizerInner() {
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
-            background:isSel?"linear-gradient(145deg,#050B14,#0c1a2e)":"rgba(255,255,255,.72)",
+            background:isSel?"linear-gradient(145deg,#0c1a2e,#1a3a6a)":"rgba(255,255,255,.72)",
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
-            boxShadow:isSel?`0 6px 28px ${SAPG}`:"0 2px 12px rgba(0,0,0,.018)",
+            boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
             transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
             animation:`cardIn .45s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${ri*0.08}s`,
           }}>
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
+              <div onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
