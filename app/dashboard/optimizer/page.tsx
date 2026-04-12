@@ -383,7 +383,14 @@ function OptimizerInner() {
       const pfType = status === "active" ? "active" : "optimized";
       const{data:pf,error:pfErr}=await supabase.from("portfolios").insert({user_id:user.id,name:pfName,type:pfType}).select().single();
       if(pfErr||!pf)throw new Error();
-      const assets=selR.weights.filter(w=>w.weight>0).map(w=>({portfolio_id:pf.id,symbol:w.symbol,name:w.name,type:w.type,quantity:parseFloat((w.amount/100).toFixed(4)),weight:w.weight,target_amount:w.amount}));
+      // Fetch real prices to compute accurate quantities
+      let prices: Record<string,number> = {};
+      try {
+        const pr=await fetch("/api/asset-prices",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbols:selR.weights.map(w=>w.symbol)})});
+        const pd=await pr.json();
+        if(pd.prices) prices=pd.prices;
+      } catch {}
+      const assets=selR.weights.filter(w=>w.weight>0).map(w=>({portfolio_id:pf.id,symbol:w.symbol,name:w.name,type:w.type,quantity:parseFloat((prices[w.symbol]>0?w.amount/prices[w.symbol]:0).toFixed(6)),weight:w.weight,target_amount:w.amount}));
       if(assets.length>0){const{error:ae}=await supabase.from("portfolio_assets").insert(assets);if(ae)throw new Error();}
       router.push(`/dashboard/portfolio?id=${pf.id}`);
       router.refresh();

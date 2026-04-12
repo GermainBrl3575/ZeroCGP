@@ -63,15 +63,23 @@ export async function GET(req: NextRequest) {
   const capitalInitial = assets.reduce((s, a) => s + (a.target_amount || 0), 0);
   let valeurActuelle = 0;
 
-  const isOptimized = portfolio.type === "optimized" || portfolio.type === "active";
   const enrichedAssets = assets.map(a => {
     const yahoo = yahooData[a.symbol];
     const currentPrice = yahoo?.currentPrice || 0;
-    // For optimized portfolios, quantity in DB is meaningless (amount/100) — use target_amount / price
-    const qty = isOptimized && a.target_amount > 0 && currentPrice > 0
-      ? a.target_amount / currentPrice
-      : (a.quantity || (a.target_amount && currentPrice > 0 ? a.target_amount / currentPrice : 0));
-    const currentValue = isOptimized ? (currentPrice > 0 ? currentPrice * qty : a.target_amount || 0) : currentPrice * qty;
+    // Detect placeholder quantities from old saves (amount/100)
+    const isPlaceholder = a.target_amount > 0 && a.quantity > 0
+      && Math.abs(a.quantity - a.target_amount / 100) < 0.02;
+    // Real quantity: use stored if valid, else compute from initial price
+    let qty: number;
+    if (isPlaceholder || !a.quantity) {
+      // Fallback: use first available close as proxy for creation price
+      const closes = yahoo?.closes || [];
+      const initialPrice = closes[0] || currentPrice || 1;
+      qty = a.target_amount > 0 ? a.target_amount / initialPrice : 0;
+    } else {
+      qty = a.quantity;
+    }
+    const currentValue = currentPrice > 0 ? currentPrice * qty : a.target_amount || 0;
     valeurActuelle += currentValue;
 
     const closes = yahoo?.closes || [];
