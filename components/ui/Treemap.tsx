@@ -77,6 +77,18 @@ export default function Treemap({ assets, perfs = {} }: { assets: Asset[]; perfs
   const TOTAL_H = 300;
   const rows = buildRows(assets, tot, 900, TOTAL_H);
 
+  // Detect markets closed: all 1D perfs are 0 or missing
+  const marketsClosed = period === "1D" && assets.every(a => {
+    const p = getPerf(a.symbol, "1D", perfs);
+    return p === null || Math.abs(p) < 0.005;
+  });
+  // Find last trading day (most recent weekday before today)
+  const lastSession = (() => {
+    const d = new Date();
+    do { d.setDate(d.getDate() - 1); } while (d.getDay() === 0 || d.getDay() === 6);
+    return d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+  })();
+
   return (
     <div>
       <div style={{ display: "flex", gap: 4, marginBottom: 12 }}>
@@ -89,6 +101,11 @@ export default function Treemap({ assets, perfs = {} }: { assets: Asset[]; perfs
           }}>{p}</button>
         ))}
       </div>
+      {marketsClosed && (
+        <div style={{ fontSize: 11, color: "rgba(5,11,20,0.3)", marginBottom: 10, fontFamily: "'Inter',sans-serif" }}>
+          Marchés fermés — dernière séance : {lastSession}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 2, marginBottom: 10, alignItems: "center" }}>
         <div style={{ display: "flex", borderRadius: 4, overflow: "hidden", height: 8 }}>
           {[-1, -0.5, -0.15, 0, 0.15, 0.5, 1].map((v, i) => (

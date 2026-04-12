@@ -6,6 +6,7 @@ import { Asset } from "@/types";
 import { TYPE_COLOR } from "@/lib/utils";
 import Treemap from "@/components/Treemap";
 import { SkeletonPortfolio } from "@/components/ui/Skeleton";
+import InfoBubble from "@/components/ui/InfoBubble";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
 
 const PERIODS = ["1J","1S","1M","3M","6M","1A","MAX"];
@@ -233,7 +234,7 @@ function PortfolioInner() {
 
         <div className="card">
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div className="card-title">Répartition</div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}><span className="card-title" style={{marginBottom:0}}>Répartition</span><InfoBubble text="Les performances affichées sont calculées à partir des cours de marché en temps réel via Yahoo Finance. De légères différences avec votre banque sont normales : elles viennent de la devise de cotation (USD vs EUR), du décalage horaire entre les places boursières, et des frais de gestion propres à chaque courtier."/></div>
             <div style={{display:"flex",gap:14}}>
               {[["etf","ETF"],["stock","Action"],["crypto","Crypto"]].map(([t,l])=>(
                 <div key={t} style={{display:"flex",alignItems:"center",gap:6}}>
