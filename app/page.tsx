@@ -623,8 +623,8 @@ function HeroSection({
 
           <motion.p variants={itemV} style={{
             fontFamily:"'Inter',sans-serif",
-            fontSize:13,fontWeight:300,letterSpacing:".01em",
-            color:"rgba(10,22,40,0.44)",lineHeight:1.75,marginBottom:28,
+            fontSize:14.5,fontWeight:400,letterSpacing:".01em",
+            color:"rgba(5,11,20,0.45)",lineHeight:1.8,marginBottom:28,
           }}>
             L'algorithme de Markowitz,<br/>
             réservé aux family offices, accessible gratuitement.
@@ -664,7 +664,7 @@ function HeroSection({
           color:"rgba(10,22,40,0.36)",textTransform:"uppercase",marginBottom:4,
         }}>Zero CGP</div>
         <div style={{
-          fontFamily:"'Cormorant Garant',serif",
+          fontFamily:"'Inter',sans-serif",
           fontSize:"clamp(32px,4vw,54px)",
           fontWeight:300,color:NAVY,
           lineHeight:1,letterSpacing:"-.02em",marginBottom:18,
@@ -677,7 +677,7 @@ function HeroSection({
           color:"rgba(10,22,40,0.22)",textTransform:"uppercase",marginBottom:4,
         }}>Banque privée</div>
         <div style={{
-          fontFamily:"'Cormorant Garant',serif",
+          fontFamily:"'Inter',sans-serif",
           fontSize:"clamp(22px,2.8vw,36px)",
           fontWeight:300,color:"rgba(10,22,40,0.36)",
           lineHeight:1,letterSpacing:"-.02em",marginBottom:22,
@@ -695,14 +695,14 @@ function HeroSection({
             color:"rgba(45,90,67,0.51)",textTransform:"uppercase",marginBottom:5,
           }}>Économies réalisées</div>
           <div style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(22px,2.6vw,34px)",
             fontWeight:300,color:"#2D5A43",
             lineHeight:1,letterSpacing:"-.01em",
             textShadow:"0 0 28px rgba(45,90,67,0.3), 0 0 8px rgba(45,90,67,0.15)",
           }}>{feur(displayG)}</div>
           <div style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:13,fontWeight:300,fontStyle:"italic",
             color:"rgba(45,90,67,0.42)",marginTop:7,lineHeight:1.6,
           }}>
@@ -733,7 +733,7 @@ function HeroSection({
           style={{flex:1,maxWidth:220}}
         />
         <span style={{
-          fontFamily:"'Cormorant Garant',serif",
+          fontFamily:"'Inter',sans-serif",
           fontSize:16,fontWeight:400,color:NAVY,whiteSpace:"nowrap",minWidth:90,
         }}>{feur(capital)}</span>
 
@@ -887,13 +887,13 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
             color:"rgba(255,255,255,0.28)", marginBottom:16,
           }}>Comment ça fonctionne</div>
           <h2 style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300, fontStyle:"italic",
             letterSpacing:"-.02em", lineHeight:1.06,
             color:"rgba(255,255,255,0.95)", margin:"0 0 6px",
           }}>7 questions.</h2>
           <h2 style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(32px,4.2vw,54px)", fontWeight:300,
             letterSpacing:"-.02em", lineHeight:1.06,
             color:"rgba(255,255,255,0.38)", margin:0,
@@ -932,7 +932,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                 {/* Grand chiffre fond */}
                 <div style={{
                   position:"absolute", right:-12, bottom:-18,
-                  fontFamily:"'Cormorant Garant',serif",
+                  fontFamily:"'Inter',sans-serif",
                   fontSize:140, fontWeight:300, color:"white",
                   lineHeight:1, userSelect:"none", pointerEvents:"none",
                   transition:TR,
@@ -942,7 +942,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
 
                 {/* Numéro */}
                 <div style={{
-                  fontFamily:"'Cormorant Garant',serif",
+                  fontFamily:"'Inter',sans-serif",
                   fontSize:40, fontWeight:300, lineHeight:1,
                   marginBottom:16, letterSpacing:"-.01em",
                   transition:TR,
@@ -981,7 +981,7 @@ function HowSection({ gain, onCTA }: { gain: number; onCTA: () => void }) {
                 {i === 3 && gain > 0 && (
                   <div style={{
                     marginTop:10,
-                    fontFamily:"'Cormorant Garant',serif",
+                    fontFamily:"'Inter',sans-serif",
                     fontSize:13, fontWeight:300, fontStyle:"italic",
                     color:"#5CB88A", lineHeight:1.55,
                     transition:TR, opacity: isThis ? 1 : 0.6,
@@ -1229,7 +1229,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           }}>Stratégie d'investissement</div>
 
           <h2 style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(28px,3.6vw,44px)", fontWeight:300,
             letterSpacing:"-.02em", color:TEXT_W, margin:"0 0 14px",
           }}>Deux moteurs. Une frontière efficiente.</h2>
@@ -1283,7 +1283,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                       color:TEXT_S, marginBottom:3,
                     }}>{tag}</div>
                     <h3 style={{
-                      fontFamily:"'Cormorant Garant',serif",
+                      fontFamily:"'Inter',sans-serif",
                       fontSize:"clamp(15px,1.6vw,20px)", fontWeight:300,
                       color:TEXT_W, margin:0,
                     }}>{title}</h3>
@@ -1309,7 +1309,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
           }}>Comparateur de frais</div>
 
           <h2 style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(24px,3vw,38px)", fontWeight:300,
             letterSpacing:"-.02em", color:TEXT_W, margin:"0 0 28px",
           }}>Gestion active vs gestion passive.</h2>
@@ -1409,7 +1409,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                   color:ROUGE,
                 }}>Gestion active — {bank.label}</div>
                 <div style={{
-                  fontFamily:"'Cormorant Garant',serif",
+                  fontFamily:"'Inter',sans-serif",
                   fontSize:21, fontWeight:300, color:ROUGE, letterSpacing:"-.01em",
                 }}>{feurL(actifFinalAni)}</div>
               </div>
@@ -1449,7 +1449,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
                   color:VERT,
                 }}>Gestion passive — titres vifs + ETF</div>
                 <div style={{
-                  fontFamily:"'Cormorant Garant',serif",
+                  fontFamily:"'Inter',sans-serif",
                   fontSize:21, fontWeight:300, color:VERT, letterSpacing:"-.01em",
                 }}>{feurL(passifFinalAni)}</div>
               </div>
@@ -1640,7 +1640,7 @@ function StrategySection({ onCTA }: { onCTA: () => void }) {
 
           {/* Grand chiffre avec shimmer */}
           <div className="gain-shimmer" style={{
-            fontFamily:"'Cormorant Garant',serif",
+            fontFamily:"'Inter',sans-serif",
             fontSize:"clamp(60px,9vw,112px)",
             fontWeight:300, lineHeight:1, letterSpacing:"-.03em",
             color:"rgba(74,222,128,0.88)",
@@ -1810,7 +1810,7 @@ export default function LandingPage() {
         transition:"background .40s cubic-bezier(0.22,1,0.36,1), border-color .30s ease, color .30s ease",
       }}>
         <span style={{
-          fontFamily:"'Cormorant Garant',serif", fontSize:12, fontWeight:400,
+          fontFamily:"'Inter',sans-serif", fontSize:12, fontWeight:400,
           letterSpacing:".38em", textTransform:"uppercase", transition:"color .3s",
           color: darkNav ? "rgba(229,231,235,0.88)" : NAVY,
         }}>Zero CGP</span>
