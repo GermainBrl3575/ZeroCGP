@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import AssetCard from "@/components/AssetCard";
 import SupportBuilder from "@/components/ui/SupportBuilder";
 import Sheet from "@/components/ui/Sheet";
+import { Q1Timeline, Q2RiskCards, Q3LossBar, Q4EsgCards, Q5AssetGrid, Q7DivCards } from "@/components/ui/QuestionCards";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 const WorldMapExposure = dynamic(() => import("@/components/WorldMapExposure"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
@@ -427,21 +428,34 @@ function OptimizerInner() {
         <div style={{position:"absolute",top:1,left:0,height:1.5,borderRadius:1,width:`${progress}%`,background:"linear-gradient(90deg,rgba(5,11,20,.21),rgba(26,58,106,.9))",boxShadow:"0 0 6px rgba(26,58,106,.25)",transition:"width 0.7s cubic-bezier(.34,1.56,.64,1)"}}/>
       </div>
       <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,marginBottom:32,textAlign:"center"}}>{q.q}</h2>
-      {q.id==="Q5" ? (
+      {q.id==="Q1" ? (
+        <div>
+          <Q1Timeline value={answers[step]} onSelect={v=>answer(v)} />
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
+        </div>
+      ) : q.id==="Q2" ? (
+        <div>
+          <Q2RiskCards value={answers[step]} onSelect={v=>answer(v)} />
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
+        </div>
+      ) : q.id==="Q3" ? (
+        <div>
+          <Q3LossBar value={answers[step]} onSelect={v=>answer(v)} />
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
+        </div>
+      ) : q.id==="Q4" ? (
+        <div>
+          <Q4EsgCards value={answers[step]} onSelect={v=>answer(v)} />
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
+        </div>
+      ) : q.id==="Q5" ? (
         <div style={{maxWidth:560,margin:"0 auto"}}>
-          <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300}}>Sélectionnez une ou plusieurs classes</p>
-          <div style={{display:"flex",flexWrap:"wrap",marginBottom:32}}>
-            {ASSET_CLASSES.map(c=>(
-              <button key={c} onClick={()=>toggleClass(c)} className={`ac-chip ${multiSel.includes(c)?"on":"off"}`}>
-                {multiSel.includes(c)&&<span style={{fontSize:11}}>✓</span>}
-                {c}
-              </button>
-            ))}
-          </div>
-          <button onClick={advanceQ5} disabled={multiSel.length===0} className="btn-navy">
+          <p style={{fontSize:12,color:"rgba(5,11,20,.35)",marginBottom:20,fontWeight:300,textAlign:"center"}}>Sélectionnez une ou plusieurs classes d'actifs</p>
+          <Q5AssetGrid selected={multiSel} onToggle={toggleClass} />
+          <button onClick={advanceQ5} disabled={multiSel.length===0} className="btn-cta" style={{marginTop:24,width:"100%",opacity:multiSel.length===0?0.4:1}}>
             Confirmer ({multiSel.length} sélectionnée{multiSel.length>1?"s":""}) →
           </button>
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",display:"block",fontWeight:300}}>← Précédent</button>}
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:16,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
         </div>
       ) : q.id==="Q6" ? (
         /* ── Q6 : Zones géographiques — toggle exclusif ── */
@@ -501,25 +515,9 @@ function OptimizerInner() {
           {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:12,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
         </div>
       ) : q.id==="Q7" ? (
-        /* ── Q7 : Diversification — libellés modifiés, valeurs backend inchangées ── */
-        <div style={{display:"flex",flexDirection:"column",gap:8,maxWidth:540,margin:"0 auto"}}>
-          {(q.opts as {label:string;value:string}[]).map((opt,idx) => {
-            const isSel = answers[step] === opt.value;
-            const isFlash = flash === opt.value;
-            return (
-              <div key={opt.value} style={{animation:"cardIn .45s cubic-bezier(.23,1,.32,1) both",animationDelay:`${idx*0.04}s`}}>
-                <div onClick={() => { setFlash(opt.value); setTimeout(() => { setAnswers(a => ({...a,[step]:opt.value})); setFlash(null); setStep(s => s+1); }, 250); }} style={{
-                  borderRadius:6,border:isFlash?".5px solid rgba(26,58,106,.45)":isSel?".5px solid rgba(5,11,20,.13)":"0.5px solid rgba(5,11,20,0.09)",
-                  padding:"17px 22px",fontSize:14,fontWeight:isFlash?500:400,letterSpacing:"-.005em",cursor:"pointer",fontFamily:"'Inter',sans-serif",
-                  background:isFlash?"linear-gradient(145deg,#050B14,#0c1a2e)":isSel?"rgba(255,255,255,.88)":"rgba(255,255,255,0.72)",
-                  color:isFlash?"rgba(255,255,255,.93)":"rgba(5,11,20,.88)",
-                  boxShadow:isFlash?"0 4px 20px rgba(26,58,106,.25),inset 0 1px 0 rgba(255,255,255,.04)":"0 1px 2px rgba(0,0,0,0.015)",
-                  transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
-                }}>{opt.label}</div>
-              </div>
-            );
-          })}
-          {step>1&&<button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button>}
+        <div>
+          <Q7DivCards value={answers[step]} onSelect={v=>{setAnswers(a=>({...a,[step]:v}));setTimeout(()=>setStep(s=>s+1),300);}} />
+          {step>1&&<div style={{textAlign:"center"}}><button onClick={()=>setStep(s=>s-1)} style={{marginTop:24,background:"none",border:"none",color:"rgba(5,11,20,.25)",fontSize:11,cursor:"pointer",fontFamily:"'Inter',sans-serif",fontWeight:300}}>← Précédent</button></div>}
         </div>
       ) : q.id==="Q8" ? (
         <div style={{maxWidth:580,margin:"0 auto"}}>
