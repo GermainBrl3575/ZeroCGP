@@ -29,7 +29,7 @@ export default function RegisterPage() {
     try {
       const { createClient } = await import("@supabase/supabase-js");
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-      const { error: err } = await sb.auth.signUp({ email, password, options: { data: { full_name: name } } });
+      const { error: err } = await sb.auth.signUp({ email, password, options: { data: { full_name: name }, emailRedirectTo: `${window.location.origin}/auth/callback` } });
       if (err) { setError(err.message); setLoading(false); return; }
       router.push("/dashboard");
     } catch { setError("Une erreur est survenue."); setLoading(false); }
