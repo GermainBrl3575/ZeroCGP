@@ -112,18 +112,18 @@ export default function DashboardHome() {
   });
 
   return (
-    <div style={{padding:"36px 44px",fontFamily:"Inter,sans-serif",maxWidth:900}}>
+    <div style={{padding:"20px 48px",fontFamily:"Inter,sans-serif",maxWidth:900,minHeight:"calc(100vh - 60px)",display:"flex",flexDirection:"column"}}>
       {/* Hero */}
       <div style={stg(0,loaded)}>
-        <div style={{fontSize:10,fontWeight:500,letterSpacing:".15em",textTransform:"uppercase",color:C.sapphire,opacity:.5,marginBottom:12}}>Tableau de bord</div>
+        <div style={{fontSize:10,fontWeight:500,letterSpacing:".15em",textTransform:"uppercase",color:C.sapphire,opacity:.5,marginBottom:12}}>Accueil</div>
         <h1 style={{fontSize:34,fontWeight:500,color:C.navyText,letterSpacing:"-.03em",margin:"0 0 8px"}}>{greeting}{name?`, ${name}`:""}.</h1>
-        <p style={{fontSize:14.5,fontWeight:400,color:"rgba(5,11,20,0.38)",lineHeight:1.7,marginBottom:40,maxWidth:520}}>Voici un aperçu de vos outils. Sélectionnez une fonctionnalité pour commencer.</p>
+        <p style={{fontSize:14.5,fontWeight:400,color:"rgba(5,11,20,0.38)",lineHeight:1.7,marginBottom:24,maxWidth:520}}>Voici un aperçu de vos outils. Sélectionnez une fonctionnalité pour commencer.</p>
       </div>
 
       {/* Main cards: Portfolio + Optimizer */}
-      <div style={{...stg(1,loaded),display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+      <div style={{...stg(1,loaded),display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14,flex:1}}>
         {mainCards.map(c=>(
-          <Link key={c.id} href={c.href} style={cardStyle(c.id)} onMouseEnter={()=>setHov(c.id)} onMouseLeave={()=>setHov(null)}>
+          <Link key={c.id} href={c.href} style={{...cardStyle(c.id),minHeight:180}} onMouseEnter={()=>setHov(c.id)} onMouseLeave={()=>setHov(null)}>
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
               <Icon hov={hov===c.id}>{c.icon}</Icon>
               <span style={{fontSize:16,fontWeight:500,color:C.navyText,flex:1}}>{c.title}</span>
@@ -136,9 +136,9 @@ export default function DashboardHome() {
       </div>
 
       {/* Analysis cards */}
-      <div style={{...stg(2,loaded),display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:48}}>
+      <div style={{...stg(2,loaded),display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:14,flex:1}}>
         {analysisCards.map(c=>(
-          <Link key={c.id} href={c.href} style={cardStyle(c.id)} onMouseEnter={()=>setHov(c.id)} onMouseLeave={()=>setHov(null)}>
+          <Link key={c.id} href={c.href} style={{...cardStyle(c.id),minHeight:140}} onMouseEnter={()=>setHov(c.id)} onMouseLeave={()=>setHov(null)}>
             <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
               <Icon hov={hov===c.id}>{c.icon}</Icon>
               <span style={{fontSize:16,fontWeight:500,color:C.navyText,flex:1}}>{c.title}</span>
@@ -157,7 +157,7 @@ export default function DashboardHome() {
         </div>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
           {comingSoon.map(c=>(
-            <div key={c.title} style={{padding:"26px 28px",borderRadius:10,background:C.sheet,border:`.5px solid ${C.borderCard}`,opacity:.55,position:"relative"}}>
+            <div key={c.title} style={{padding:"26px 28px",borderRadius:10,background:C.sheet,border:`.5px solid ${C.borderCard}`,opacity:.55,position:"relative",minHeight:120}}>
               <span style={{position:"absolute",top:14,right:14,fontSize:8,fontWeight:500,letterSpacing:".08em",textTransform:"uppercase",padding:"2px 8px",borderRadius:3,background:"rgba(5,11,20,0.04)",color:"rgba(5,11,20,0.28)"}}>Bientôt</span>
               <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:12}}>
                 <div style={{width:36,height:36,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(5,11,20,0.025)"}}>
@@ -172,9 +172,9 @@ export default function DashboardHome() {
       </div>
 
       {/* Footer */}
-      <div style={{marginTop:48,paddingTop:24,borderTop:`.5px solid ${C.border}`,display:"flex",justifyContent:"space-between"}}>
-        <span style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.22)"}}>Zero CGP · Optimisation de portefeuille par algorithme de Markowitz</span>
-        <span style={{fontSize:11,fontWeight:400,color:"rgba(5,11,20,0.22)",fontVariantNumeric:"tabular-nums"}}>v1.0 · Avril 2026</span>
+      <div style={{marginTop:"auto",paddingTop:16,display:"flex",justifyContent:"space-between"}}>
+        <span style={{fontSize:10,fontWeight:400,color:"rgba(5,11,20,0.18)"}}>Zero CGP · Markowitz</span>
+        <span style={{fontSize:10,fontWeight:400,color:"rgba(5,11,20,0.18)",fontVariantNumeric:"tabular-nums"}}>v1.0</span>
       </div>
     </div>
   );

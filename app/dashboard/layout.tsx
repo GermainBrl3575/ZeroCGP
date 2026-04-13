@@ -38,7 +38,7 @@ function NavIcon({ type, active, hovered }: { type:string; active:boolean; hover
   const c = active ? "rgba(255,255,255,.95)" : hovered ? "rgba(255,255,255,.62)" : "rgba(255,255,255,.42)";
   const p: Record<string,unknown> = { width:16, height:16, viewBox:"0 0 24 24", fill:"none", stroke:c, strokeWidth:"0.8", strokeLinecap:"round", strokeLinejoin:"round", style:{transition:`stroke ${EASE}`} };
   const m: Record<string,JSX.Element> = {
-    home:<svg {...p as any}><rect x="3" y="3" width="8" height="10" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="15" width="8" height="6" rx="2"/></svg>,
+    home:<svg {...p as any}><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg>,
     grid:<svg {...p as any}><circle cx="12" cy="12" r="10"/><path d="M12 2V12H22"/><path d="M12 12L19.07 5.93" opacity=".4"/></svg>,
     diamond:<svg {...p as any}><path d="M4 18L8 10L14 14L20 4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="20" cy="4" r="2.5"/><path d="M20 1.5V4H22.5" strokeWidth=".6"/></svg>,
     refresh:<svg {...p as any}><rect x="2" y="14" width="5" height="8" rx="1" fill={c} opacity=".3"/><rect x="9" y="8" width="5" height="14" rx="1" fill={c} opacity=".3"/><rect x="16" y="11" width="5" height="11" rx="1" fill={c} opacity=".3"/><path d="M4.5 12L11.5 6L18.5 9" strokeLinecap="round" strokeWidth="1"/><path d="M16.5 9L18.5 9L18.5 7" strokeLinecap="round" strokeWidth=".8"/></svg>,
