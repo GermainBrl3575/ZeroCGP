@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import AssetCard from "@/components/AssetCard";
 import SupportBuilder from "@/components/ui/SupportBuilder";
 import Sheet from "@/components/ui/Sheet";
-import { Q1Timeline, Q2RiskCards, Q3LossBar, Q4EsgCards, Q5AssetGrid, Q7DivCards } from "@/components/ui/QuestionCards";
+import { Q1Timeline, Q2RiskCards, Q3LossBar, Q4EsgCards, Q5AssetGrid, Q7DivCards, InfoTip } from "@/components/ui/QuestionCards";
 const MarkowitzAnim = dynamic(() => import("@/components/MarkowitzAnim"), { ssr: false });
 const WorldMapExposure = dynamic(() => import("@/components/WorldMapExposure"), { ssr: false });
 import { useState, Suspense, useRef, useEffect } from "react";
@@ -427,7 +427,11 @@ function OptimizerInner() {
         <div style={{position:"absolute",top:1,left:0,right:0,height:1.5,background:"rgba(5,11,20,.04)",borderRadius:1}}/>
         <div style={{position:"absolute",top:1,left:0,height:1.5,borderRadius:1,width:`${progress}%`,background:"linear-gradient(90deg,rgba(5,11,20,.21),rgba(26,58,106,.9))",boxShadow:"0 0 6px rgba(26,58,106,.25)",transition:"width 0.7s cubic-bezier(.34,1.56,.64,1)"}}/>
       </div>
-      <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,marginBottom:32,textAlign:"center"}}>{q.q}</h2>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:32}}>
+        <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,textAlign:"center",margin:0}}>{q.q}</h2>
+        {q.id==="Q1"&&<InfoTip text={"Votre horizon détermine le niveau de risque que l'algorithme peut prendre. Plus il est long, plus on peut investir en actions."} />}
+        {q.id==="Q2"&&<InfoTip text={"Conservateur : capital sécurisé, +3%/an, -10% max\nModéré : équilibre, +6%/an, -20% max\nDynamique : croissance, +8%/an, -35% max\nAgressif : max rendement, +10%/an, -50% max\n\nCes chiffres sont des moyennes historiques."} />}
+      </div>
       {q.id==="Q1" ? (
         <div>
           <Q1Timeline value={answers[step]} onSelect={v=>answer(v)} />
