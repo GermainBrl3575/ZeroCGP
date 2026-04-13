@@ -246,7 +246,6 @@ function OptimizerInner() {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveName, setSaveName] = useState("Portefeuille Zero CGP");
   const [saveStatus, setSaveStatus] = useState<"simulated"|"active">("simulated");
-  const [bubbleOpenCard, setBubbleOpenCard] = useState<string|null>(null);
   const [geoExposure, setGeoExposure] = useState<Record<string,{countries:Record<string,number>;desc:string}>>({});
   const [geoLoading, setGeoLoading] = useState(false);
   const [tab, setTab] = useState<"allocation"|"geo"|"apply">("allocation");
@@ -396,7 +395,6 @@ function OptimizerInner() {
         <h2 style={{fontFamily:"'Inter',sans-serif",fontSize:30,fontWeight:500,color:"rgba(5,11,20,.88)",letterSpacing:"-.03em",lineHeight:1.25,textAlign:"center",margin:0}}>{q.q}</h2>
         {q.id==="Q1"&&<InfoTip text={"Votre horizon détermine le niveau de risque que l'algorithme peut prendre. Plus il est long, plus on peut investir en actions."} />}
         {q.id==="Q2"&&<InfoTip text={"Votre profil de risque détermine comment votre argent sera réparti :\n\nConservateur — Comme un livret A amélioré. Votre argent croît lentement (environ +3%/an) mais vous ne risquez pas de grosses pertes (max -10%).\n\nModéré — Le meilleur compromis. Vous acceptez des baisses passagères de -20% pour un rendement de +6%/an en moyenne. C'est le choix le plus courant.\n\nDynamique — Vous visez +8%/an. En contrepartie, votre portefeuille peut temporairement perdre -35%. Il faut être patient.\n\nAgressif — Rendement maximum (+10%/an) mais les montagnes russes : votre portefeuille peut baisser de -50% certaines années avant de remonter.\n\nCes chiffres sont des moyennes historiques sur 20 ans, pas des garanties."} />}
-        {q.id==="Q7"&&<InfoTip text={"La diversification, c'est ne pas mettre tous ses œufs dans le même panier.\n\nSimple (3-5 actifs) — Facile à comprendre et à suivre. Mais si un actif baisse fortement, ça se sent sur tout le portefeuille. Adapté aux petits budgets.\n\nÉquilibré (6-10 actifs) — Le meilleur compromis entre simplicité et protection. Recommandé pour la majorité des investisseurs.\n\nMaximum (10-15 actifs) — Protection maximale : si un actif chute, les autres compensent. Idéal pour les patrimoines importants. Plus complexe à suivre."} />}
       </div>
       {q.id==="Q1" ? (
         <div>
@@ -550,7 +548,7 @@ function OptimizerInner() {
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
-            zIndex:bubbleOpenCard===r.method?50:1,
+            zIndex:1,
             background:isSel?"linear-gradient(145deg,#0c1a2e,#1a3a6a)":"rgba(255,255,255,.72)",
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
             boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
@@ -560,7 +558,7 @@ function OptimizerInner() {
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200}}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel} onToggle={o=>setBubbleOpenCard(o?r.method:null)}/></div>
+              <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -573,7 +571,7 @@ function OptimizerInner() {
                 <div key={lbl}>
                   <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
                     <span style={{fontSize:9,fontWeight:500,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</span>
-                    <span onClick={e=>e.stopPropagation()} style={{position:"relative",zIndex:200,opacity:isSel?1:0,pointerEvents:isSel?"auto":"none",transition:"opacity 0.5s cubic-bezier(.16,1,.3,1)"}}><InfoBubble text={tip} dark={isSel} onToggle={o=>setBubbleOpenCard(o?r.method:null)}/></span>
+                    <span onClick={e=>e.stopPropagation()} style={{opacity:isSel?1:0,pointerEvents:isSel?"auto":"none",transition:"opacity 0.5s cubic-bezier(.16,1,.3,1)"}}><InfoBubble text={tip} dark={isSel}/></span>
                   </div>
                   <div style={{fontSize:20,fontWeight:500,color:col,fontVariantNumeric:"tabular-nums"}}>{val}</div>
                 </div>

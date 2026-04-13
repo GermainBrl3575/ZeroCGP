@@ -294,24 +294,44 @@ export function Q7DivCards({ value, onSelect }: { value?: string; onSelect: (v: 
     { val: "Large", label: "Maximum", sub: "10-15 actifs", dots: 12, desc: "Diversification maximale." },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, maxWidth: 560, margin: "0 auto" }}>
-      {opts.map((o, i) => {
-        const sel = value === o.val;
-        return (
-          <div key={o.val} onClick={() => onSelect(o.val)} style={{
-            borderRadius: 6, padding: "20px 16px", cursor: "pointer", textAlign: "center",
-            border: sel ? ".5px solid rgba(26,58,106,.4)" : "0.5px solid rgba(5,11,20,.09)",
-            background: sel ? "rgba(26,58,106,.04)" : "rgba(255,255,255,.72)",
-            boxShadow: sel ? "0 4px 16px rgba(26,58,106,.08)" : "0 1px 2px rgba(0,0,0,.015)",
-            transition: EASE, animation: `cardIn .4s cubic-bezier(.23,1,.32,1) both`, animationDelay: `${i * 0.08}s`,
-          }}>
-            <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><DivIcon count={o.dots} /></div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: "rgba(5,11,20,.88)", fontFamily: "Inter,sans-serif" }}>{o.label}</div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: SAP, opacity: .6, fontFamily: "Inter,sans-serif", marginTop: 2, marginBottom: 8 }}>{o.sub}</div>
-            <div style={{ fontSize: 10, color: "rgba(5,11,20,.4)", fontFamily: "Inter,sans-serif", lineHeight: 1.4 }}>{o.desc}</div>
-          </div>
-        );
-      })}
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+        {opts.map((o, i) => {
+          const sel = value === o.val;
+          return (
+            <div key={o.val} onClick={() => onSelect(o.val)} style={{
+              borderRadius: 6, padding: "20px 16px", cursor: "pointer", textAlign: "center",
+              border: sel ? ".5px solid rgba(26,58,106,.4)" : "0.5px solid rgba(5,11,20,.09)",
+              background: sel ? "rgba(26,58,106,.04)" : "rgba(255,255,255,.72)",
+              boxShadow: sel ? "0 4px 16px rgba(26,58,106,.08)" : "0 1px 2px rgba(0,0,0,.015)",
+              transition: EASE, animation: `cardIn .4s cubic-bezier(.23,1,.32,1) both`, animationDelay: `${i * 0.08}s`,
+            }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><DivIcon count={o.dots} /></div>
+              <div style={{ fontSize: 14, fontWeight: 500, color: "rgba(5,11,20,.88)", fontFamily: "Inter,sans-serif" }}>{o.label}</div>
+              <div style={{ fontSize: 11, fontWeight: 500, color: SAP, opacity: .6, fontFamily: "Inter,sans-serif", marginTop: 2 }}>{o.sub}</div>
+            </div>
+          );
+        })}
+      </div>
+      {/* Pedagogical box */}
+      <div style={{ marginTop:28, padding:"24px 28px", borderRadius:8, background:"rgba(26,58,106,0.025)", border:".5px solid rgba(26,58,106,0.06)" }}>
+        <div style={{ fontSize:12, fontWeight:500, color:"rgba(5,11,20,0.6)", letterSpacing:".05em", marginBottom:16, fontFamily:"Inter,sans-serif" }}>QU'EST-CE QUE LA DIVERSIFICATION ?</div>
+        <div style={{ fontSize:13, fontWeight:400, color:"rgba(5,11,20,0.45)", lineHeight:1.7, marginBottom:20, fontFamily:"Inter,sans-serif" }}>
+          La diversification, c'est ne pas mettre tous ses œufs dans le même panier. Plus vous avez d'actifs différents, plus vous êtes protégé si l'un d'eux chute.
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:16 }}>
+          {[
+            { t:"Simple · 3-5 actifs", d:"Facile à comprendre et à suivre. Adapté aux petits budgets. Mais si un actif baisse, ça se ressent." },
+            { t:"Équilibré · 6-10 actifs", d:"Le meilleur compromis entre simplicité et protection. Recommandé pour la majorité des investisseurs." },
+            { t:"Maximum · 10-15 actifs", d:"Protection maximale : si un actif chute, les autres compensent. Idéal pour les gros patrimoines." },
+          ].map(c=>(
+            <div key={c.t} style={{ padding:"16px 18px", borderRadius:6, background:"rgba(255,255,255,0.6)", border:".5px solid rgba(5,11,20,0.06)" }}>
+              <div style={{ fontSize:12, fontWeight:500, color:"rgba(5,11,20,0.78)", marginBottom:6, fontFamily:"Inter,sans-serif" }}>{c.t}</div>
+              <div style={{ fontSize:11, fontWeight:400, color:"rgba(5,11,20,0.4)", lineHeight:1.6, fontFamily:"Inter,sans-serif" }}>{c.d}</div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
