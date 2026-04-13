@@ -33,7 +33,7 @@ export function InfoTip({ text }: { text: string }) {
       const left = Math.max(10, Math.min(rect.left + rect.width / 2 - 150, window.innerWidth - 320));
       setPos(openDown
         ? { top: rect.bottom + 8, left }
-        : { bottom: window.innerHeight - rect.top + 8, left });
+        : { top: rect.top - 8, bottom: 1, left }); // bottom=1 as flag for translateY
     }
     setOpen(next);
     if (next) globalCloseAll = () => setOpen(false);
@@ -50,16 +50,17 @@ export function InfoTip({ text }: { text: string }) {
       }}>i</button>
       {open && typeof document !== "undefined" && createPortal(
         <div style={{
-          position: "fixed", zIndex: 99999,
-          top: pos.top, bottom: pos.bottom, left: pos.left,
+          position: "fixed", zIndex: 99999, pointerEvents: "auto",
+          top: pos.top, left: pos.left,
+          transform: pos.bottom !== undefined ? "translateY(-100%)" : "none",
           width: 300, background: "#050B14", color: "rgba(255,255,255,.88)", borderRadius: 10,
           padding: "14px 16px", fontSize: 12, lineHeight: 1.7,
-          fontWeight: 400, boxShadow: "0 8px 32px rgba(0,0,0,.3)",
+          fontWeight: 400, boxShadow: "0 12px 40px rgba(0,0,0,.4)",
           fontFamily: "Inter,sans-serif", whiteSpace: "pre-line",
         }}>
           {text}
         </div>,
-        document.body
+        document.getElementById("tooltip-portal") || document.body
       )}
     </span>
   );

@@ -293,6 +293,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
       @keyframes grain{0%{transform:translate(0)}100%{transform:translate(-40px,-40px)}}
       @keyframes cardIn{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
     `}</style>
+    <div id="tooltip-portal" style={{position:"fixed",top:0,left:0,zIndex:99999,pointerEvents:"none"}}/>
     <div style={{display:"flex",height:"100vh",width:"100vw",background:C.cream,overflow:"hidden",position:"relative"}}>
       <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:0,backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,opacity:.018,animation:"grain 8s linear infinite"}}/>
 

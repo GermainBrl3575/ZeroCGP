@@ -5,10 +5,13 @@ import { createPortal } from "react-dom";
 const NAVY = "#0A1628";
 let globalClose: (() => void) | null = null;
 
+function getPortalTarget(): HTMLElement {
+  return document.getElementById("tooltip-portal") || document.body;
+}
+
 export default function InfoBubble({ text, dark, onToggle }: { text: string; dark?: boolean; onToggle?: (open: boolean) => void }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
-  const [openDown, setOpenDown] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, down: false });
   const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -28,11 +31,8 @@ export default function InfoBubble({ text, dark, onToggle }: { text: string; dar
     if (next && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
       const down = rect.top < 200;
-      setOpenDown(down);
       const left = Math.max(10, Math.min(rect.left + rect.width / 2 - 140, window.innerWidth - 300));
-      setPos(down
-        ? { top: rect.bottom + 8, bottom: undefined, left }
-        : { top: rect.top - 8, bottom: undefined, left });
+      setPos({ top: down ? rect.bottom + 8 : rect.top - 8, left, down });
     }
     setOpen(next);
     onToggle?.(next);
@@ -51,19 +51,17 @@ export default function InfoBubble({ text, dark, onToggle }: { text: string; dar
       }}>i</button>
       {open && typeof document !== "undefined" && createPortal(
         <div style={{
-          position: "fixed", zIndex: 99999,
-          left: pos.left, width: 280,
-          ...(openDown
-            ? { top: pos.top }
-            : { top: pos.top, transform: "translateY(-100%)" }),
+          position: "fixed", zIndex: 99999, pointerEvents: "auto",
+          top: pos.top, left: pos.left, width: 280,
+          transform: pos.down ? "none" : "translateY(-100%)",
           background: NAVY, color: "white", borderRadius: 10,
           padding: "12px 14px", fontSize: 11.5, lineHeight: 1.7,
-          fontWeight: 300, boxShadow: "0 12px 40px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.05)",
+          fontWeight: 300, boxShadow: "0 12px 40px rgba(0,0,0,.4)",
           fontFamily: "Inter,sans-serif", whiteSpace: "pre-line",
         }}>
           {text}
         </div>,
-        document.body
+        getPortalTarget()
       )}
     </span>
   );
