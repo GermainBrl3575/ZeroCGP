@@ -22,6 +22,7 @@ export const EASE = "0.7s cubic-bezier(.16,1,.3,1)";
 
 /* ═══ NAV — mapped to existing Next.js routes ═══ */
 const navItems = [
+  { label:"Accueil",       href:"/dashboard",              icon:"home" },
   { label:"Portfolio",     href:"/dashboard/portfolio",    icon:"grid" },
   { label:"Optimiseur",    href:"/dashboard/optimizer",    icon:"diamond" },
   { label:"Rééquilibrage", href:"/dashboard/rebalancing",  icon:"refresh" },
@@ -37,6 +38,7 @@ function NavIcon({ type, active, hovered }: { type:string; active:boolean; hover
   const c = active ? "rgba(255,255,255,.95)" : hovered ? "rgba(255,255,255,.62)" : "rgba(255,255,255,.42)";
   const p: Record<string,unknown> = { width:16, height:16, viewBox:"0 0 24 24", fill:"none", stroke:c, strokeWidth:"0.8", strokeLinecap:"round", strokeLinejoin:"round", style:{transition:`stroke ${EASE}`} };
   const m: Record<string,JSX.Element> = {
+    home:<svg {...p as any}><rect x="3" y="3" width="8" height="10" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="15" width="8" height="6" rx="2"/></svg>,
     grid:<svg {...p as any}><circle cx="12" cy="12" r="10"/><path d="M12 2V12H22"/><path d="M12 12L19.07 5.93" opacity=".4"/></svg>,
     diamond:<svg {...p as any}><path d="M4 18L8 10L14 14L20 4" strokeLinecap="round" strokeLinejoin="round"/><circle cx="20" cy="4" r="2.5"/><path d="M20 1.5V4H22.5" strokeWidth=".6"/></svg>,
     refresh:<svg {...p as any}><rect x="2" y="14" width="5" height="8" rx="1" fill={c} opacity=".3"/><rect x="9" y="8" width="5" height="14" rx="1" fill={c} opacity=".3"/><rect x="16" y="11" width="5" height="11" rx="1" fill={c} opacity=".3"/><path d="M4.5 12L11.5 6L18.5 9" strokeLinecap="round" strokeWidth="1"/><path d="M16.5 9L18.5 9L18.5 7" strokeLinecap="round" strokeWidth=".8"/></svg>,
@@ -322,7 +324,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
           </div>
           <div style={{padding:"0 22px",marginBottom:8}}><div style={{fontSize:8.5,fontWeight:500,letterSpacing:".18em",textTransform:"uppercase",color:"rgba(255,255,255,.35)",marginBottom:7}}>Navigation</div><div style={{height:".3px",background:"linear-gradient(90deg,rgba(255,255,255,.07),rgba(255,255,255,.02),transparent)"}}/></div>
           <nav style={{flex:1,display:"flex",flexDirection:"column",gap:1,padding:"0 9px",position:"relative",zIndex:1}}>
-            {navItems.map(item=>{const active=pathname.startsWith(item.href);const hov=hovNav===item.href;return(
+            {navItems.map(item=>{const active=item.href==="/dashboard"?pathname==="/dashboard":pathname.startsWith(item.href);const hov=hovNav===item.href;return(
               <Link key={item.href} href={item.href} onMouseEnter={()=>sHN(item.href)} onMouseLeave={()=>sHN(null)} style={{display:"flex",alignItems:"center",gap:11,padding:"10px 14px",borderRadius:8,textDecoration:"none",fontSize:13,fontWeight:active?500:400,letterSpacing:"-.005em",position:"relative",overflow:"hidden",color:active?"rgba(255,255,255,.95)":hov?"rgba(255,255,255,.68)":"rgba(255,255,255,.45)",background:active?"linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.025))":hov?"rgba(255,255,255,.02)":"transparent",boxShadow:active?"inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.08)":"none",border:active?".3px solid rgba(255,255,255,.07)":".3px solid transparent",transition:`color ${EASE},background ${EASE},border ${EASE},transform ${EASE}`,transform:hov&&!active?"translateX(1.5px)":"none"}}>
                 {active&&<><div style={{position:"absolute",left:-9,top:"50%",transform:"translateY(-50%)",width:2.5,height:20,borderRadius:2,background:`linear-gradient(180deg,${C.sapphireAccent}85,${C.sapphireAccent}15)`,boxShadow:`0 0 12px ${C.sapphireGlow}`,animation:"breathe 3s ease infinite"}}/><div style={{position:"absolute",inset:0,borderRadius:8,pointerEvents:"none",background:"radial-gradient(ellipse at 16% 50%,rgba(26,58,106,.04),transparent 50%)"}}/></>}
                 {hov&&!active&&<div style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",width:2.5,height:2.5,borderRadius:"50%",background:"rgba(255,255,255,.18)"}}/>}
