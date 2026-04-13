@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 const SAP = "#1a3a6a";
 const EASE = "all 0.5s cubic-bezier(.16,1,.3,1)";
@@ -9,13 +10,15 @@ let globalCloseAll: (() => void) | null = null;
 
 export function InfoTip({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
-  const [openDown, setOpenDown] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const close = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    const close = (e: MouseEvent) => {
+      if (btnRef.current && btnRef.current.contains(e.target as Node)) return;
+      setOpen(false);
+    };
     document.addEventListener("mousedown", close);
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
@@ -26,14 +29,18 @@ export function InfoTip({ text }: { text: string }) {
     const next = !open;
     if (next && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      setOpenDown(rect.top < 200);
+      const openDown = rect.top < 200;
+      const left = Math.max(10, Math.min(rect.left + rect.width / 2 - 150, window.innerWidth - 320));
+      setPos(openDown
+        ? { top: rect.bottom + 8, left }
+        : { bottom: window.innerHeight - rect.top + 8, left });
     }
     setOpen(next);
     if (next) globalCloseAll = () => setOpen(false);
   };
 
   return (
-    <div ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
+    <span style={{ display: "inline-flex", alignItems: "center" }}>
       <button ref={btnRef} onClick={toggle} style={{
         width: 16, height: 16, borderRadius: "50%",
         background: "rgba(26,58,106,0.08)", border: "none",
@@ -41,31 +48,20 @@ export function InfoTip({ text }: { text: string }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         fontFamily: "Georgia,serif", fontStyle: "italic", lineHeight: 1, flexShrink: 0,
       }}>i</button>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div style={{
-          position: "absolute",
-          ...(openDown
-            ? { top: "calc(100% + 8px)", bottom: "auto" }
-            : { bottom: "calc(100% + 8px)", top: "auto" }),
-          left: "50%", transform: "translateX(-50%)", width: 320,
-          background: "#050B14", color: "rgba(255,255,255,.88)", borderRadius: 10,
+          position: "fixed", zIndex: 99999,
+          top: pos.top, bottom: pos.bottom, left: pos.left,
+          width: 300, background: "#050B14", color: "rgba(255,255,255,.88)", borderRadius: 10,
           padding: "14px 16px", fontSize: 12, lineHeight: 1.7,
-          fontWeight: 400, zIndex: 9999, boxShadow: "0 8px 32px rgba(0,0,0,.3)",
+          fontWeight: 400, boxShadow: "0 8px 32px rgba(0,0,0,.3)",
           fontFamily: "Inter,sans-serif", whiteSpace: "pre-line",
         }}>
           {text}
-          {/* Arrow */}
-          <div style={{
-            position: "absolute",
-            ...(openDown
-              ? { bottom: "100%", borderBottom: "6px solid #050B14", borderTop: "none" }
-              : { top: "100%", borderTop: "6px solid #050B14", borderBottom: "none" }),
-            left: "50%", transform: "translateX(-50%)",
-            width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
-          }} />
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </span>
   );
 }
 
