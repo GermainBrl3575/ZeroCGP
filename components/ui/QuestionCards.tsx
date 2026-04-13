@@ -4,12 +4,14 @@ import { useState, useEffect, useRef } from "react";
 const SAP = "#1a3a6a";
 const EASE = "all 0.5s cubic-bezier(.16,1,.3,1)";
 
-// ─── Global InfoBubble: only one open at a time ───────────────
+// ─── Global: only one tooltip open at a time ──────────────────
 let globalCloseAll: (() => void) | null = null;
 
 export function InfoTip({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const [openDown, setOpenDown] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -22,13 +24,17 @@ export function InfoTip({ text }: { text: string }) {
     e.stopPropagation();
     if (!open && globalCloseAll) globalCloseAll();
     const next = !open;
+    if (next && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setOpenDown(rect.top < 200);
+    }
     setOpen(next);
     if (next) globalCloseAll = () => setOpen(false);
   };
 
   return (
     <div ref={ref} style={{ position: "relative", display: "inline-flex", alignItems: "center" }}>
-      <button onClick={toggle} style={{
+      <button ref={btnRef} onClick={toggle} style={{
         width: 16, height: 16, borderRadius: "50%",
         background: "rgba(26,58,106,0.08)", border: "none",
         color: SAP, fontSize: 9, fontWeight: 700, cursor: "pointer",
@@ -37,17 +43,26 @@ export function InfoTip({ text }: { text: string }) {
       }}>i</button>
       {open && (
         <div style={{
-          position: "absolute", bottom: "calc(100% + 8px)", left: "50%",
-          transform: "translateX(-50%)", width: 300,
+          position: "absolute",
+          ...(openDown
+            ? { top: "calc(100% + 8px)", bottom: "auto" }
+            : { bottom: "calc(100% + 8px)", top: "auto" }),
+          left: "50%", transform: "translateX(-50%)", width: 320,
           background: "#050B14", color: "rgba(255,255,255,.88)", borderRadius: 10,
           padding: "14px 16px", fontSize: 12, lineHeight: 1.7,
           fontWeight: 400, zIndex: 9999, boxShadow: "0 8px 32px rgba(0,0,0,.3)",
           fontFamily: "Inter,sans-serif", whiteSpace: "pre-line",
         }}>
           {text}
-          <div style={{ position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
-            width: 0, height: 0, borderLeft: "6px solid transparent",
-            borderRight: "6px solid transparent", borderTop: "6px solid #050B14" }} />
+          {/* Arrow */}
+          <div style={{
+            position: "absolute",
+            ...(openDown
+              ? { bottom: "100%", borderBottom: "6px solid #050B14", borderTop: "none" }
+              : { top: "100%", borderTop: "6px solid #050B14", borderBottom: "none" }),
+            left: "50%", transform: "translateX(-50%)",
+            width: 0, height: 0, borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+          }} />
         </div>
       )}
     </div>
@@ -75,6 +90,13 @@ function PedaBox({ children }: { children: React.ReactNode }) {
 }
 
 // ─── Q1: Horizon ──────────────────────────────────────────────
+const Q1_INFO: Record<string, string> = {
+  "Moins de 2 ans": "Avec un horizon court, votre argent sera placé principalement en obligations et fonds monétaires — des placements stables mais avec peu de rendement. On évite les actions car elles peuvent baisser fortement à court terme.",
+  "2 à 5 ans": "Sur cette durée, on peut commencer à investir une partie en actions tout en gardant une base sécurisée. Le portefeuille sera équilibré entre croissance et protection du capital.",
+  "5 à 10 ans": "Sur 5 à 10 ans, les baisses temporaires des marchés ont le temps de se rattraper. On peut donc investir davantage en actions pour viser un meilleur rendement, même si la valeur fluctue.",
+  "10 ans et plus": "C'est l'horizon idéal pour investir. Sur 10 ans ou plus, les marchés actions ont historiquement toujours été positifs. On maximise la part en actions pour profiter de la croissance long terme.",
+};
+
 export function Q1Timeline({ value, onSelect }: { value?: string; onSelect: (v: string) => void }) {
   const opts = [
     { val: "Moins de 2 ans", label: "< 2 ans", sub: "Privilégie la sécurité du capital" },
@@ -89,14 +111,15 @@ export function Q1Timeline({ value, onSelect }: { value?: string; onSelect: (v: 
           const sel = value === o.val;
           return (
             <div key={o.val} onClick={() => onSelect(o.val)} style={{
-              borderRadius: 6, padding: "20px 22px", cursor: "pointer",
+              borderRadius: 6, padding: "20px 22px", cursor: "pointer", position: "relative",
               border: sel ? `.5px solid rgba(26,58,106,.4)` : "0.5px solid rgba(5,11,20,.09)",
               background: sel ? "rgba(26,58,106,.04)" : "rgba(255,255,255,.72)",
               boxShadow: sel ? "0 4px 16px rgba(26,58,106,.08)" : "0 1px 2px rgba(0,0,0,.015)",
               transition: EASE, animation: `cardIn .4s cubic-bezier(.23,1,.32,1) both`, animationDelay: `${i * 0.06}s`,
             }}>
+              <div style={{ position: "absolute", top: 12, right: 12 }}><InfoTip text={Q1_INFO[o.val]} /></div>
               <div style={{ fontSize: 15, fontWeight: 500, color: "rgba(5,11,20,.88)", fontFamily: "Inter,sans-serif", marginBottom: 4 }}>{o.label}</div>
-              <div style={{ fontSize: 11.5, fontWeight: 400, color: "rgba(5,11,20,.4)", fontFamily: "Inter,sans-serif", lineHeight: 1.4 }}>{o.sub}</div>
+              <div style={{ fontSize: 11.5, fontWeight: 400, color: "rgba(5,11,20,.4)", fontFamily: "Inter,sans-serif", lineHeight: 1.4, paddingRight: 20 }}>{o.sub}</div>
             </div>
           );
         })}
@@ -248,17 +271,21 @@ export function Q5AssetGrid({ selected, onToggle }: { selected: string[]; onTogg
 
 // ─── Q7: Diversification ──────────────────────────────────────
 function DivIcon({ count }: { count: number }) {
-  const r = 3;
-  const positions = Array.from({ length: count }, (_, i) => {
-    if (count <= 3) return { cx: 10 + i * 10, cy: 12 };
-    const row = Math.floor(i / 4);
-    const col = i % 4;
-    return { cx: 6 + col * 8, cy: 6 + row * 8 };
-  });
+  // 3 circles in a row, 8 in 2 rows, 12 in 3 rows of 4
+  const rows = count <= 3 ? 1 : count <= 8 ? 2 : 3;
+  const perRow = Math.ceil(count / rows);
+  const positions: { cx: number; cy: number }[] = [];
+  for (let r = 0; r < rows; r++) {
+    const inRow = Math.min(perRow, count - r * perRow);
+    const startX = (36 - inRow * 8) / 2 + 4;
+    for (let c = 0; c < inRow; c++) {
+      positions.push({ cx: startX + c * 8, cy: 5 + r * 8 });
+    }
+  }
   return (
-    <svg width="36" height="24" viewBox="0 0 36 24" fill="none">
+    <svg width="36" height={rows * 8 + 2} viewBox={`0 0 36 ${rows * 8 + 2}`} fill="none">
       {positions.map((p, i) => (
-        <circle key={i} cx={p.cx} cy={p.cy} r={r} stroke="rgba(5,11,20,0.25)" strokeWidth="0.8" />
+        <circle key={i} cx={p.cx} cy={p.cy} r="2.5" stroke="rgba(5,11,20,0.25)" strokeWidth="0.8" />
       ))}
     </svg>
   );
@@ -284,12 +311,7 @@ export function Q7DivCards({ value, onSelect }: { value?: string; onSelect: (v: 
           }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><DivIcon count={o.dots} /></div>
             <div style={{ fontSize: 14, fontWeight: 500, color: "rgba(5,11,20,.88)", fontFamily: "Inter,sans-serif" }}>{o.label}</div>
-            <div style={{ fontSize: 11, fontWeight: 500, color: SAP, opacity: .6, fontFamily: "Inter,sans-serif", marginTop: 2 }}>{o.sub}</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 2, justifyContent: "center", margin: "12px 0 8px" }}>
-              {Array.from({ length: o.dots }).map((_, j) => (
-                <div key={j} style={{ width: o.dots > 10 ? 6 : o.dots > 5 ? 8 : 12, height: o.dots > 10 ? 6 : o.dots > 5 ? 8 : 12, borderRadius: 2, background: sel ? SAP : "rgba(5,11,20,.1)", opacity: sel ? 0.25 + j * 0.05 : 0.15, transition: EASE }} />
-              ))}
-            </div>
+            <div style={{ fontSize: 11, fontWeight: 500, color: SAP, opacity: .6, fontFamily: "Inter,sans-serif", marginTop: 2, marginBottom: 8 }}>{o.sub}</div>
             <div style={{ fontSize: 10, color: "rgba(5,11,20,.4)", fontFamily: "Inter,sans-serif", lineHeight: 1.4 }}>{o.desc}</div>
           </div>
         );
