@@ -90,11 +90,24 @@ describe("computeMoments", () => {
   });
 
   test("shrinkage pulls toward prior when T is small", () => {
-    const shortReturns = { SHORT: generateReturns(0.30, 0.20, 120, 77) };
+    // Simulate 15% empirical on ETF monde with only 120 weeks
+    const shortReturns = { SHORT: generateReturns(0.15, 0.12, 120, 77) };
     const shortCAT = [makeAsset({ s: "SHORT", type: "etf", zone: "monde" })];
     const m = computeMoments(shortReturns, shortCAT);
-    // With only 120 weeks, shrinkage should pull significantly toward 7% prior
-    expect(m.mu[0]).toBeLessThan(0.25);
+    // α = 0.4 / (1 + 120/200) = 0.25 → pulls 25% toward prior 7%
+    // If empirical ≈ 15%, shrunk ≈ 0.75*15 + 0.25*7 = 13% (under 15% cap)
+    // Must be < empirical and closer to prior
+    expect(m.mu[0]).toBeLessThan(0.15);
+    expect(m.mu[0]).toBeGreaterThan(0.07); // not fully at prior
+  });
+
+  test("computeMoments is deterministic", () => {
+    const m1 = computeMoments(returns, CAT);
+    const m2 = computeMoments(returns, CAT);
+    expect(m1.mu).toEqual(m2.mu);
+    expect(m1.sigma).toEqual(m2.sigma);
+    expect(m1.symbols).toEqual(m2.symbols);
+    expect(m1.T_vec).toEqual(m2.T_vec);
   });
 
   test("sigma is symmetric", () => {
