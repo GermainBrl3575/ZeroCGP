@@ -1151,10 +1151,13 @@ export async function POST(req: NextRequest) {
     // ─── Markowitz v3: computeMoments + solver ───────────────
     const moments = computeMoments(returns, CAT);
 
-    // Build wMax from WMAX_BY_TYPE per asset type — NOT per risk profile
+    // Build wMax from WMAX_BY_TYPE per asset type, capped by pool-size-adaptive diversity rule
+    const poolSize = moments.symbols.length;
+    const diversityCap = poolSize >= 12 ? 0.20 : 0.35;
     const wMaxArr = moments.symbols.map(s => {
       const asset = CAT.find(a => a.s === s);
-      return WMAX_BY_TYPE[asset?.type || "etf"] || 0.35;
+      const byType = WMAX_BY_TYPE[asset?.type || "etf"] || 0.35;
+      return Math.min(byType, diversityCap);
     });
 
     // Build wMin from minClass (user-requested minimums)
