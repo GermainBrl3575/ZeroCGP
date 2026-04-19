@@ -9,7 +9,6 @@ const CAT: Asset[] = [
   { s:"AAPL",     n:"Apple",              zone:"usa",   type:"stock",  dedup:"AAPL",      ter:0,   pea:false,cto:true, av:false },
   { s:"TSLA",     n:"Tesla",              zone:"usa",   type:"stock",  dedup:"TSLA",      ter:0,   pea:false,cto:true, av:false },
   { s:"NVDA",     n:"Nvidia",             zone:"usa",   type:"stock",  dedup:"NVDA",      ter:0,   pea:false,cto:true, av:false },
-  { s:"BTC-USD",  n:"Bitcoin",            zone:"monde", type:"crypto", dedup:"BTC",       ter:0,   pea:false,cto:true, av:false },
   { s:"OBLI.PA",  n:"Euro Govt Bond",     zone:"europe",type:"bond",   dedup:"EUR_GOV",   ter:0.15,pea:false,cto:true, av:true },
   { s:"SGLD.L",   n:"iShares Gold",       zone:"monde", type:"gold",   dedup:"GOLD_EU",   ter:0.12,pea:false,cto:true, av:true },
   { s:"IWDA.AS",  n:"iShares MSCI World", zone:"monde", type:"etf",   dedup:"MSCI_WORLD",ter:0.20,pea:false,cto:true, av:false },
@@ -34,8 +33,8 @@ function filterByZone(assets: Asset[], zones: string[]): Asset[] {
 
 function filterByRisk(assets: Asset[], risk: string): Asset[] {
   if (risk === "defensive") {
-    const excl = ["TSLA","NVDA","KWEB","MCHI","BTC-USD","ETH-USD","SOL-USD"];
-    return assets.filter(a => !excl.includes(a.s) && a.type !== "crypto");
+    const excl = ["TSLA","NVDA","KWEB","MCHI"];
+    return assets.filter(a => !excl.includes(a.s));
   }
   return assets;
 }
@@ -59,7 +58,6 @@ describe("Support filtering", () => {
     const f = filterBySupport(CAT, "PEA");
     expect(f.every(a => a.pea)).toBe(true);
     expect(f.find(a => a.s === "AAPL")).toBeUndefined();
-    expect(f.find(a => a.s === "BTC-USD")).toBeUndefined();
   });
   test("AV → no asset with av:false", () => {
     const f = filterBySupport(CAT, "AV");
@@ -80,11 +78,10 @@ describe("Zone filtering", () => {
 });
 
 describe("Risk filtering", () => {
-  test("defensive excludes TSLA/NVDA/crypto", () => {
+  test("defensive excludes TSLA/NVDA", () => {
     const f = filterByRisk(CAT, "defensive");
     expect(f.find(a => a.s === "TSLA")).toBeUndefined();
     expect(f.find(a => a.s === "NVDA")).toBeUndefined();
-    expect(f.find(a => a.s === "BTC-USD")).toBeUndefined();
   });
   test("defensive keeps bonds and gold", () => {
     const f = filterByRisk(CAT, "defensive");

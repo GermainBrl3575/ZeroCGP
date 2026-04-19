@@ -7,14 +7,12 @@ const SUPPORTS = [
   { type: "PEA", label: "PEA", desc: "Fiscalité avantageuse après 5 ans · Plafond 150 000 €" },
   { type: "CTO", label: "Compte-Titres (CTO)", desc: "Aucune restriction · Flat Tax 30%" },
   { type: "AV", label: "Assurance-Vie", desc: "Enveloppe fiscale long terme · Fonds en UC" },
-  { type: "crypto", label: "Crypto", desc: "Bitcoin, Ethereum · Via exchange ou cold wallet" },
 ];
 
 const BANKS: Record<string, string[]> = {
   PEA: ["BoursoBank", "Fortuneo", "Bourse Direct", "BNP Paribas", "Société Générale", "Crédit Agricole", "LCL", "Hello Bank", "Degiro", "Trade Republic", "Saxo Bank", "Autre"],
   CTO: ["Interactive Brokers", "Degiro", "BoursoBank", "Fortuneo", "Saxo Bank", "Trade Republic", "Revolut", "Bourse Direct", "Autre"],
   AV: ["BoursoBank", "Fortuneo", "Linxea", "Lucya Cardif", "Autre"],
-  crypto: ["Binance", "Coinbase", "Kraken", "Autre"],
 };
 
 interface Compte { type: string; banque: string; pct: number }

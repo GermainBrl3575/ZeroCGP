@@ -57,7 +57,6 @@ export const MU_PRIOR: Record<string, number> = {
   gold: 0.04,         // gold long-term real return + inflation
   commodity: 0.04,
   reit: 0.06,
-  crypto: 0.10,       // modest prior despite high historical
 };
 
 // Hard caps on annualized mu — never show > this regardless of history
@@ -68,7 +67,6 @@ export const MU_CAP: Record<string, number> = {
   gold: 0.10,
   commodity: 0.10,
   reit: 0.12,
-  crypto: 0.30,
 };
 
 export const MU_FLOOR = -0.02;
@@ -83,7 +81,6 @@ export const WMAX_BY_TYPE: Record<string, number> = {
   gold: 0.15,
   commodity: 0.15,
   reit: 0.15,
-  crypto: 0.10,
 };
 
 // Risk aversion parameter λ for utility function

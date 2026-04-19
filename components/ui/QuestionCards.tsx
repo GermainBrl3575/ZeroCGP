@@ -238,7 +238,6 @@ const CLASSES: { key: string; title: string; sub: string; risk: number; detail: 
   { key: "Obligations", title: "Obligations", sub: "Prêts à des États ou entreprises", risk: 1, detail: "Rendement modéré (~3-4%/an). Stabilise le portefeuille." },
   { key: "Or & Matières", title: "Or & Matières", sub: "Actifs tangibles, valeur refuge", risk: 2, detail: "Protège contre l'inflation et les crises. Pas de dividendes." },
   { key: "Immobilier", title: "Immobilier", sub: "REITs — immobilier coté", risk: 2, detail: "Exposition immobilière sans acheter un bien. Dividendes réguliers." },
-  { key: "Crypto", title: "Crypto", sub: "Bitcoin, Ethereum", risk: 5, detail: "Très volatil (+100% ou -60%). À limiter à 2-5% du portefeuille." },
 ];
 
 export function Q5AssetGrid({ selected, onToggle }: { selected: string[]; onToggle: (c: string) => void }) {

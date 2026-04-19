@@ -47,8 +47,6 @@ const ASSET_DB: Record<string, {
   "AAPL":  { isin:"US0378331005", sector:"Tech / Consumer",        desc:"Apple est la première capitalisation mondiale (~3 000 Mds$). Très diversifié entre iPhone, Mac, services (App Store, iCloud) et wearables.", history:{"1M":3.1,"6M":8.4,"1A":26.0,"5A":198.0,"10A":832.0} },
   "MSFT":  { isin:"US5949181045", sector:"Cloud / IA / Software",  desc:"Microsoft est le leader mondial du cloud (Azure) et de la productivité (Office 365). Investisseur majeur dans OpenAI / ChatGPT.", history:{"1M":2.2,"6M":6.8,"1A":18.0,"5A":182.0,"10A":742.0} },
   "NOVO":  { isin:"DK0060534915", sector:"Santé / Pharma",         desc:"Novo Nordisk est le leader mondial de l'insuline et des traitements contre l'obésité (Ozempic, Wegovy). Plus grande capitalisation européenne.", history:{"1M":-4.1,"6M":-18.0,"1A":12.0,"5A":288.0,"10A":980.0} },
-  "BTC":   { isin:"N/A",          sector:"Crypto-actif",           desc:"Le Bitcoin est la première cryptomonnaie mondiale par capitalisation (~1 400 Mds$). Réserve de valeur numérique, offre limitée à 21 millions d'unités.", history:{"1M":8.2,"6M":28.0,"1A":62.0,"5A":890.0,"10A":18400.0} },
-  "ETH":   { isin:"N/A",          sector:"Crypto-actif",           desc:"Ethereum est la blockchain de référence pour les smart contracts et les DApps. Passé au Proof of Stake en 2022, réduisant sa conso énergétique de 99,95%.", history:{"1M":4.1,"6M":12.0,"1A":28.0,"5A":420.0,"10A":6800.0} },
 };
 
 const NEWS_DB: Record<string, string[]> = {
@@ -92,7 +90,7 @@ import InfoBubble from "@/components/ui/InfoBubble";
 
 
 
-const ASSET_CLASSES = ["ETF", "Actions", "Crypto", "Obligations", "Immobilier coté"];
+const ASSET_CLASSES = ["ETF", "Actions", "Obligations", "Immobilier coté"];
 
 const QUESTIONS = [
   { id:"Q1", q:"Quel est votre horizon d'investissement ?",    opts:["Moins de 2 ans","2 à 5 ans","5 à 10 ans","10 ans et plus"] },
@@ -163,7 +161,6 @@ function buildMockResults(capital: number): OptResult[] {
     {symbol:"EQQQ.DE",name:"Invesco NASDAQ-100",type:"etf"},
     {symbol:"PAEEM.PA",name:"MSCI Emerging Markets",type:"etf"},
     {symbol:"MC.PA",name:"LVMH",type:"stock"},
-    {symbol:"BTC-EUR",name:"Bitcoin",type:"crypto"},
   ];
   const alloc = (ws:number[]): Weight[] => syms.map((s,i)=>({...s,weight:ws[i],amount:Math.round(capital*ws[i])}));
   const frontier: FrontierPt[] = Array.from({length:40},(_,i)=>({vol:parseFloat((8+i*0.7).toFixed(1)),ret:parseFloat((4+Math.sqrt(i)*2.2).toFixed(1))}));
@@ -645,7 +642,6 @@ function OptimizerInner() {
           PEA:{label:"PEA",fullName:"Plan d'Épargne en Actions",color:"#1a3a6a",bgColor:"rgba(26,58,106,0.06)",desc:"Fiscalité avantageuse après 5 ans · Plafonné à 150 000 €"},
           CTO:{label:"CTO",fullName:"Compte-Titres Ordinaire",color:"rgba(22,90,52,0.8)",bgColor:"rgba(22,90,52,0.05)",desc:"Aucune restriction d'actifs · Flat Tax 30%"},
           AV:{label:"AV",fullName:"Assurance-Vie",color:"#8B6914",bgColor:"rgba(139,105,20,0.05)",desc:"Enveloppe fiscale long terme · Fonds en unités de compte"},
-          Crypto:{label:"Crypto",fullName:"Plateforme crypto",color:"#D97706",bgColor:"rgba(217,119,6,0.05)",desc:"Binance, Coinbase ou cold wallet"},
           "Non compatible":{label:"⚠",fullName:"Support manquant",color:"rgba(217,119,6,0.8)",bgColor:"rgba(217,119,6,0.05)",desc:"Un Compte-Titres (CTO) serait nécessaire pour cet actif"},
         };
         let userComptes: {type:string;banque:string;pct:number}[] = [];
@@ -653,11 +649,9 @@ function OptimizerInner() {
         const hasPEA = userComptes.some(c=>c.type==="PEA");
         const hasCTO = userComptes.some(c=>c.type==="CTO");
         const hasAV = userComptes.some(c=>c.type==="AV");
-        const hasCrypto = userComptes.some(c=>c.type==="crypto");
 
         function getSupport(sym: string): string {
           const isPeaEligible = /\.(PA|DE|AS|MI|MC|BR|LS)$/.test(sym) || sym.startsWith("CW8") || sym.startsWith("PAEEM");
-          if (sym.match(/BTC|ETH|SOL|ADA|DOT|AVAX/i)) return hasCrypto ? "Crypto" : hasCTO ? "CTO" : "Non compatible";
           if (isPeaEligible && hasPEA) return "PEA";
           if (hasAV) return "AV";
           if (hasCTO) return "CTO";

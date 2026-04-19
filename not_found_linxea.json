@@ -1,0 +1,472 @@
+[
+  {
+    "symbol": "JARI.PA",
+    "dedup": "MSCI_JAPAN_SRI",
+    "weeks": 0
+  },
+  {
+    "symbol": "WSRI.PA",
+    "dedup": "MSCI_WORLD_SRI",
+    "weeks": 117
+  },
+  {
+    "symbol": "EMKT.PA",
+    "dedup": "MSCI_EM_MINTE",
+    "weeks": 0
+  },
+  {
+    "symbol": "BLEU.PA",
+    "dedup": "BLUE_ECONOMY",
+    "weeks": 0
+  },
+  {
+    "symbol": "LC10.PA",
+    "dedup": "LOW_CARBON_EU",
+    "weeks": 0
+  },
+  {
+    "symbol": "BDVR.PA",
+    "dedup": "BIODIVERSITY",
+    "weeks": 0
+  },
+  {
+    "symbol": "LYPG.PA",
+    "dedup": "MSCI_WORLD_IT",
+    "weeks": 0
+  },
+  {
+    "symbol": "JREH.L",
+    "dedup": "JPM_USREH_EURH",
+    "weeks": 0
+  },
+  {
+    "symbol": "X25E.PA",
+    "dedup": "EUR_GOV_25Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "SP5S.PA",
+    "dedup": "SP500_SCREENED",
+    "weeks": 0
+  },
+  {
+    "symbol": "USTB.PA",
+    "dedup": "UST_LONG",
+    "weeks": 0
+  },
+  {
+    "symbol": "WCSS.PA",
+    "dedup": "SP_WORLD_COMMS",
+    "weeks": 0
+  },
+  {
+    "symbol": "WCDS.PA",
+    "dedup": "SP_WORLD_DISC",
+    "weeks": 0
+  },
+  {
+    "symbol": "WCPS.PA",
+    "dedup": "SP_WORLD_STAPLES",
+    "weeks": 0
+  },
+  {
+    "symbol": "WENS.PA",
+    "dedup": "SP_WORLD_ENERGY",
+    "weeks": 0
+  },
+  {
+    "symbol": "WINS.PA",
+    "dedup": "SP_WORLD_INDUS",
+    "weeks": 0
+  },
+  {
+    "symbol": "WMTS.PA",
+    "dedup": "SP_WORLD_MATS",
+    "weeks": 0
+  },
+  {
+    "symbol": "WUTS.PA",
+    "dedup": "SP_WORLD_UTILS",
+    "weeks": 0
+  },
+  {
+    "symbol": "FT10.PA",
+    "dedup": "FTSE100",
+    "weeks": 0
+  },
+  {
+    "symbol": "E600.PA",
+    "dedup": "STOXX600_ESG",
+    "weeks": 0
+  },
+  {
+    "symbol": "G57.PA",
+    "dedup": "EUR_GOV_5_7Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "G15.PA",
+    "dedup": "EUR_GOV_15Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "ELLE.PA",
+    "dedup": "GENDER_EQUALITY",
+    "weeks": 91
+  },
+  {
+    "symbol": "JPSH.PA",
+    "dedup": "MSCI_JAPAN_SRI_EURH",
+    "weeks": 0
+  },
+  {
+    "symbol": "EZCP.PA",
+    "dedup": "SP_EUROZONE_CLIMATE",
+    "weeks": 0
+  },
+  {
+    "symbol": "CVAL.PA",
+    "dedup": "MSCI_EU_VALUE",
+    "weeks": 0
+  },
+  {
+    "symbol": "C4ES.PA",
+    "dedup": "CAC40_ESG",
+    "weeks": 0
+  },
+  {
+    "symbol": "S5PC.PA",
+    "dedup": "SP500_CLIMATE",
+    "weeks": 0
+  },
+  {
+    "symbol": "BNK.PA",
+    "dedup": "STOXX600_BANKS",
+    "weeks": 105
+  },
+  {
+    "symbol": "ENR.PA",
+    "dedup": "STOXX600_ENERGY",
+    "weeks": 0
+  },
+  {
+    "symbol": "HLT.PA",
+    "dedup": "STOXX600_HC",
+    "weeks": 105
+  },
+  {
+    "symbol": "XMWH.PA",
+    "dedup": "MSCI_WORLD_EURH",
+    "weeks": 0
+  },
+  {
+    "symbol": "NQSE.PA",
+    "dedup": "NASDAQ100_ESG",
+    "weeks": 0
+  },
+  {
+    "symbol": "MMSM.PA",
+    "dedup": "MSCI_EMU_SMALL",
+    "weeks": 0
+  },
+  {
+    "symbol": "MMVF.PA",
+    "dedup": "MSCI_EMU_VALUE",
+    "weeks": 0
+  },
+  {
+    "symbol": "WFIN.PA",
+    "dedup": "MSCI_WORLD_FIN",
+    "weeks": 0
+  },
+  {
+    "symbol": "DISO.PA",
+    "dedup": "DISRUPTIVE_TECH",
+    "weeks": 0
+  },
+  {
+    "symbol": "MILL.PA",
+    "dedup": "MILLENNIALS",
+    "weeks": 96
+  },
+  {
+    "symbol": "AGED.PA",
+    "dedup": "AGEING_POP",
+    "weeks": 0
+  },
+  {
+    "symbol": "DGTL.PA",
+    "dedup": "DIGITALISATION",
+    "weeks": 0
+  },
+  {
+    "symbol": "HEAL.PA",
+    "dedup": "HC_INNOVATION",
+    "weeks": 0
+  },
+  {
+    "symbol": "WCBR.PA",
+    "dedup": "CYBERSECURITY",
+    "weeks": 131
+  },
+  {
+    "symbol": "XMME.PA",
+    "dedup": "MSCI_EM_EMEA",
+    "weeks": 0
+  },
+  {
+    "symbol": "XHYC.DE",
+    "dedup": "USD_HY",
+    "weeks": 0
+  },
+  {
+    "symbol": "DBXD.PA",
+    "dedup": "DAX",
+    "weeks": 0
+  },
+  {
+    "symbol": "XMUS.PA",
+    "dedup": "MSCI_USA_SCRN",
+    "weeks": 0
+  },
+  {
+    "symbol": "XDJP.PA",
+    "dedup": "NIKKEI225",
+    "weeks": 0
+  },
+  {
+    "symbol": "XUTC.PA",
+    "dedup": "UST_ULTRASHORT",
+    "weeks": 0
+  },
+  {
+    "symbol": "ECSU.PA",
+    "dedup": "BOND_OTHER",
+    "weeks": 0
+  },
+  {
+    "symbol": "XESG.PA",
+    "dedup": "MSCI_EM_SRI",
+    "weeks": 0
+  },
+  {
+    "symbol": "X35E.PA",
+    "dedup": "EUR_GOV_3_5Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "X710.PA",
+    "dedup": "EUR_GOV_7_10Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "XDEW.PA",
+    "dedup": "SP500_EW",
+    "weeks": 0
+  },
+  {
+    "symbol": "VUCE.L",
+    "dedup": "USD_CORP",
+    "weeks": 0
+  },
+  {
+    "symbol": "XDCS.PA",
+    "dedup": "MSCI_EU_STAPLES",
+    "weeks": 0
+  },
+  {
+    "symbol": "XDWH.PA",
+    "dedup": "MSCI_EU_HC",
+    "weeks": 0
+  },
+  {
+    "symbol": "ERNE.PA",
+    "dedup": "EUR_ULTRASHORT",
+    "weeks": 0
+  },
+  {
+    "symbol": "CBU3.PA",
+    "dedup": "UST_3_7Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "XNOR.PA",
+    "dedup": "MSCI_NORDIC",
+    "weeks": 0
+  },
+  {
+    "symbol": "XRS2.PA",
+    "dedup": "RUSSELL2000",
+    "weeks": 0
+  },
+  {
+    "symbol": "ECIR.PA",
+    "dedup": "CIRCULAR_ECONOMY",
+    "weeks": 0
+  },
+  {
+    "symbol": "EMXC.PA",
+    "dedup": "MSCI_EM_EXCH",
+    "weeks": 47
+  },
+  {
+    "symbol": "V40A.PA",
+    "dedup": "LIFESTRATEGY_40",
+    "weeks": 0
+  },
+  {
+    "symbol": "V60A.PA",
+    "dedup": "LIFESTRATEGY_60",
+    "weeks": 0
+  },
+  {
+    "symbol": "V80A.PA",
+    "dedup": "LIFESTRATEGY_80",
+    "weeks": 0
+  },
+  {
+    "symbol": "CCHN.PA",
+    "dedup": "MSCI_CHINA_ESG",
+    "weeks": 0
+  },
+  {
+    "symbol": "EGIN.PA",
+    "dedup": "INFRASTRUCTURE",
+    "weeks": 0
+  },
+  {
+    "symbol": "SEMI.PA",
+    "dedup": "GLOBAL_SEMIS",
+    "weeks": 0
+  },
+  {
+    "symbol": "LOCK.PA",
+    "dedup": "DIGITAL_SECURITY",
+    "weeks": 0
+  },
+  {
+    "symbol": "CC1T.PA",
+    "dedup": "MSCI_CHINA_TECH",
+    "weeks": 0
+  },
+  {
+    "symbol": "BLKC.PA",
+    "dedup": "AUTOMATION",
+    "weeks": 0
+  },
+  {
+    "symbol": "X13E.PA",
+    "dedup": "EUR_GOV_1_3Y",
+    "weeks": 0
+  },
+  {
+    "symbol": "GGRN.PA",
+    "dedup": "EUR_GOV_GREEN",
+    "weeks": 0
+  },
+  {
+    "symbol": "XHYA.PA",
+    "dedup": "EUR_HY",
+    "weeks": 0
+  },
+  {
+    "symbol": "XDWN.DE",
+    "dedup": "MSCI_WORLD_ENERGY",
+    "weeks": 0
+  },
+  {
+    "symbol": "IUSE.PA",
+    "dedup": "UNKNOWN",
+    "weeks": 0
+  },
+  {
+    "symbol": "INDU.PA",
+    "dedup": "STOXX600_INDUS",
+    "weeks": 0
+  },
+  {
+    "symbol": "SP20.PA",
+    "dedup": "SP500_TOP20",
+    "weeks": 0
+  },
+  {
+    "symbol": "XSDQ.PA",
+    "dedup": "EU_DIV",
+    "weeks": 0
+  },
+  {
+    "symbol": "EDEF.PA",
+    "dedup": "EU_DEFENSE",
+    "weeks": 0
+  },
+  {
+    "symbol": "DFNS.L",
+    "dedup": "GLOBAL_DEFENSE",
+    "weeks": 160
+  },
+  {
+    "symbol": "XGSD.PA",
+    "dedup": "GLOBAL_DIV",
+    "weeks": 0
+  },
+  {
+    "symbol": "BIC.L",
+    "dedup": "BIC50",
+    "weeks": 0
+  },
+  {
+    "symbol": "MUNA.PA",
+    "dedup": "MSCI_USA_SRI",
+    "weeks": 0
+  },
+  {
+    "symbol": "EMUD.PA",
+    "dedup": "MSCI_EMU_SRI",
+    "weeks": 0
+  },
+  {
+    "symbol": "IEUM.L",
+    "dedup": "MSCI_EU_MID",
+    "weeks": 0
+  },
+  {
+    "symbol": "PANXH.PA",
+    "dedup": "NASDAQ100_EURH",
+    "weeks": 0
+  },
+  {
+    "symbol": "TNO.PA",
+    "dedup": "STOXX600_TECH",
+    "weeks": 105
+  },
+  {
+    "symbol": "V20A.PA",
+    "dedup": "LIFESTRATEGY_20",
+    "weeks": 0
+  },
+  {
+    "symbol": "ROAI.PA",
+    "dedup": "ROBOTICS",
+    "weeks": 192
+  },
+  {
+    "symbol": "DIGE.PA",
+    "dedup": "DIGITAL_ECONOMY",
+    "weeks": 0
+  },
+  {
+    "symbol": "SMOB.PA",
+    "dedup": "SMART_MOBILITY",
+    "weeks": 0
+  },
+  {
+    "symbol": "ENER.PA",
+    "dedup": "CLEAN_ENERGY",
+    "weeks": 0
+  },
+  {
+    "symbol": "FCLD.L",
+    "dedup": "CLOUD",
+    "weeks": 130
+  }
+]

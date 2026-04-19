@@ -20,10 +20,10 @@ const AGGRESSIVE_ANSWERS = {
   "2": "Agressif",
   "3": "Pas de limite",
   "4": "Aucun filtre",
-  "5": "ETF,Actions,Crypto",
+  "5": "ETF,Actions",
   "6": "Monde entier",
   "7": "Large",
-  "8": '[{"type":"CTO","banque":"Interactive Brokers","pct":80},{"type":"crypto","banque":"Binance","pct":20}]',
+  "8": '[{"type":"CTO","banque":"Interactive Brokers","pct":100}]',
 };
 
 function validateOptimizeRequest(body: Record<string, unknown>) {

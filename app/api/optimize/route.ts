@@ -82,12 +82,6 @@ const CAT_STATIC: Asset[] = [
   // REIT
   {s:"VNQ",   n:"Vanguard US REITs",                zone:"usa",type:"reit",dedup:"US_REITS",       ter:0.12,pea:false,cto:true,av:false},
   {s:"REET",  n:"iShares Global REITs",             zone:"any",type:"reit",dedup:"GLOBAL_REITS",   ter:0.14,pea:false,cto:true,av:false},
-  // CRYPTO
-  {s:"BTC-USD",n:"Bitcoin",            zone:"any",type:"crypto",dedup:"BTC",ter:0,   pea:false,cto:false,av:false},
-  {s:"ETH-USD",n:"Ethereum",           zone:"any",type:"crypto",dedup:"ETH",ter:0,   pea:false,cto:false,av:false},
-  {s:"SOL-USD",n:"Solana",             zone:"any",type:"crypto",dedup:"SOL",ter:0,   pea:false,cto:false,av:false},
-  {s:"BNB-USD",n:"BNB",                zone:"any",type:"crypto",dedup:"BNB",ter:0,   pea:false,cto:false,av:false},
-  {s:"IBIT",   n:"iShares Bitcoin ETF",zone:"usa", type:"crypto",dedup:"BTC",ter:0.25,pea:false,cto:true, av:false},
   // ACTIONS USA
   {s:"AAPL",  n:"Apple",            zone:"usa",type:"stock",dedup:"AAPL", ter:0,pea:false,cto:true,av:false,esg:true},
   {s:"MSFT",  n:"Microsoft",        zone:"usa",type:"stock",dedup:"MSFT", ter:0,pea:false,cto:true,av:false,esg:true},
@@ -201,21 +195,19 @@ function inferType(dedup: string, dbType: string): string {
   const goldKeys = ["GOLD_EU", "GOLD_US", "GOLD_MINERS"];
   const commodityKeys = ["NAT_RES", "CMDTY"];
   const reitKeys = ["US_REITS", "US_REITS2", "US_REITS3", "GLOBAL_REITS", "EU_REITS", "AMT", "DLR", "PLD"];
-  const cryptoKeys = ["BTC", "ETH", "SOL", "BNB"];
   if (bondKeys.includes(dedup)) return "bond";
   if (goldKeys.includes(dedup)) return "gold";
   if (commodityKeys.includes(dedup)) return "commodity";
   if (reitKeys.includes(dedup)) return "reit";
-  if (cryptoKeys.includes(dedup)) return "crypto";
   if (dbType === "stock") return "stock";
   return "etf";
 }
 
 const BANK_BLOCKED: Record<string, string[]> = {
-  "BoursoBank":          ["VOO","VTI","SPY","QQQ","CSPX.L","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT"],
-  "Fortuneo":            ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH","IBIT"],
+  "BoursoBank":          ["VOO","VTI","SPY","QQQ","CSPX.L","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH"],
+  "Fortuneo":            ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","MCHI","KWEB","INDA","EWZ","EWY","EWT","EWH"],
   "Hello Bank":          ["VOO","VTI","SPY"],
-  "BNP Paribas":         ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L","IVV","VWO","ACWI","REET","GNR","IBIT"],
+  "BNP Paribas":         ["VOO","VTI","SPY","QQQ","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","CSPX.L","VFEM.L","IVV","VWO","ACWI","REET","GNR"],
   "Societe Generale":    ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Credit Agricole":     ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG","CSPX.L"],
   "Caisse Epargne":      ["VOO","VTI","SPY","QQQ","TLT","IEF","IEMG"],
@@ -226,7 +218,6 @@ const BANK_BLOCKED: Record<string, string[]> = {
   "Interactive Brokers": ["PAEEM.PA","AEEM.PA"],
   "Saxo Bank":           ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
   "Bourse Direct":       ["VOO","VTI","SPY","QQQ","IVV","AGG","TLT","LQD","HYG","IEF","VNQ","GLD","IAU","IEMG","VWO","ACWI","REET","GNR","IBIT","EWT","EWY","INDA","EWZ","EWH","MCHI","KWEB","SHY","BND","TIP","VWOB","EMB"],
-  "Binance / Coinbase":  [],
   "Autre":               [],
 };
 
@@ -254,7 +245,7 @@ function dedupFilter(assets: Asset[]): Asset[] {
    ========================================================= */
 function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   symbols: string[]; minBondPct: number; minGoldPct: number; minReitPct: number;
-  minCryptoPct: number; minEMPct: number; maxWt: number; risk: "defensive"|"moderate"|"balanced"|"aggressive";
+  minEMPct: number; maxWt: number; risk: "defensive"|"moderate"|"balanced"|"aggressive";
   comptes: Array<{type:string;banque:string;pct:number}>;
 } {
   const q1 = answers["1"] || "", q2 = answers["2"] || "", q3 = answers["3"] || "";
@@ -296,7 +287,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       if (np.includes("pea")) comptes.push({ type: "PEA", banque: q9 || "Autre", pct: 100 });
       else if (np.includes("cto") || np.includes("compte")) comptes.push({ type: "CTO", banque: q9 || "Autre", pct: 100 });
       else if (np.includes("assurance") || np.includes("vie")) comptes.push({ type: "AV", banque: q9 || "Autre", pct: 100 });
-      else if (np.includes("crypto")) comptes.push({ type: "crypto", banque: "Autre", pct: 100 });
     }
   }
   if (comptes.length === 0) comptes.push({ type: "CTO", banque: q9 || "Autre", pct: 100 });
@@ -304,7 +294,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const wPEA = comptes.some(c => c.type === "PEA");
   const wCTO = comptes.some(c => c.type === "CTO");
   const wAV = comptes.some(c => c.type === "AV");
-  const wCrypto = comptes.some(c => c.type === "crypto") || n5.includes("crypto");
 
   // AV-only cap: dynamic/aggressive not suited for AV (limited pool)
   if (wAV && !wCTO && !wPEA && riskOrder.indexOf(risk) > 1) risk = "moderate";
@@ -337,8 +326,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const supOk = (a: Asset) =>
     (wPEA && a.pea && !blocked.has(a.s)) ||
     (wCTO && a.cto && !blocked.has(a.s)) ||
-    (wAV && a.av && !blocked.has(a.s)) ||
-    (wCrypto && a.type === "crypto");
+    (wAV && a.av && !blocked.has(a.s));
 
   // ── 3.4 Parse zones (q6) — JSON format or legacy string ──
   let zones = { monde: true, nordAmerique: false, europe: false, asiePacifique: false, amLatine: false, afriqueMO: false, em: false };
@@ -385,7 +373,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const wBonds = n5.includes("oblig");
   const wGold = n5.includes("or") || n5.includes("matier");
   const wReits = n5.includes("immob");
-  const onlyCrypto = n5.trim() === "crypto";
   const onlyBonds = n5.trim() === "obligation" || n5.trim() === "obligations";
 
   // ── ESG ──
@@ -395,16 +382,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   // ── MaxAssets (updated labels: Simple 3-5, Equilibre 6-10, Maximum 10-15) ──
   const maxAssets = n7.includes("concentre") || n7.includes("5 actifs") || n7.includes("simple") ? 7
     : n7.includes("large") || n7.includes("15") || n7.includes("maximum") ? 20 : 16;
-
-  // ── Crypto-only shortcut ──
-  if (onlyCrypto || (wCrypto && !wETF && !wStocks && !wBonds)) {
-    const cr = CAT.filter(a => a.type === "crypto" && !blocked.has(a.s));
-    return {
-      symbols: dedupFilter(cr).map(a => a.s).slice(0, maxAssets),
-      minBondPct: 0, minGoldPct: 0, minReitPct: 0, minCryptoPct: 30, minEMPct: 0,
-      maxWt: 0.35, risk, comptes,
-    };
-  }
 
   // ── Constants ──
   const WDEDUPS = ["MSCI_WORLD", "FTSE_ALLWORLD", "MSCI_ACWI"];
@@ -430,7 +407,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     if (useZone && !zoneFilter(a)) return false;
     if (blocked.has(a.s)) return false;
     if (onlyBonds && a.type !== "bond") return false;
-    if (a.type === "crypto" && !wCrypto) return false;
+    if (a.type === "crypto") return false; // crypto removed from optimizer
     if (!wETF && a.type === "etf") return false;
     if (!wStocks && a.type === "stock") return false;
     if (!wGold && a.type === "gold" && a.type === "gold") return false;
@@ -439,7 +416,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     if (!wBonds && a.type === "bond" && risk === "aggressive") return false;
     if (esgStrict && !a.esg) return false;
     if (esgPartial && a.excl_esg) return false;
-    if (risk === "defensive" && ["TSLA","NVDA","KWEB","MCHI","BTC-USD","ETH-USD","SOL-USD","EWT","EWY","INDA","EWH","EWZ","EWT","BABA","TCEHY","SE","NU"].includes(a.s)) return false;
+    if (risk === "defensive" && ["TSLA","NVDA","KWEB","MCHI","EWT","EWY","INDA","EWH","EWZ","BABA","TCEHY","SE","NU"].includes(a.s)) return false;
     return true;
   });
 
@@ -593,7 +570,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   /* ═══════════════════════════════════════════════════════
      ETAPE 5 : Enrichissement CTO/AV
      ═══════════════════════════════════════════════════════ */
-  if (!wPEA && (wCTO || wAV) && !onlyBonds && !onlyCrypto) {
+  if (!wPEA && (wCTO || wAV) && !onlyBonds) {
     const hasW5 = pool2.some(a => WDEDUPS.includes(a.dedup) && a.type === "etf");
     const CTO_BASE_AGG = ["SXR8.DE", "EQQQ.DE", "VWO", "VFEM.L", "PAEEM.PA", "EXW1.DE", "MCHI", "EWY"];
     const CTO_BASE_STD = ["VWO", "VFEM.L", "PAEEM.PA", "SGLD.L", "OBLI.PA", "GAGG.PA"];
@@ -622,7 +599,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   }
 
   // AV with small pool: add av-eligible diversifiers by dedup key
-  if (wAV && pool2.length < 8 && !onlyBonds && !onlyCrypto) {
+  if (wAV && pool2.length < 8 && !onlyBonds) {
     // Prefer .PA bonds (EUR, no FX risk) before .L bonds (GBP)
     const AV_ADD_DEDUPS = risk === "defensive" || risk === "moderate"
       ? ["EUR_GOV_PA", "GLOBAL_AGG_PA", "GOLD_EU", "EU_REITS"]  // .PA bonds first, then gold
@@ -685,7 +662,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
      ETAPE 7 : Obligations auto-add
      PEA ne peut pas avoir d'obligations (reglementaire)
      ═══════════════════════════════════════════════════════ */
-  if ((risk === "defensive" || risk === "moderate") && !onlyBonds && !onlyCrypto && !wPEA) {
+  if ((risk === "defensive" || risk === "moderate") && !onlyBonds && !wPEA) {
     if (pool2.filter(a => a.type === "bond").length < 1) {
       const bondCandidates = CAT.filter(a =>
         a.type === "bond" && !blocked.has(a.s) && supOk(a) && zoneFilter(a)
@@ -847,7 +824,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     pool2 = smartDedup(baseFilter(false)); // relax zone
     if (pool2.length < 4) {
       pool2 = smartDedup(CAT.filter(a => {
-        if (a.type === "crypto" && !wCrypto) return false;
+        if (a.type === "crypto") return false; // crypto removed from optimizer
         if (esgStrict && !a.esg) return false;
         if (!supOk(a)) return false;
         if (blocked.has(a.s)) return false;
@@ -880,8 +857,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     const bonds = pool2.filter(a => a.type === "bond").slice(0, risk === "defensive" ? 3 : 2);
     bonds.forEach(b => { if (!mandatory.find(m => m.s === b.s)) mandatory.push(b); });
   }
-  if (wCrypto) { const cr = pool2.find(a => a.type === "crypto"); if (cr) mandatory.push(cr); }
-
   const mandSet = new Set(mandatory.map(a => a.s));
   const rest = pool2.filter(a => !mandSet.has(a.s)).sort((a, b) => {
     const sc = (x: Asset) => (x.type === "etf" ? 20 : x.type === "stock" ? 10 : 5) + (x.esg ? 2 : 0) + (1 - Math.min(x.ter, 1)) * 3;
@@ -901,7 +876,6 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     : wBonds ? 8 : 0;
   const minGoldPct = wGold ? 6 : 0;
   const minReitPct = wReits ? 5 : 0;
-  const minCryptoPct = wCrypto && !onlyCrypto ? 5 : 0;
   const minEMPct = (zEM && !zMonde) ? 40 : 0;
 
   // maxWt adapté au nombre d'actifs dans le pool
@@ -915,7 +889,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   _log.push(`final:${symbols.length}(${symbols.join(',')})`);
   console.log(`[SELECT] ${_log.join(' | ')} | risk=${risk} maxWt=${maxWt}`);
 
-  return { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk, comptes };
+  return { symbols, minBondPct, minGoldPct, minReitPct, minEMPct, maxWt, risk, comptes };
 }
 
 /* =========================================================
@@ -1152,7 +1126,7 @@ export async function POST(req: NextRequest) {
   const { capital = 50000, answers = {} } = await req.json();
   try {
     const CAT = await loadCatalogue();
-    const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk, comptes } = selectUniverse(answers, CAT);
+    const { symbols, minBondPct, minGoldPct, minReitPct, minEMPct, maxWt, risk, comptes } = selectUniverse(answers, CAT);
     const returns = await fetchReturns(symbols, 10);
 
     // NO proxy substitution — assets with < 100 weeks are already filtered in fetchReturns
@@ -1167,14 +1141,13 @@ export async function POST(req: NextRequest) {
     const bondSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "bond");
     const goldSyms = validSyms.filter(s => CAT.find(a => a.s === s && (a.type === "gold" || a.type === "commodity")));
     const reitSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "reit"));
-    const cryptoSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "crypto"));
     const emSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.zone === "em"));
     const distrib = (syms: string[], pct: number) => { if (!syms.length || !pct) return {}; const r: Record<string, number> = {}; syms.forEach(s => { r[s] = pct / syms.length; }); return r; };
     const etfSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "etf");
     const stockSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "stock");
     const q5n = (answers["5"] || "").toLowerCase();
     const minETFPct = (q5n.includes("etf") && etfSyms.length > 0 && stockSyms.length > 0) ? 15 : 0;
-    const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(cryptoSyms, minCryptoPct), ...distrib(emSyms, minEMPct), ...distrib(etfSyms, minETFPct) };
+    const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(emSyms, minEMPct), ...distrib(etfSyms, minETFPct) };
 
     // ─── Markowitz v3: computeMoments + solver ───────────────
     const moments = computeMoments(returns, CAT);

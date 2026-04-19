@@ -125,7 +125,6 @@ describe("Portfolio optimization results", () => {
 describe("Support assignment logic", () => {
   function getSupport(symbol: string, hasPEA: boolean, hasCTO: boolean, hasAV: boolean): string {
     const isPeaEligible = /\.(PA|DE|AS|MI|MC|BR|LS)$/.test(symbol);
-    if (symbol.match(/BTC|ETH|SOL/i)) return "Crypto";
     if (isPeaEligible && hasPEA) return "PEA";
     if (hasAV) return "AV";
     if (hasCTO) return "CTO";
@@ -143,9 +142,8 @@ describe("Support assignment logic", () => {
     expect(getSupport("MSFT", false, true, false)).toBe("CTO");
   });
 
-  test("crypto assets go to Crypto", () => {
-    expect(getSupport("BTC-USD", false, true, false)).toBe("Crypto");
-    expect(getSupport("ETH-USD", false, true, false)).toBe("Crypto");
+  test("unknown assets go to CTO fallback", () => {
+    expect(getSupport("BTC-USD", false, true, false)).toBe("CTO");
   });
 
   test("assets with no compatible support marked Non compatible", () => {

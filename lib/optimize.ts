@@ -40,12 +40,10 @@ export function inferType(dedup: string, dbType: string): string {
   const goldKeys = ["GOLD_EU", "GOLD_US", "GOLD_MINERS"];
   const commodityKeys = ["NAT_RES", "CMDTY"];
   const reitKeys = ["US_REITS", "US_REITS2", "US_REITS3", "GLOBAL_REITS", "EU_REITS", "AMT", "DLR", "PLD"];
-  const cryptoKeys = ["BTC", "ETH", "SOL", "BNB"];
   if (bondKeys.includes(dedup)) return "bond";
   if (goldKeys.includes(dedup)) return "gold";
   if (commodityKeys.includes(dedup)) return "commodity";
   if (reitKeys.includes(dedup)) return "reit";
-  if (cryptoKeys.includes(dedup)) return "crypto";
   if (dbType === "stock") return "stock";
   return "etf";
 }
