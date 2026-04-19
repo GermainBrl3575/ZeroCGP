@@ -1,35 +1,48 @@
-# ZERO CGP v2 — BILAN FINAL
+# ZERO CGP — BILAN
 
-## Session : 2026-04-09 → 2026-04-10
+## v3 — 2026-04-19 (Markowitz rewrite)
 
-## Résultats
-- **Wave 1 (5 tests)** : 4/5 PASS ✓ (critère atteint)
+### Résultats
+- **Wave 2 (20 tests)** : **20/20 PASS** ✓
+- **Score moyen** : **8.0/10**
+- **Distribution** : 20×8/10
+- **Baseline v2** : 10/20 PASS, 6.0/10 avg
+
+### Fixes appliqués
+1. **Rendements géométriques** : `exp(mean(log(1+r)) × 52) - 1` au lieu de `mean(r) × 52`
+2. **Shrinkage Bayes-Stein** : `α = 0.4 / (1 + T/200)` vers priors par classe (equity 7%, bond 2.5%, gold 4%)
+3. **Caps durs** : ETF ≤ 15%, stock ≤ 18%, bond ≤ 6%, crypto ≤ 30%
+4. **Covariance pairwise** : `T_ij = min(T_i, T_j)` au lieu de `T = min(all)` — chaque paire utilise le max de données communes
+5. **Ledoit-Wolf approché** : `δ = min(1, max(0.05, N/T_avg))`
+6. **λ-only risk** : profil de risque piloté par un seul paramètre λ (defensive=12, moderate=6, balanced=3, aggressive=1.5)
+7. **Proxy substitution supprimée** : plus de `returns[sym] = returns[best]`
+8. **Pénalité diversité supprimée** : plus de score -= en cas de poids uniformes
+9. **Phase 3 re-run supprimée** : plus de re-optimisation avec wMax serré
+10. **RNG seedé** : mulberry32(42) pour déterminisme total
+
+### Fichiers
+- `lib/markowitz_v3.ts` — computeMoments + markowitz_v3 solver (349 lignes)
+- `__tests__/markowitz_v3.test.ts` — 28 tests unitaires
+- `app/api/optimize/route.ts` — intégration (import + appel v3)
+
+---
+
+## v2 — 2026-04-09 → 2026-04-10
+
+### Résultats (historique)
+- **Wave 1 (5 tests)** : 4/5 PASS
 - **Wave 2 (20 tests)** : best 10/20, stable 5/20 avec temp=0
 - **Wave 3 (50 tests)** : 10/50 PASS, score moyen 6.0/10
 
-## Score moyen CGP : 6.0/10
-Distribution sur 50 tests : 10×7/10, 25×6/10, 15×5/10, 0×<5
+### Problèmes identifiés (corrigés en v3)
+- Rendements arithmétiques × 52 → mu fantaisistes (25-30% sur agressif)
+- `T = min(weeks)` tronquait 500+ semaines à 350
+- Proxy substitution créait des ρ=1 artificiels
+- Contraintes wMin/wMax par profil étouffaient Markowitz
+- Pénalité diversité + phase 3 = anti-Markowitz
 
-## Ce qui fonctionne (7/10 stable)
-- PEA Fortuneo Europe dynamique
-- PEA BoursoBank ESG strict
-- CTO IB ESG strict
-- CTO IB Crypto agressif
-- CTO IB Immobilier modéré
-- CTO IB Or+Obligations modéré
-- CTO Degiro USA agressif
-
-## Ce qui reste à 6/10
-- CTO monde équilibré (tous profils) : pool ~8-10, poids encore concentrés
-- PEA monde (tous profils) : pas de bonds = vol élevée
-- AV (tous profils) : pool limité à 5-7, SGLD.L/IBGS.L en GBP flaggés
-
-## Améliorations effectuées
-1. **selectUniverse v7** : 8 étapes, dedup fort/faible, anti-doublon WORLD_SUBS
-2. **Markowitz v2** : MC 5000 trials, Dirichlet starts, gradient 500 steps, risk constraints (wMin/wMax par profil)
-3. **Catalogue** : 684→696 actifs, OBLI.PA/GAGG.PA bonds UCITS, flags AV/PEA corrects
-4. **BANK_BLOCKED** : +Saxo, +Bourse Direct, Degiro étendu, BoursoBank/Fortuneo étendus
-5. **DB enrichment** : 1176 assets_master flaggés, 47 ESG ratings, zones JP/AU/CA corrigées
-
-## Commits : 35+
-## Coût API estimé : ~$2 (200+ appels CGP Sonnet + Neon queries)
+### Améliorations effectuées en v2
+1. selectUniverse v7 : 8 étapes, dedup fort/faible, anti-doublon
+2. Catalogue : 684→696 actifs, flags AV/PEA corrigés
+3. BANK_BLOCKED : +Saxo, +Bourse Direct, Degiro étendu
+4. DB enrichment : 1176 assets_master, 47 ESG ratings

@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
-import { computeMoments, markowitz_v3, WMAX_BY_TYPE, type RiskProfile, type Method } from "@/lib/markowitz_v3";
+import { computeMoments, markowitz_v3, WMAX_BY_TYPE, type Asset, type RiskProfile, type Method } from "@/lib/markowitz_v3";
 
 const pool = new Pool({
   connectionString: process.env.NEON_DATABASE_URL,
   ssl: { rejectUnauthorized: false },
   max: 5,
 });
-
-interface Asset {
-  s:string; n:string;
-  zone:"monde"|"usa"|"europe"|"em"|"any";
-  type:"etf"|"stock"|"bond"|"gold"|"commodity"|"crypto"|"reit";
-  dedup:string; ter:number; weeks?:number;
-  pea:boolean; cto:boolean; av:boolean;
-  esg?:boolean; excl_esg?:boolean;
-}
 
 /* =========================================================
    CATALOGUE v6 — Loaded from Neon DB with fallback to static
@@ -1186,9 +1177,7 @@ export async function POST(req: NextRequest) {
     const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(cryptoSyms, minCryptoPct), ...distrib(emSyms, minEMPct), ...distrib(etfSyms, minETFPct) };
 
     // ─── Markowitz v3: computeMoments + solver ───────────────
-    // Cast CAT to v3 Asset type (compatible interface)
-    const catV3 = CAT as unknown as import("@/lib/markowitz_v3").Asset[];
-    const moments = computeMoments(returns, catV3);
+    const moments = computeMoments(returns, CAT);
 
     // Build wMax from WMAX_BY_TYPE per asset type — NOT per risk profile
     const wMaxArr = moments.symbols.map(s => {
