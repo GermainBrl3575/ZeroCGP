@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Pool } from "pg";
+import { computeMoments, markowitz_v3, WMAX_BY_TYPE, type RiskProfile, type Method } from "@/lib/markowitz_v3";
 
 const pool = new Pool({
   connectionString: process.env.NEON_DATABASE_URL,
@@ -1163,49 +1164,61 @@ export async function POST(req: NextRequest) {
     const { symbols, minBondPct, minGoldPct, minReitPct, minCryptoPct, minEMPct, maxWt, risk, comptes } = selectUniverse(answers, CAT);
     const returns = await fetchReturns(symbols, 10);
 
-    // Proxy substitution: if an asset has little data, use best from same dedup group
-    const dedupBest: Record<string, string> = {};
-    CAT.forEach(a => {
-      const cur = dedupBest[a.dedup];
-      if (!cur || (returns[a.s]?.length || 0) > (returns[cur]?.length || 0)) dedupBest[a.dedup] = a.s;
-    });
-    Object.keys(returns).forEach(sym => {
-      const asset = CAT.find(a => a.s === sym); if (!asset) return;
-      const best = dedupBest[asset.dedup];
-      if (best && best !== sym && (returns[best]?.length || 0) > returns[sym].length * 1.5) returns[sym] = returns[best];
-    });
+    // NO proxy substitution — assets with < 100 weeks are already filtered in fetchReturns
 
     const validSyms = Object.keys(returns);
     console.log(`[POST] requested=${symbols.length} valid=${validSyms.length} dropped=[${symbols.filter(s=>!returns[s]).join(',')}] weeks=[${validSyms.map(s=>s+':'+returns[s].length+'w').join(',')}]`);
     if (validSyms.length < 3) return NextResponse.json({ error: "Pas assez de donnees historiques pour ce profil" }, { status: 500 });
 
     const meta = await fetchMeta(validSyms, CAT);
+
+    // Build minClass from user-requested minimums only
     const bondSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "bond");
     const goldSyms = validSyms.filter(s => CAT.find(a => a.s === s && (a.type === "gold" || a.type === "commodity")));
     const reitSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "reit"));
     const cryptoSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.type === "crypto"));
     const emSyms = validSyms.filter(s => CAT.find(a => a.s === s && a.zone === "em"));
     const distrib = (syms: string[], pct: number) => { if (!syms.length || !pct) return {}; const r: Record<string, number> = {}; syms.forEach(s => { r[s] = pct / syms.length; }); return r; };
-    // Force minimum ETF weight when ETF class requested alongside stocks
     const etfSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "etf");
     const stockSyms = validSyms.filter(s => CAT.find(a => a.s === s)?.type === "stock");
     const q5n = (answers["5"] || "").toLowerCase();
     const minETFPct = (q5n.includes("etf") && etfSyms.length > 0 && stockSyms.length > 0) ? 15 : 0;
     const minClass = { ...distrib(bondSyms, minBondPct), ...distrib(goldSyms, minGoldPct), ...distrib(reitSyms, minReitPct), ...distrib(cryptoSyms, minCryptoPct), ...distrib(emSyms, minEMPct), ...distrib(etfSyms, minETFPct) };
 
+    // ─── Markowitz v3: computeMoments + solver ───────────────
+    // Cast CAT to v3 Asset type (compatible interface)
+    const catV3 = CAT as unknown as import("@/lib/markowitz_v3").Asset[];
+    const moments = computeMoments(returns, catV3);
+
+    // Build wMax from WMAX_BY_TYPE per asset type — NOT per risk profile
+    const wMaxArr = moments.symbols.map(s => {
+      const asset = CAT.find(a => a.s === s);
+      return WMAX_BY_TYPE[asset?.type || "etf"] || 0.35;
+    });
+
+    // Build wMin from minClass (user-requested minimums)
+    const wMinArr = moments.symbols.map(s => (minClass[s] || 0) / 100);
+
+    // Risk profile drives λ only — no hard constraints per profile
+    const riskProfile = risk as RiskProfile;
+
     const frontier: FPt[] = [];
-    const methods: Array<["minvariance" | "maxsharpe" | "maxutility", string, boolean]> = [
+    const methods: Array<[Method, string, boolean]> = [
       ["minvariance", "Variance Minimale", false],
       ["maxsharpe", "Sharpe Maximum", true],
-      ["maxutility", "Utilite Maximale", false],
+      ["maxutility", "Utilité Maximale", false],
     ];
+
     const results: Result[] = methods.map(([method, label, rec]) => {
-      const opt = markowitz(returns, CAT, method, minClass, maxWt, 0.03, risk);
+      const opt = markowitz_v3(moments, method, { wMin: wMinArr, wMax: wMaxArr }, riskProfile, returns);
+
+      // Post-process weights: filter > 1%, normalize, round
       const rawW = Object.entries(opt.weights).filter(([, v]) => v > 0.01).sort((a, b) => b[1] - a[1]);
       const totalW = rawW.reduce((s, [, v]) => s + v, 0);
       const roundedW = rawW.map(([, v]) => Math.round(v / totalW * 1000) / 10);
       const sumR = roundedW.reduce((a, b) => a + b, 0);
       if (roundedW.length > 0) roundedW[roundedW.length - 1] = Math.round((roundedW[roundedW.length - 1] + (100 - sumR)) * 10) / 10;
+
       const wPEA2 = comptes.some(c => c.type === "PEA");
       const wAV2 = comptes.some(c => c.type === "AV");
       const weights: Weight[] = rawW.map(([sym, w], i) => ({
@@ -1213,7 +1226,8 @@ export async function POST(req: NextRequest) {
         weight: roundedW[i], amount: Math.round(w / totalW * capital),
         isin: meta[sym]?.isin || undefined,
       }));
-      // Tag optimal support (non-breaking: frontend ignores unknown fields)
+
+      // Tag support
       weights.forEach(wt => {
         const asset = CAT.find(a => a.s === wt.symbol);
         if (!asset) return;
@@ -1221,10 +1235,17 @@ export async function POST(req: NextRequest) {
         else if (wAV2 && asset.av) wt.support = "AV";
         else wt.support = "CTO";
       });
-      return { method, label, rec, ret: Math.round(opt.ret * 1000) / 10, vol: Math.round(opt.vol * 1000) / 10, sharpe: Math.round(opt.sharpe * 100) / 100, var95: Math.round(opt.var95 * 1000) / 10, weights, frontier };
+
+      return {
+        method, label, rec,
+        ret: Math.round(opt.ret * 1000) / 10,
+        vol: Math.round(opt.vol * 1000) / 10,
+        sharpe: Math.round(opt.sharpe * 100) / 100,
+        var95: Math.round(opt.var95 * 1000) / 10,
+        weights, frontier,
+      };
     });
-    // Include debug info in response
-    const msResult = results.find(r => r.method === "maxsharpe");
+
     const debugInfo = {
       requested: symbols.length,
       valid: validSyms.length,
