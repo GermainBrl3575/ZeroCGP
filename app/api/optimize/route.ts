@@ -440,8 +440,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   };
 
   let pool2 = smartDedup(baseFilter(true));
-  const _log: string[] = [];
-  _log.push(`E1:${pool2.length}(${pool2.map(a=>a.dedup).join(',')})`);
+  const _log = (step: string) => console.log(`[SELECT ${step}] pool=${pool2.length}: ${pool2.map(a=>a.s).join(', ')}`);
+  _log("E1");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 2 : Anti-doublon MSCI_WORLD
@@ -460,7 +460,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     });
   }
 
-  _log.push();
+  _log("E2");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 3 : Anti-doublon EM
@@ -478,7 +478,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  _log.push();
+  _log("E_");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 4 : Core-satellite par profil (zone monde)
@@ -565,7 +565,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     }
   }
 
-  _log.push();
+  _log("E_");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 5 : Enrichissement CTO/AV
@@ -623,7 +623,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     pool2 = smartDedup(pool2);
   }
 
-  _log.push();
+  _log("E_");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 6 : Enrichissement PEA
@@ -739,7 +739,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     pool2 = pool2.filter(a => !WORLD_SUBS.includes(a.dedup));
   }
 
-  _log.push();
+  _log("E_");
 
   /* ═══════════════════════════════════════════════════════
      ETAPE 8 : Remplissage doublons faibles si pool < target
@@ -885,9 +885,8 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const maxWt = symbols.length <= 5 ? Math.max(baseMaxWt, 0.35)
     : symbols.length <= 8 ? Math.max(baseMaxWt, 0.30) : baseMaxWt;
 
-  _log.push(`E8:${pool2.length}`);
-  _log.push(`final:${symbols.length}(${symbols.join(',')})`);
-  console.log(`[SELECT] ${_log.join(' | ')} | risk=${risk} maxWt=${maxWt}`);
+  _log("E8");
+  console.log(`[SELECT FINAL] symbols=${symbols.length}: ${symbols.join(', ')} | risk=${risk} maxWt=${maxWt}`);
 
   return { symbols, minBondPct, minGoldPct, minReitPct, minEMPct, maxWt, risk, comptes };
 }
