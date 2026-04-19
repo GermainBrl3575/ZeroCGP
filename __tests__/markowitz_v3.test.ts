@@ -90,14 +90,22 @@ describe("computeMoments", () => {
   });
 
   test("shrinkage pulls toward prior when T is small", () => {
-    // Simulate 15% empirical on ETF monde with only 120 weeks
+    // Simulate 15% target on ETF monde with only 120 weeks
     const shortReturns = { SHORT: generateReturns(0.15, 0.12, 120, 77) };
     const shortCAT = [makeAsset({ s: "SHORT", type: "etf", zone: "monde" })];
+
+    // Compute raw empirical for comparison
+    const r = shortReturns.SHORT;
+    const meanLog = r.map(x => Math.log(1 + x)).reduce((a, b) => a + b, 0) / r.length;
+    const muEmpGeom = Math.exp(meanLog * 52) - 1;
+    console.log(`[CHECK] empirique géométrique: ${(muEmpGeom * 100).toFixed(2)}%`);
+
     const m = computeMoments(shortReturns, shortCAT);
-    // α = 0.4 / (1 + 120/200) = 0.25 → pulls 25% toward prior 7%
-    // If empirical ≈ 15%, shrunk ≈ 0.75*15 + 0.25*7 = 13% (under 15% cap)
-    // Must be < empirical and closer to prior
-    expect(m.mu[0]).toBeLessThan(0.15);
+    console.log(`[CHECK] mu après shrinkage: ${(m.mu[0] * 100).toFixed(2)}%`);
+
+    // Shrinkage must have pulled significantly below empirical
+    expect(m.mu[0]).toBeLessThan(muEmpGeom);
+    expect(muEmpGeom - m.mu[0]).toBeGreaterThan(0.015); // at least 1.5pp removed
     expect(m.mu[0]).toBeGreaterThan(0.07); // not fully at prior
   });
 
