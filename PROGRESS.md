@@ -1,48 +1,53 @@
 # ZERO CGP — BILAN
 
-## v3 — 2026-04-19 (Markowitz rewrite)
+## v3.1 — 2026-04-20 (stabilized, crypto removed)
 
-### Résultats
-- **Wave 2 (20 tests)** : **20/20 PASS** ✓
-- **Score moyen** : **8.0/10**
-- **Distribution** : 20×8/10
-- **Baseline v2** : 10/20 PASS, 6.0/10 avg
+### Wave 2 Results (Sonnet API judge, 20 tests)
+- **20/20 PASS** ✓ (target: 18/20)
+- **Score moyen: 7.05/10**
+- **Distribution: 1×8, 19×7**
+- **0 FAIL, 0 WARN**
+- **Known variance: T1 (CTO IB agressif monde) oscillates 6-7 between runs** (Sonnet temp=0.3 borderline on 5-asset maxsharpe)
 
-### Fixes appliqués
-1. **Rendements géométriques** : `exp(mean(log(1+r)) × 52) - 1` au lieu de `mean(r) × 52`
-2. **Shrinkage Bayes-Stein** : `α = 0.4 / (1 + T/200)` vers priors par classe (equity 7%, bond 2.5%, gold 4%)
-3. **Caps durs** : ETF ≤ 15%, stock ≤ 18%, bond ≤ 6%, crypto ≤ 30%
-4. **Covariance pairwise** : `T_ij = min(T_i, T_j)` au lieu de `T = min(all)` — chaque paire utilise le max de données communes
-5. **Ledoit-Wolf approché** : `δ = min(1, max(0.05, N/T_avg))`
-6. **λ-only risk** : profil de risque piloté par un seul paramètre λ (defensive=12, moderate=6, balanced=3, aggressive=1.5)
-7. **Proxy substitution supprimée** : plus de `returns[sym] = returns[best]`
-8. **Pénalité diversité supprimée** : plus de score -= en cas de poids uniformes
-9. **Phase 3 re-run supprimée** : plus de re-optimisation avec wMax serré
-10. **RNG seedé** : mulberry32(42) pour déterminisme total
+### Changes from v3.0
+- Removed cryptocurrency support (BTC/ETH/SOL/BNB/IBIT) from optimizer
+- Removed "Binance / Coinbase" from bank list
+- Removed crypto from Q5 (asset classes), Q8 (supports), SupportBuilder
+- Tested and rejected adaptive wMax cap (pool>=12→0.20): fixed T1 but caused regressions on T5/T12
+- Final: flat WMAX_BY_TYPE.etf=0.35, no adaptive cap
 
-### Fichiers
-- `lib/markowitz_v3.ts` — computeMoments + markowitz_v3 solver (349 lignes)
-- `__tests__/markowitz_v3.test.ts` — 28 tests unitaires
-- `app/api/optimize/route.ts` — intégration (import + appel v3)
+### Baseline comparison
+| Metric | v2 (Apr 10) | v3.0 (Apr 19) | **v3.1 (Apr 20)** |
+|--------|------------|---------------|-------------------|
+| Wave2 PASS | 10/20 | 18/20* | **20/20** |
+| Score avg | 6.0/10 | 6.9/10 | **7.05/10** |
+| Max ret | 30%+ | 15.8% | **15.8%** |
+| FAIL | ~5 | 0 | **0** |
+| Determinism | no | yes | **yes** |
+
+*v3.0 18/20 included 1 crypto test (now removed)
+
+---
+
+## v3.0 — 2026-04-19 (Markowitz rewrite)
+
+### Core fixes
+1. **Geometric returns** with Bayes-Stein shrinkage (α = 0.4/(1+T/200))
+2. **Pairwise covariance** + Ledoit-Wolf (no T=min truncation)
+3. **λ-only risk aversion** (defensive=12, moderate=6, balanced=3, aggressive=1.5)
+4. **Seeded RNG** mulberry32(42) for determinism
+5. Removed: proxy substitution, diversity penalty, phase 3 re-run, profile-based wMin/wMax
+
+### Files
+- `lib/markowitz_v3.ts` — computeMoments + markowitz_v3 solver (349 lines)
+- `__tests__/markowitz_v3.test.ts` — 28 unit tests
+- `app/api/optimize/route.ts` — integration
 
 ---
 
 ## v2 — 2026-04-09 → 2026-04-10
 
-### Résultats (historique)
-- **Wave 1 (5 tests)** : 4/5 PASS
-- **Wave 2 (20 tests)** : best 10/20, stable 5/20 avec temp=0
-- **Wave 3 (50 tests)** : 10/50 PASS, score moyen 6.0/10
-
-### Problèmes identifiés (corrigés en v3)
-- Rendements arithmétiques × 52 → mu fantaisistes (25-30% sur agressif)
-- `T = min(weeks)` tronquait 500+ semaines à 350
-- Proxy substitution créait des ρ=1 artificiels
-- Contraintes wMin/wMax par profil étouffaient Markowitz
-- Pénalité diversité + phase 3 = anti-Markowitz
-
-### Améliorations effectuées en v2
-1. selectUniverse v7 : 8 étapes, dedup fort/faible, anti-doublon
-2. Catalogue : 684→696 actifs, flags AV/PEA corrigés
-3. BANK_BLOCKED : +Saxo, +Bourse Direct, Degiro étendu
-4. DB enrichment : 1176 assets_master, 47 ESG ratings
+### Results (historical)
+- Wave 1: 4/5 PASS | Wave 2: 10/20 PASS | Wave 3: 10/50 PASS
+- Score avg: 6.0/10
+- Problems: arithmetic mu ×52, T=min truncation, proxy substitution ρ=1, stacked constraints
