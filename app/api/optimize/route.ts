@@ -386,7 +386,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   // ── Constants ──
   const WDEDUPS = ["MSCI_WORLD", "FTSE_ALLWORLD", "MSCI_ACWI"];
   // ALL sub-indices contained in MSCI_WORLD
-  const WORLD_SUBS = ["SP500", "NASDAQ100", "EUROSTOXX50", "STOXX600", "EUROSTOXX", "MSCI_EUROPE",
+  const WORLD_SUBS = ["SP500", "NASDAQ100", "EUROSTOXX50", "MSCI_EUROPE",
     "FTSE_EUR", "MSCI_EMU", "MSCI_EAFE", "FTSE_DEV",
     "US_VALUE", "US_GROWTH", "US_SMALL", "US_SMALL2", "US_MID",
     "US_TECH", "US_SOFTWARE", "US_SEMIS", "US_SEMIS2", "US_HEALTH",
@@ -545,7 +545,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
   const OVERLAP_GROUPS = [
     ["MSCI_EM", "FTSE_EM"],          // PAEEM.PA vs VWO
     ["US_AGG", "US_TOTAL"],           // AGG vs BND
-    ["STOXX600", "EUROSTOXX50", "EUROSTOXX", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"],
+    ["EUROSTOXX50", "MSCI_EUROPE", "FTSE_EUR", "MSCI_EMU"],
     ["MSCI_EAFE", "FTSE_DEV"],
     ["GOLD_EU", "GOLD_US", "GOLD_MINERS"],  // Max 1 gold exposure
     ["CAC_MID60", "MSCI_EU_SMALL"],           // SMC.PA vs EESM.PA (both EU small/mid)
@@ -753,7 +753,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
     // Doublons faibles autorisés : sous-ensembles partiels du monde/SP500
     const WEAK_DUPS: string[][] = [
       // World + regional = complément légitime
-      ["SP500", "NASDAQ100", "EUROSTOXX50", "STOXX600", "EUROSTOXX", "MSCI_EUROPE", "CAC_MID60", "MSCI_EU_SMALL"],
+      ["SP500", "NASDAQ100", "EUROSTOXX50", "MSCI_EUROPE", "CAC_MID60", "MSCI_EU_SMALL"],
       // Broad EM + single country
       ["MSCI_CHINA", "MSCI_KOREA", "MSCI_INDIA", "MSCI_BRAZIL", "MSCI_TAIWAN"],
       // Bond diversification
@@ -798,7 +798,7 @@ function selectUniverse(answers: Record<string, string>, CAT: Asset[]): {
       // Block developed sub-regions (VEA, EFA, EWJ, EWC) but allow EU complements (C50, EXSA)
       if (hasWorldPool && risk !== "aggressive" && ["MSCI_EAFE","FTSE_DEV","MSCI_JAPAN","MSCI_CAN","MSCI_AUS","MSCI_SPAIN","MSCI_ITALY","MSCI_GERMANY","MSCI_UK"].includes(c.dedup)) continue;
       // Max 1 EU sub-index as complement to World
-      const EU_SUBS = ["EUROSTOXX50","STOXX600","EUROSTOXX","MSCI_EUROPE","FTSE_EUR","MSCI_EMU","CAC_MID60","MSCI_EU_SMALL"];
+      const EU_SUBS = ["EUROSTOXX50","MSCI_EUROPE","FTSE_EUR","MSCI_EMU","CAC_MID60","MSCI_EU_SMALL"];
       if (hasWorldPool && EU_SUBS.includes(c.dedup) && pool2.filter(a => EU_SUBS.includes(a.dedup)).length >= 1) continue;
       // When SP500 or WORLD present: don't reintroduce SP500 sub-indices
       if ((hasSP500Pool || hasWorldPool) && SP500_SUBS.includes(c.dedup)) continue;
@@ -1151,10 +1151,26 @@ export async function POST(req: NextRequest) {
     // ─── Markowitz v3: computeMoments + solver ───────────────
     const moments = computeMoments(returns, CAT);
 
-    // Build wMax from WMAX_BY_TYPE per asset type — no adaptive cap
+    // Parse Q7 diversification preference
+    const q7n = (answers["7"] || "").toLowerCase();
+    const diversifPref = q7n.includes("large") || q7n.includes("15") ? "large"
+      : q7n.includes("concentre") || q7n.includes("5 actifs") || q7n.includes("simple") ? "concentrated"
+      : "balanced";
+    const poolSize = moments.symbols.length;
+
+    // wMax adaptatif selon Q7 + taille pool
+    function adaptiveWMax(typeWMax: number): number {
+      if (diversifPref === "concentrated") return typeWMax;
+      if (diversifPref === "large" && poolSize >= 12) return Math.min(typeWMax, 0.15);
+      if (diversifPref === "large" && poolSize >= 8) return Math.min(typeWMax, 0.20);
+      if (diversifPref === "balanced" && poolSize >= 12) return Math.min(typeWMax, 0.22);
+      return typeWMax;
+    }
+
     const wMaxArr = moments.symbols.map(s => {
       const asset = CAT.find(a => a.s === s);
-      return WMAX_BY_TYPE[asset?.type || "etf"] || 0.35;
+      const byType = WMAX_BY_TYPE[asset?.type || "etf"] || 0.35;
+      return adaptiveWMax(byType);
     });
 
     // Build wMin from minClass (user-requested minimums)
