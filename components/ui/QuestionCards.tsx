@@ -243,12 +243,12 @@ const CLASSES: { key: string; title: string; sub: string; risk: number; detail: 
 export function Q5AssetGrid({ selected, onToggle }: { selected: string[]; onToggle: (c: string) => void }) {
   return (
     <div style={{ maxWidth: 540, margin: "0 auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 10 }}>
         {CLASSES.map((c, i) => {
           const sel = selected.includes(c.key);
           return (
             <div key={c.key} onClick={() => onToggle(c.key)} style={{
-              borderRadius: 6, padding: "16px 14px", cursor: "pointer",
+              width: "calc(33.33% - 10px)", borderRadius: 6, padding: "16px 14px", cursor: "pointer",
               border: sel ? ".5px solid rgba(26,58,106,.35)" : "0.5px solid rgba(5,11,20,.09)",
               background: sel ? "rgba(26,58,106,.04)" : "rgba(255,255,255,.72)",
               transition: EASE, animation: `cardIn .4s cubic-bezier(.23,1,.32,1) both`, animationDelay: `${i * 0.05}s`,

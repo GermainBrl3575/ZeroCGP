@@ -188,7 +188,7 @@ const css = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
   @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
   @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-  @keyframes cardIn { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:translateY(0)} }
+  @keyframes cardIn { 0%{opacity:0;transform:translateY(8px)} 100%{opacity:1;transform:none} }
   .op{padding:0;min-height:100%;font-family:'Inter',sans-serif;font-weight:300;animation:fadeIn .4s ease}
   .op-ey{font-size:10px;font-weight:500;letter-spacing:.15em;color:rgba(26,58,106,.65);margin-bottom:32px;text-transform:uppercase}
   .op-h1{font-family:'Inter',sans-serif;font-size:38px;font-weight:500;color:rgba(5,11,20,.88);letter-spacing:-.03em;line-height:1.15;margin-bottom:14px}
@@ -240,6 +240,7 @@ function OptimizerInner() {
   const [sel, setSel] = useState("maxsharpe");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [activeInfoCard, setActiveInfoCard] = useState<string|null>(null);
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveName, setSaveName] = useState("Portefeuille Zero CGP");
   const [saveStatus, setSaveStatus] = useState<"simulated"|"active">("simulated");
@@ -545,7 +546,7 @@ function OptimizerInner() {
         {results.map((r,ri)=>{const isSel=r.method===sel;return(
           <div key={r.method} onClick={()=>setSel(r.method)} style={{
             borderRadius:10,padding:"28px 24px",cursor:"pointer",position:"relative",
-            zIndex:1,
+            zIndex:activeInfoCard===r.method?200:(isSel&&!activeInfoCard?10:1),
             background:isSel?"linear-gradient(145deg,#0c1a2e,#1a3a6a)":"rgba(255,255,255,.72)",
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
             boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
@@ -555,7 +556,7 @@ function OptimizerInner() {
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel}/></div>
+              <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel} onToggle={o=>setActiveInfoCard(o?r.method:null)}/></div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
@@ -568,7 +569,7 @@ function OptimizerInner() {
                 <div key={lbl}>
                   <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
                     <span style={{fontSize:9,fontWeight:500,color:isSel?"rgba(255,255,255,.25)":"rgba(5,11,20,.3)",letterSpacing:".06em"}}>{lbl}</span>
-                    <span onClick={e=>e.stopPropagation()} style={{opacity:isSel?1:0,pointerEvents:isSel?"auto":"none",transition:"opacity 0.5s cubic-bezier(.16,1,.3,1)"}}><InfoBubble text={tip} dark={isSel}/></span>
+                    <span onClick={e=>e.stopPropagation()} style={{opacity:isSel?1:0,pointerEvents:isSel?"auto":"none",transition:"opacity 0.5s cubic-bezier(.16,1,.3,1)"}}><InfoBubble text={tip} dark={isSel} onToggle={o=>setActiveInfoCard(o?r.method:null)}/></span>
                   </div>
                   <div style={{fontSize:20,fontWeight:500,color:col,fontVariantNumeric:"tabular-nums"}}>{val}</div>
                 </div>
