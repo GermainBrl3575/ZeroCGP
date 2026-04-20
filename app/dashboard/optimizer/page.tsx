@@ -556,7 +556,10 @@ function OptimizerInner() {
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>e.stopPropagation()}><InfoBubble text={METHOD_INFO[r.method]??""} dark={isSel} onToggle={o=>setActiveInfoCard(o?r.method:null)}/></div>
+              <div onClick={e=>{e.stopPropagation();setActiveInfoCard(activeInfoCard===r.method?null:r.method);}} style={{position:"relative"}}>
+                <button style={{width:16,height:16,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.15)":"rgba(30,58,110,0.12)",border:"none",color:isSel?"rgba(255,255,255,0.7)":"#1E3A6E",fontSize:9,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",fontStyle:"italic"}}>i</button>
+                {activeInfoCard===r.method&&<div style={{position:"absolute",bottom:"calc(100% + 8px)",right:0,width:260,background:"#0A1628",color:"white",borderRadius:10,padding:"12px 14px",fontSize:11.5,lineHeight:1.7,fontWeight:300,zIndex:9999,boxShadow:"0 12px 40px rgba(0,0,0,.4)",fontFamily:"Inter,sans-serif"}}>{METHOD_INFO[r.method]??""}</div>}
+              </div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
