@@ -1163,7 +1163,7 @@ export async function POST(req: NextRequest) {
       if (diversifPref === "concentrated") return typeWMax;
       if (diversifPref === "large" && poolSize >= 12) return Math.min(typeWMax, 0.15);
       if (diversifPref === "large" && poolSize >= 8) return Math.min(typeWMax, 0.20);
-      if (diversifPref === "balanced" && poolSize >= 12) return Math.min(typeWMax, 0.22);
+      // Balanced or small pool: no cap, Markowitz decides
       return typeWMax;
     }
 
