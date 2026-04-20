@@ -551,14 +551,14 @@ function OptimizerInner() {
             border:isSel?`.5px solid rgba(26,58,106,.45)`:r.rec?`.5px solid rgba(5,11,20,.15)`:`.5px solid rgba(5,11,20,.09)`,
             boxShadow:isSel?"0 6px 28px rgba(26,58,106,0.3), 0 0 40px rgba(26,58,106,0.08)":"0 2px 12px rgba(0,0,0,.018)",
             transition:"all 0.5s cubic-bezier(.16,1,.3,1)",
-            animation:`cardIn .45s cubic-bezier(.23,1,.32,1) both`,animationDelay:`${ri*0.08}s`,
           }}>
             {r.rec&&<div style={{position:"absolute",top:-10,right:16,background:"#050B14",color:"white",fontSize:8,fontWeight:500,padding:"4px 12px",letterSpacing:".14em",textTransform:"uppercase",borderRadius:4}}>Recommandé</div>}
+            {/* Tooltip rendered at card level (not inside button div) to escape stacking context */}
+            {activeInfoCard===r.method&&<div style={{position:"absolute",bottom:"calc(100% + 8px)",right:0,width:260,background:"#0A1628",color:"white",borderRadius:10,padding:"12px 14px",fontSize:11.5,lineHeight:1.7,fontWeight:300,zIndex:9999,boxShadow:"0 12px 40px rgba(0,0,0,.4)",fontFamily:"Inter,sans-serif",whiteSpace:"pre-line"}}>{METHOD_INFO[r.method]??""}</div>}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <span style={{fontSize:9,fontWeight:500,letterSpacing:".14em",color:isSel?"rgba(255,255,255,.2)":"rgba(5,11,20,.25)",textTransform:"uppercase"}}>{r.method}</span>
-              <div onClick={e=>{e.stopPropagation();setActiveInfoCard(activeInfoCard===r.method?null:r.method);}} style={{position:"relative"}}>
+              <div onClick={e=>{e.stopPropagation();setActiveInfoCard(activeInfoCard===r.method?null:r.method);}}>
                 <button style={{width:16,height:16,borderRadius:"50%",background:isSel?"rgba(255,255,255,0.15)":"rgba(30,58,110,0.12)",border:"none",color:isSel?"rgba(255,255,255,0.7)":"#1E3A6E",fontSize:9,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"Georgia,serif",fontStyle:"italic"}}>i</button>
-                {activeInfoCard===r.method&&<div style={{position:"absolute",bottom:"calc(100% + 8px)",right:0,width:260,background:"#0A1628",color:"white",borderRadius:10,padding:"12px 14px",fontSize:11.5,lineHeight:1.7,fontWeight:300,zIndex:9999,boxShadow:"0 12px 40px rgba(0,0,0,.4)",fontFamily:"Inter,sans-serif"}}>{METHOD_INFO[r.method]??""}</div>}
               </div>
             </div>
             <div style={{fontFamily:"'Inter',sans-serif",fontSize:18,fontWeight:500,marginBottom:24,color:isSel?"white":"rgba(5,11,20,.88)",letterSpacing:"-.01em"}}>{r.label}</div>
