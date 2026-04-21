@@ -20,7 +20,7 @@ function eur(n: number) {
 }
 function fpct(n: number) { return `${n>=0?"+":""}${n.toFixed(2)}%`; }
 
-const RANGES = ["1D","1M","3M","6M","1Y","5Y"] as const;
+const RANGES = ["1D","1M","3M","6M","1Y"] as const;
 type Range = typeof RANGES[number];
 
 const CSS = `
@@ -179,11 +179,11 @@ function PortfolioInner() {
   const perfColor = pf.perfSinceCreation >= 0 ? C.gUp : C.gDn;
 
   // Convert perfs to treemap format
-  const treemapPerfs: Record<string,{p1d:number;p1m:number;p3m:number;p6m:number;p1a:number;p5a:number;p10a:number}> = {};
+  const treemapPerfs: Record<string,{p1d:number;p1m:number;p3m:number;p6m:number;p1a:number}> = {};
   const treemapAssets: Asset[] = assets.map(a => {
     treemapPerfs[a.symbol] = {
       p1d: a.perfs["1D"]||0, p1m: a.perfs["1M"]||0, p3m: a.perfs["3M"]||0,
-      p6m: a.perfs["6M"]||0, p1a: a.perfs["1Y"]||0, p5a: 0, p10a: 0,
+      p6m: a.perfs["6M"]||0, p1a: a.perfs["1Y"]||0,
     };
     return {
       id: a.id, symbol: a.symbol, name: a.name, type: a.type as "etf"|"stock"|"crypto",
@@ -195,7 +195,7 @@ function PortfolioInner() {
   const marketsClosed = range === "1D" && assets.every(a => Math.abs(a.perfs["1D"]||0) < 0.005);
 
   // Selected period perf for asset table
-  const perfKey = range === "5Y" ? "1Y" : range; // 5Y not in per-asset perfs
+  const perfKey = range;
 
   return (
     <>

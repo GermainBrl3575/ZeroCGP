@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { Asset } from "@/types";
 
-type PerfData = { p1d:number; p1m:number; p3m:number; p6m:number; p1a:number; p5a:number; p10a:number };
+type PerfData = { p1d:number; p1m:number; p3m:number; p6m:number; p1a:number };
 type Perfs = Record<string, PerfData>;
 
-const PERIODS = ["1D","1M","3M","6M","1Y","5Y","10Y"] as const;
+const PERIODS = ["1D","1M","3M","6M","1Y"] as const;
 type Period = typeof PERIODS[number];
-const PERIOD_KEY: Record<Period, keyof PerfData> = { "1D":"p1d","1M":"p1m","3M":"p3m","6M":"p6m","1Y":"p1a","5Y":"p5a","10Y":"p10a" };
-const THRESH: Record<Period,number> = { "1D":1.5,"1M":5,"3M":10,"6M":15,"1Y":25,"5Y":80,"10Y":200 };
+const PERIOD_KEY: Record<Period, keyof PerfData> = { "1D":"p1d","1M":"p1m","3M":"p3m","6M":"p6m","1Y":"p1a" };
+const THRESH: Record<Period,number> = { "1D":1.5,"1M":5,"3M":10,"6M":15,"1Y":25 };
 
 function getPerf(sym: string, p: Period, perfs: Perfs): number | null {
   const data = perfs[sym];
