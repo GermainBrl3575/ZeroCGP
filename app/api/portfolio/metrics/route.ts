@@ -137,8 +137,12 @@ export async function GET(req: NextRequest) {
   const variance = dailyReturns.length > 0 ? dailyReturns.reduce((s, r) => s + (r - mean) ** 2, 0) / dailyReturns.length : 0;
   const volatilite = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100;
 
-  // Sharpe (simplified: annualized return / vol, rf=3%)
-  const sharpe = volatilite > 0 ? Math.round((perfSinceCreation - 3) / volatilite * 100) / 100 : 0;
+  // Sharpe + vol display: mask for portfolios < 30 days (not enough data)
+  const daysSinceCreation = Math.max(1, Math.floor((Date.now() - new Date(portfolio.created_at).getTime()) / 86400000));
+  const annualizedReturn = daysSinceCreation < 30 ? null : perfSinceCreation * (365 / daysSinceCreation);
+  const volatiliteDisplay = daysSinceCreation < 30 ? null : volatilite;
+  const sharpe = (volatilite > 0 && annualizedReturn !== null)
+    ? Math.round((annualizedReturn - 3) / volatilite * 100) / 100 : null;
 
   // Diversification score /10
   const etfs = enrichedAssets.filter(a => a.type === "etf").length;
@@ -190,7 +194,7 @@ export async function GET(req: NextRequest) {
       valeurActuelle: Math.round(valeurActuelle),
       perfSinceCreation,
       portfolioPerfs,
-      volatilite,
+      volatilite: volatiliteDisplay,
       sharpe,
       diversificationScore,
       maxDrawdown: Math.round(maxDrawdown * 100) / 100,

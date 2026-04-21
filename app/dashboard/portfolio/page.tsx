@@ -226,8 +226,8 @@ function PortfolioInner() {
           {[
             {label:"Valeur totale",value:eur(pf.valeurActuelle),color:C.navyText},
             {label:"Performance",value:fpct(pf.perfSinceCreation),color:perfColor},
-            {label:"Volatilité annualisée",value:`${pf.volatilite.toFixed(1)}%`,color:C.navyText},
-            {label:"Ratio de Sharpe",value:pf.sharpe.toFixed(2),color:pf.sharpe>0.5?C.gUp:C.navyText},
+            {label:"Volatilité annualisée",value:pf.volatilite!=null?`${pf.volatilite.toFixed(1)}%`:"—",color:C.navyText},
+            {label:"Ratio de Sharpe",value:pf.sharpe!=null?pf.sharpe.toFixed(2):"—",color:pf.sharpe!=null&&pf.sharpe>0.5?C.gUp:C.navyText},
           ].map(s=>(
             <div key={s.label} style={{padding:"18px 20px",borderRadius:8,background:"rgba(255,255,255,.65)",border:`0.5px solid ${C.borderCard}`,boxShadow:"0 2px 12px rgba(0,0,0,.018)"}}>
               <div style={{fontSize:9,fontWeight:500,letterSpacing:".1em",textTransform:"uppercase",color:C.textLight,marginBottom:8}}>{s.label}</div>
