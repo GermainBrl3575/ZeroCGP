@@ -241,9 +241,9 @@ function PortfolioInner() {
           <DiversificationCircle score={pf.diversificationScore}/>
         </div>
 
-        {/* Period selector + Legend */}
+        {/* Period selector (Actifs tab only) + Legend */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-          <div style={{display:"flex",gap:4}}>
+          {tab==="actifs"?<div style={{display:"flex",gap:4}}>
             {RANGES.map(r=>(
               <button key={r} onClick={()=>setRange(r)} style={{
                 padding:"7px 16px",borderRadius:6,fontSize:11,fontWeight:range===r?500:400,
@@ -252,7 +252,7 @@ function PortfolioInner() {
                 fontFamily:"Inter,sans-serif",transition:`all ${EASE}`,
               }}>{r}</button>
             ))}
-          </div>
+          </div>:<div/>}
           <div style={{display:"flex",gap:14}}>
             {[["etf","ETF","rgba(26,58,106,.5)"],["stock","Action","rgba(22,90,52,.5)"],["crypto","Crypto","rgba(217,119,6,.5)"]].map(([,l,c])=>(
               <div key={l} style={{display:"flex",alignItems:"center",gap:6}}>
