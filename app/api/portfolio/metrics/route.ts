@@ -168,9 +168,16 @@ export async function GET(req: NextRequest) {
     evolution.push({ date, value: Math.round(dayValue) });
   }
 
-  // Max drawdown + peak
+  // Filter evolution to only dates after portfolio creation
+  const creationTs = new Date(portfolio.created_at).getTime() / 1000;
+  const filteredEvolution = evolution.filter(e => {
+    const eTs = new Date(e.date).getTime() / 1000;
+    return eTs >= creationTs;
+  });
+
+  // Max drawdown + peak (on real holding period only)
   let peak = 0, maxDrawdown = 0;
-  evolution.forEach(e => {
+  filteredEvolution.forEach(e => {
     if (e.value > peak) peak = e.value;
     const dd = peak > 0 ? ((e.value - peak) / peak) * 100 : 0;
     if (dd < maxDrawdown) maxDrawdown = dd;
@@ -189,7 +196,7 @@ export async function GET(req: NextRequest) {
       maxDrawdown: Math.round(maxDrawdown * 100) / 100,
       peakValue: Math.round(peak),
       daysSinceCreation: Math.floor((Date.now() - new Date(portfolio.created_at).getTime()) / 86400000),
-      evolution,
+      evolution: filteredEvolution,
     },
     assets: enrichedAssets,
   });
