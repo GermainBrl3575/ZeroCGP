@@ -186,6 +186,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [activeId,setActiveId]=useState("");
   const [userInitials,setUserInitials]=useState("U");
   const [userName,setUserName]=useState("Mon compte");
+  const [isAdmin,setIsAdmin]=useState(false);
   const [dropOpen,setDropOpen]=useState(false);
   const [editModal,setEditModal]=useState(false);
   const [editTarget,setEditTarget]=useState<{id:string;name:string;type:string}|null>(null);
@@ -207,6 +208,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
     const name=data.user.user_metadata?.full_name||data.user.user_metadata?.name||email.split("@")[0]||"User";
     setUserName(name);
     setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
+    setIsAdmin(email === "germain@burel.net");
     // Portfolios
     const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",data.user.id).order("created_at",{ascending:false});
     if(pfs&&pfs.length>0){
@@ -334,6 +336,9 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
             );})}
           </nav>
           <div style={{padding:"0 20px",marginBottom:12}}><div style={{height:".3px",marginBottom:10,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)"}}/><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.gold,opacity:.6}}/><span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)"}}>Optimisation : il y a 26 jours</span></div></div>
+          {isAdmin&&<div style={{margin:"0 9px 6px"}}><a href="/admin" style={{display:"flex",alignItems:"center",gap:8,padding:"9px 13px",borderRadius:6,background:"rgba(220,38,38,0.08)",border:".5px solid rgba(220,38,38,0.25)",color:"#DC2626",fontSize:10,fontWeight:600,letterSpacing:".1em",textTransform:"uppercase",textDecoration:"none",transition:"all .2s"}}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Admin</a></div>}
           <div style={{margin:"0 9px 9px",padding:"13px",borderRadius:8,background:"rgba(255,255,255,.04)",border:".3px solid rgba(255,255,255,.045)"}}>
             <div onMouseEnter={()=>sUH(true)} onMouseLeave={()=>sUH(false)} onClick={handleLogout} style={{display:"flex",alignItems:"center",gap:11,cursor:"pointer",transition:`all ${EASE}`,transform:userHov?"translateY(-.5px)":"none"}}>
               <div style={{width:36,height:36,borderRadius:"50%",background:userHov?"linear-gradient(145deg,#1d3050,#0e1a2c)":"linear-gradient(145deg,#182840,#0c1422)",border:`.5px solid rgba(255,255,255,${userHov?.12:.08})`,boxShadow:"inset 0 1.5px 3px rgba(255,255,255,.05),inset 0 -1.5px 3px rgba(0,0,0,.22),0 2px 6px rgba(0,0,0,.18)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:500,letterSpacing:".04em",color:userHov?"rgba(255,255,255,.85)":"rgba(255,255,255,.65)",flexShrink:0,transition:`all ${EASE}`}}>{userInitials}</div>
