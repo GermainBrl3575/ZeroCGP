@@ -208,7 +208,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
     const name=data.user.user_metadata?.full_name||data.user.user_metadata?.name||email.split("@")[0]||"User";
     setUserName(name);
     setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
-    setIsAdmin(email === "germain@burel.net");
+    setIsAdmin(email === "germain@burel.net" || data.user?.user_metadata?.is_admin === true);
     // Portfolios
     const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",data.user.id).order("created_at",{ascending:false});
     if(pfs&&pfs.length>0){

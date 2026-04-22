@@ -29,7 +29,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user?.email === ADMIN_EMAIL) {
+      const u = data.user;
+      if (u?.email === ADMIN_EMAIL || u?.user_metadata?.is_admin === true) {
         setAuthorized(true);
       } else {
         router.replace("/");

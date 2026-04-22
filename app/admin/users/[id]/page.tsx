@@ -145,13 +145,51 @@ export default function AdminUserDetail() {
         </div>
       )}
 
-      {/* Future actions placeholder */}
+      {/* Actions */}
       <div style={{ marginTop: 32, padding: "20px 22px", borderRadius: 8, background: "rgba(5,11,20,0.02)", border: `0.5px solid ${C.borderCard}` }}>
-        <div style={{ fontSize: 11, fontWeight: 500, color: C.textLight, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 12 }}>Actions (bientôt)</div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {["Exporter données RGPD", "Purger crypto orphelines", "Supprimer compte"].map(a => (
-            <span key={a} style={{ fontSize: 11, padding: "6px 12px", borderRadius: 4, background: "rgba(5,11,20,0.03)", color: "rgba(5,11,20,0.25)", cursor: "not-allowed" }}>{a}</span>
-          ))}
+        <div style={{ fontSize: 11, fontWeight: 500, color: C.textLight, letterSpacing: ".08em", textTransform: "uppercase", marginBottom: 12 }}>Actions</div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={async () => {
+            const r = await adminFetch(`/api/admin/users/${userId}/actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "export_rgpd" }) });
+            const d = await r.json();
+            if (d.export) { const blob = new Blob([JSON.stringify(d.export, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `rgpd_${user.email}_${new Date().toISOString().split("T")[0]}.json`; a.click(); }
+          }} style={{ fontSize: 11, padding: "8px 14px", borderRadius: 4, background: "rgba(26,58,106,0.06)", color: C.sapphire, border: `0.5px solid rgba(26,58,106,0.15)`, cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
+            Exporter données RGPD
+          </button>
+
+          {!user.is_admin && (
+            <button onClick={async () => {
+              if (!confirm(`Nommer ${user.email} administrateur ?`)) return;
+              const r = await adminFetch(`/api/admin/users/${userId}/actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "toggle_admin" }) });
+              const d = await r.json();
+              if (d.success) { setData((prev: any) => prev ? { ...prev, user: { ...prev.user, is_admin: d.is_admin } } : prev); }
+            }} style={{ fontSize: 11, padding: "8px 14px", borderRadius: 4, background: "rgba(22,90,52,0.06)", color: C.gUp, border: `0.5px solid rgba(22,90,52,0.15)`, cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
+              Nommer admin
+            </button>
+          )}
+
+          {user.is_admin && user.email !== "germain@burel.net" && (
+            <button onClick={async () => {
+              if (!confirm(`Retirer les droits admin à ${user.email} ?`)) return;
+              const r = await adminFetch(`/api/admin/users/${userId}/actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "toggle_admin" }) });
+              const d = await r.json();
+              if (d.success) { setData((prev: any) => prev ? { ...prev, user: { ...prev.user, is_admin: d.is_admin } } : prev); }
+            }} style={{ fontSize: 11, padding: "8px 14px", borderRadius: 4, background: "rgba(220,38,38,0.06)", color: "#DC2626", border: `0.5px solid rgba(220,38,38,0.15)`, cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
+              Retirer admin
+            </button>
+          )}
+
+          {user.email !== "germain@burel.net" && (
+            <button onClick={async () => {
+              if (!confirm(`SUPPRIMER DÉFINITIVEMENT le compte de ${user.email} et tous ses portfolios ? Cette action est irréversible.`)) return;
+              if (!confirm(`Êtes-vous VRAIMENT sûr ? Tapez le mot de passe admin pour confirmer... (cliquez OK pour continuer)`)) return;
+              const r = await adminFetch(`/api/admin/users/${userId}/actions`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete_account" }) });
+              const d = await r.json();
+              if (d.success) { alert("Compte supprimé."); window.location.href = "/admin/users"; }
+            }} style={{ fontSize: 11, padding: "8px 14px", borderRadius: 4, background: "rgba(220,38,38,0.06)", color: "#DC2626", border: `0.5px solid rgba(220,38,38,0.15)`, cursor: "pointer", fontFamily: "Inter,sans-serif", fontWeight: 500 }}>
+              Supprimer compte
+            </button>
+          )}
         </div>
       </div>
     </div>

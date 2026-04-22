@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     await supabaseAdmin.from("admin_actions_log").insert({ admin_email: ADMIN_EMAIL, action: "view_user", target_type: "user", target_id: userId });
     return NextResponse.json({
-      user: { id: u.id, email: u.email, created_at: u.created_at, last_sign_in_at: u.last_sign_in_at, full_name: u.user_metadata?.full_name || u.user_metadata?.name || null, is_admin: u.email === ADMIN_EMAIL },
+      user: { id: u.id, email: u.email, created_at: u.created_at, last_sign_in_at: u.last_sign_in_at, full_name: u.user_metadata?.full_name || u.user_metadata?.name || null, is_admin: u.email === ADMIN_EMAIL || u.user_metadata?.is_admin === true },
       portfolios: enrichedPortfolios,
     });
   } catch (err) { console.error("Admin view user error:", err); return NextResponse.json({ error: "Server error" }, { status: 500 }); }
