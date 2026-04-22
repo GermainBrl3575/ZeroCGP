@@ -25,8 +25,9 @@ export async function POST(req: NextRequest) {
     const longitude = req.headers.get("x-vercel-ip-longitude") || null;
 
     await supabase.from("visits").insert({
-      ip: ip.substring(0, 45),  // cap length
+      ip: ip.substring(0, 45),
       path: (body.path || "/").substring(0, 200),
+      type: body.type === "login" ? "login" : "visit",
       user_id: body.user_id || null,
       user_email: body.user_email || null,
       city,

@@ -107,10 +107,9 @@ export default function AdminAnalytics() {
   const frPoints = geoPoints.filter((p: any) => p.lat && p.lon);
 
   // Compute additional stats
-  const avgPerDay = byDay.length > 0 ? Math.round(stats.total_visits / byDay.length * 10) / 10 : 0;
+  const avgPerDay = byDay.length > 0 ? Math.round(stats.total_all / byDay.length * 10) / 10 : 0;
   const topCountry = byCountry[0] ? `${byCountry[0][0]} (${byCountry[0][1]})` : "—";
   const topPage = byPage[0] ? byPage[0][0] : "—";
-  const loginRate = stats.total_visits > 0 ? Math.round(stats.logged_in_visits / stats.total_visits * 100) : 0;
 
   return (
     <div>
@@ -130,12 +129,12 @@ export default function AdminAnalytics() {
         </div>
       </div>
 
-      {/* Stats row 1 */}
+      {/* Stats row 1 — Visits (site arrivals) */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
         {[
-          { label: "Visites totales", value: stats.total_visits, sub: `${avgPerDay}/jour en moyenne` },
-          { label: "Visiteurs uniques", value: stats.unique_ips, sub: "par adresse IP" },
-          { label: "Utilisateurs connectés", value: stats.unique_users, sub: `${loginRate}% taux de connexion` },
+          { label: "Visites (arrivées)", value: stats.total_visits, sub: `${avgPerDay}/jour en moyenne` },
+          { label: "Visiteurs uniques", value: stats.unique_visitors, sub: "par adresse IP" },
+          { label: "Connexions", value: stats.total_logins, sub: `${stats.unique_users} utilisateur${stats.unique_users > 1 ? "s" : ""} unique${stats.unique_users > 1 ? "s" : ""}` },
           { label: "Pays principal", value: topCountry, sub: `${byCountry.length} pays au total`, small: true },
         ].map(s => (
           <div key={s.label} style={{ padding: "16px 18px", borderRadius: 8, background: "white", border: `0.5px solid ${C.borderCard}` }}>
@@ -149,8 +148,8 @@ export default function AdminAnalytics() {
       {/* Stats row 2 */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12, marginBottom: 28 }}>
         {[
-          { label: "Visites connectées", value: stats.logged_in_visits },
-          { label: "Visites anonymes", value: stats.total_visits - stats.logged_in_visits },
+          { label: "Total événements", value: stats.total_all },
+          { label: "IPs uniques (tout)", value: stats.unique_ips },
           { label: "Page la plus vue", value: topPage, small: true },
           { label: "Villes (France)", value: byCity.filter((c: any) => c[1].count > 0).length },
         ].map(s => (
@@ -185,7 +184,7 @@ export default function AdminAnalytics() {
                 <div style={{ height: "100%", width: `${(count / (byCountry[0]?.[1] || 1)) * 100}%`, background: C.sapphire, borderRadius: 2, opacity: 0.5 }} />
               </div>
               <span style={{ fontSize: 12, fontWeight: 500, color: C.navyText, fontVariantNumeric: "tabular-nums", width: 40, textAlign: "right" }}>{count}</span>
-              <span style={{ fontSize: 10, color: C.textLight, width: 35, textAlign: "right" }}>{stats.total_visits > 0 ? Math.round(count / stats.total_visits * 100) : 0}%</span>
+              <span style={{ fontSize: 10, color: C.textLight, width: 35, textAlign: "right" }}>{stats.total_all > 0 ? Math.round(count / stats.total_all * 100) : 0}%</span>
             </div>
           ))}
         </div>

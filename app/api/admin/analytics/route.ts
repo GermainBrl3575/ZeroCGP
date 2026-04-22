@@ -12,19 +12,21 @@ export async function GET(req: NextRequest) {
 
   try {
     // Get all visits in period
-    const { data: visits } = await supabaseAdmin
+    const { data: rawVisits } = await supabaseAdmin
       .from("visits")
-      .select("ip, path, user_id, user_email, city, country, region, latitude, longitude, created_at")
+      .select("ip, path, type, user_id, user_email, city, country, region, latitude, longitude, created_at")
       .gte("created_at", since)
       .order("created_at", { ascending: false })
       .limit(5000);
 
-    const allVisits = visits || [];
+    const allVisits = rawVisits || [];
 
-    // Aggregate stats
+    // Aggregate stats — separate visits (anonymous arrivals) from logins (authenticated)
+    const visits = allVisits.filter(v => v.type !== "login");
+    const logins = allVisits.filter(v => v.type === "login");
     const uniqueIPs = new Set(allVisits.map(v => v.ip));
-    const loggedIn = allVisits.filter(v => v.user_id);
-    const uniqueUsers = new Set(loggedIn.map(v => v.user_id));
+    const uniqueVisitorIPs = new Set(visits.map(v => v.ip));
+    const uniqueUsers = new Set(logins.map(v => v.user_id));
 
     // By country
     const byCountry: Record<string, number> = {};
@@ -63,10 +65,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       stats: {
-        total_visits: allVisits.length,
-        unique_ips: uniqueIPs.size,
-        logged_in_visits: loggedIn.length,
+        total_visits: visits.length,
+        unique_visitors: uniqueVisitorIPs.size,
+        total_logins: logins.length,
         unique_users: uniqueUsers.size,
+        total_all: allVisits.length,
+        unique_ips: uniqueIPs.size,
         days,
       },
       byCountry: Object.entries(byCountry).sort((a, b) => b[1] - a[1]),
