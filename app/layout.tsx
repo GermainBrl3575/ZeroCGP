@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import "./globals.css";
+import Tracker from "@/components/Tracker";
 
 export const metadata: Metadata = {
   title: "Zero CGT — Optimisation de portefeuille",
@@ -16,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="fr">
-      <body>{children}</body>
+      <body><Tracker />{children}</body>
     </html>
   );
 }

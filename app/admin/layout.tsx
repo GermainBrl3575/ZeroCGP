@@ -18,6 +18,7 @@ const NAV = [
   { label: "Dashboard", href: "/admin", icon: "M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" },
   { label: "Utilisateurs", href: "/admin/users", icon: "M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" },
   { label: "Portfolios", href: "/admin/portfolios", icon: "M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" },
+  { label: "Analytics", href: "/admin/analytics", icon: "M22 12h-4l-3 9L9 3l-3 9H2" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
