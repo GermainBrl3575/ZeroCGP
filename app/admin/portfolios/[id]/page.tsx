@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { adminFetch } from "@/lib/adminFetch";
 
 const C = {
   navyText: "rgba(5,11,20,0.88)", textMid: "rgba(5,11,20,0.52)",
@@ -21,13 +22,13 @@ export default function AdminPortfolioDetail() {
 
   useEffect(() => {
     // First get portfolio info to find user_id
-    fetch(`/api/admin/portfolios?limit=200`)
+    adminFetch(`/api/admin/portfolios?limit=200`)
       .then(r => r.json())
       .then(d => {
         const pf = d.portfolios?.find((p: any) => p.id === pfId);
         if (!pf) { setLoading(false); return; }
         // Then fetch full portfolio data via user endpoint
-        return fetch(`/api/admin/users/${pf.user_id}/portfolio/${pfId}`)
+        return adminFetch(`/api/admin/users/${pf.user_id}/portfolio/${pfId}`)
           .then(r => r.json())
           .then(full => setData({ ...full, userId: pf.user_id }));
       })

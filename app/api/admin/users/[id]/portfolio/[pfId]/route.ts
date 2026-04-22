@@ -1,12 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const ADMIN_EMAIL = "germain@burel.net";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { verifyAdmin, supabaseAdmin as supabase, ADMIN_EMAIL } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,10 +17,8 @@ async function fetchYahoo(symbol: string) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string; pfId: string } }) {
-  const authHeader = req.headers.get("cookie") || "";
-  const anonClient = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { global: { headers: { cookie: authHeader } } });
-  const { data: { user } } = await anonClient.auth.getUser();
-  if (!user || user.email !== ADMIN_EMAIL) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const auth = await verifyAdmin(req);
+  if (auth instanceof NextResponse) return auth;
 
   const { id: userId, pfId } = params;
 

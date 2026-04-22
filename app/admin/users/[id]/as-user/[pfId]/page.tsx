@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { adminFetch } from "@/lib/adminFetch";
 
 const C = {
   navyText: "rgba(5,11,20,0.88)", textMid: "rgba(5,11,20,0.52)",
@@ -23,7 +24,7 @@ export default function AsUserPortfolioPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/admin/users/${userId}/portfolio/${pfId}`)
+    adminFetch(`/api/admin/users/${userId}/portfolio/${pfId}`)
       .then(r => r.json()).then(d => setData(d)).catch(() => {}).finally(() => setLoading(false));
   }, [userId, pfId]);
 

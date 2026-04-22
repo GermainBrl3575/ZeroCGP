@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { adminFetch } from "@/lib/adminFetch";
 
 const C = {
   navyText: "rgba(5,11,20,0.88)", textMid: "rgba(5,11,20,0.52)",
@@ -34,7 +35,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch("/api/admin/users")
+    adminFetch("/api/admin/users")
       .then(r => r.json())
       .then(d => { if (d.users) setUsers(d.users); })
       .catch(() => {})

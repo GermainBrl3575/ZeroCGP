@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { adminFetch } from "@/lib/adminFetch";
 
 const C = {
   navyText: "rgba(5,11,20,0.88)", textMid: "rgba(5,11,20,0.52)",
@@ -23,7 +24,7 @@ export default function AdminPortfoliosPage() {
 
   useEffect(() => {
     const params = typeFilter !== "all" ? `?type=${typeFilter}` : "";
-    fetch(`/api/admin/portfolios${params}`)
+    adminFetch(`/api/admin/portfolios${params}`)
       .then(r => r.json()).then(d => { if (d.portfolios) setPortfolios(d.portfolios); })
       .catch(() => {}).finally(() => setLoading(false));
   }, [typeFilter]);

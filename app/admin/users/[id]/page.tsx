@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { adminFetch } from "@/lib/adminFetch";
 
 const C = {
   navyText: "rgba(5,11,20,0.88)", textMid: "rgba(5,11,20,0.52)",
@@ -37,7 +38,7 @@ export default function AdminUserDetail() {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/admin/users/${userId}`)
+    adminFetch(`/api/admin/users/${userId}`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(d => setData(d))
       .catch(() => setError(true))
