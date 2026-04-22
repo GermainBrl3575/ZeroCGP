@@ -1,7 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+const ADMIN_EMAIL = "germain@burel.net";
 
 const C = {
   cream: "#FAF8F3", navy: "#050B14", navyText: "rgba(5,11,20,0.88)",
@@ -19,7 +22,24 @@ const NAV = [
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [hovNav, setHovNav] = useState<string | null>(null);
+  const [authorized, setAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user?.email === ADMIN_EMAIL) {
+        setAuthorized(true);
+      } else {
+        router.replace("/");
+      }
+      setChecking(false);
+    });
+  }, [router]);
+
+  if (checking) return <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", fontFamily: "Inter,sans-serif", color: "rgba(5,11,20,0.3)", fontSize: 11 }}>Vérification...</div>;
+  if (!authorized) return null;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: C.cream, fontFamily: "Inter,sans-serif" }}>
