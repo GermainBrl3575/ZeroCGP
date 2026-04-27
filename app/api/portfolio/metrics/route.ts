@@ -222,11 +222,41 @@ export async function GET(req: NextRequest) {
   if (stocks >= 2 && etfs >= 2) diversificationScore++;
   diversificationScore = Math.min(diversificationScore, 10);
 
+  // === DIAGNOSTIC LOGGING ===
+  console.log("[metrics] FX rates loaded:", [...neededFx].map(ticker => ({
+    ticker,
+    points: fxData[ticker]?.closes.length || 0,
+    lastClose: fxData[ticker]?.closes[fxData[ticker].closes.length - 1] || "MISSING",
+    lastTs: fxData[ticker]?.ts[fxData[ticker].ts.length - 1]
+      ? new Date(fxData[ticker].ts[fxData[ticker].ts.length - 1] * 1000).toISOString().split("T")[0]
+      : "MISSING",
+  })));
+  console.log("[metrics] Per-asset diagnostics:", enrichedAssets.map(a => ({
+    symbol: a.symbol,
+    currency: yahooData[a.symbol]?.currency || "?",
+    rawCloses: yahooData[a.symbol]?.closes?.length || 0,
+    eurCloses: eurData[a.symbol]?.closes?.length || 0,
+    currentPriceEUR: a.currentPrice,
+    targetAmount: a.targetAmount,
+    currentValue: a.currentValue,
+    lastRawClose: yahooData[a.symbol]?.closes?.slice(-3) || [],
+    lastEurClose: eurData[a.symbol]?.closes?.slice(-3).map(c => Math.round(c * 100) / 100) || [],
+    lastTs: yahooData[a.symbol]?.timestamps?.slice(-3).map(t => new Date(t * 1000).toISOString().split("T")[0]) || [],
+  })));
+
   // Evolution: EUR-converted, starting from portfolio creation date
   const creationTs = Math.floor(new Date(portfolio.created_at).getTime() / 1000);
   const refSymbol = enrichedAssets[0]?.symbol;
   const refTs = yahooData[refSymbol]?.timestamps || [];
   const creationIdx = refTs.findIndex(ts => ts >= creationTs);
+
+  console.log("[metrics] Evolution params:", {
+    refSymbol,
+    refTsLength: refTs.length,
+    creationIdx,
+    creationDate: portfolio.created_at,
+    assetLengths: enrichedAssets.map(a => `${a.symbol}:${eurData[a.symbol]?.closes?.length || 0}`).join(", "),
+  });
 
   // Qty per asset based on EUR close at creation date
   const evoQty: Record<string, number> = {};
@@ -240,10 +270,21 @@ export async function GET(req: NextRequest) {
   if (creationIdx >= 0) {
     for (let d = creationIdx; d < refTs.length; d++) {
       let dayValue = 0;
+      const dayDebug: string[] = [];
       enrichedAssets.forEach(a => {
         const closes = eurData[a.symbol]?.closes || [];
-        dayValue += (closes[d] || 0) * (evoQty[a.symbol] || 0);
+        const closeVal = closes[d];
+        const qty = evoQty[a.symbol] || 0;
+        const contrib = (closeVal || 0) * qty;
+        dayValue += contrib;
+        // Log if close is missing (undefined/0) — this is the crash signal
+        if (closeVal === undefined || closeVal === 0) {
+          dayDebug.push(`${a.symbol}:MISSING(idx=${d},len=${closes.length})`);
+        }
       });
+      if (dayDebug.length > 0) {
+        console.log(`[metrics] Evolution d=${d} date=${new Date(refTs[d] * 1000).toISOString().split("T")[0]} value=${Math.round(dayValue)} MISSING:[${dayDebug.join(",")}]`);
+      }
       evolution.push({
         date: new Date(refTs[d] * 1000).toISOString().split("T")[0],
         value: Math.round(dayValue),
@@ -251,6 +292,12 @@ export async function GET(req: NextRequest) {
     }
   }
   const finalEvolution = evolution.length < 2 ? [] : evolution;
+
+  console.log("[metrics] Evolution result:", {
+    points: finalEvolution.length,
+    first: finalEvolution[0],
+    last3: finalEvolution.slice(-3),
+  });
 
   // Max drawdown + peak
   let peak = 0, maxDrawdown = 0;
