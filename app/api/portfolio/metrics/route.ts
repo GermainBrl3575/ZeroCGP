@@ -62,28 +62,58 @@ export async function GET(req: NextRequest) {
     };
   }));
 
-  // Fetch EUR/USD rates if any asset is quoted in USD
-  // EURUSD=X ≈ 1.08 means 1 EUR = 1.08 USD → to convert USD→EUR: price / rate
-  const needsUsd = Object.values(yahooData).some(d => d.currency === "USD");
-  let fxTs: number[] = [];
-  let fxCloses: number[] = [];
-  if (needsUsd) {
-    const fxResult = await fetchYahoo("EURUSD=X", "1y", "1d");
-    if (fxResult) {
-      fxTs = fxResult.timestamp || [];
-      fxCloses = (fxResult.indicators?.quote?.[0]?.close || []).map((c: number | null) => c ?? 1);
-    }
+  // Fetch forex rates for all needed currencies (EUR-based pairs)
+  // EURUSD=X ≈ 1.08 → 1 EUR = 1.08 USD → to convert foreign→EUR: price / rate
+  // GBp/GBX = pence sterling (1/100 GBP) — common for UK stocks (LLOY.L, BARC.L)
+  const FX_TICKERS: Record<string, string> = {
+    USD: "EURUSD=X", GBP: "EURGBP=X", GBp: "EURGBP=X", GBX: "EURGBP=X",
+    CHF: "EURCHF=X", JPY: "EURJPY=X",
+  };
+  const currencies = new Set(Object.values(yahooData).map(d => d.currency));
+  const neededFx = new Set<string>();
+  currencies.forEach(c => { if (FX_TICKERS[c]) neededFx.add(FX_TICKERS[c]); });
+
+  const fxData: Record<string, { ts: number[]; closes: number[] }> = {};
+  if (neededFx.size > 0) {
+    await Promise.all([...neededFx].map(async (ticker) => {
+      const result = await fetchYahoo(ticker, "1y", "1d");
+      if (result) {
+        fxData[ticker] = {
+          ts: result.timestamp || [],
+          closes: (result.indicators?.quote?.[0]?.close || []).map((c: number | null) => c ?? 1),
+        };
+      }
+    }));
   }
 
-  function usdToEur(usdPrice: number, targetTs: number): number {
-    if (!fxTs.length) return usdPrice;
+  // Get raw FX rate at a given timestamp (closest available date <= targetTs)
+  function getRawFxRate(ticker: string, targetTs: number): number {
+    const fx = fxData[ticker];
+    if (!fx?.ts.length) return 0;
     let idx = 0;
-    for (let i = 0; i < fxTs.length; i++) {
-      if (fxTs[i] <= targetTs) idx = i;
+    for (let i = 0; i < fx.ts.length; i++) {
+      if (fx.ts[i] <= targetTs) idx = i;
       else break;
     }
-    const rate = fxCloses[idx] || 1;
-    return rate > 0 ? usdPrice / rate : usdPrice;
+    return fx.closes[idx] || 0;
+  }
+
+  // Multiplier to convert 1 unit of foreign currency to EUR
+  function getEurMultiplier(currency: string, ts: number): number {
+    if (currency === "EUR") return 1;
+    // Pence sterling: divide by 100 then convert as GBP
+    if (currency === "GBp" || currency === "GBX") {
+      const rate = getRawFxRate("EURGBP=X", ts);
+      return rate > 0 ? (1 / rate) / 100 : 1 / 100;
+    }
+    const ticker = FX_TICKERS[currency];
+    if (!ticker) {
+      // HKD, CAD, AUD, SEK, NOK, DKK… TODO: add more pairs
+      console.warn(`[metrics] Unsupported currency ${currency}, no conversion`);
+      return 1;
+    }
+    const rate = getRawFxRate(ticker, ts);
+    return rate > 0 ? 1 / rate : 1;
   }
 
   // Pre-compute EUR-converted closes + current price per asset
@@ -91,16 +121,12 @@ export async function GET(req: NextRequest) {
   for (const a of assets) {
     const y = yahooData[a.symbol];
     if (!y) { eurData[a.symbol] = { closes: [], currentPrice: 0 }; continue; }
-    if (y.currency === "USD") {
-      const closes = y.closes.map((c, i) => usdToEur(c, y.timestamps[i]));
-      const lastTs = y.timestamps[y.timestamps.length - 1] || Date.now() / 1000;
-      eurData[a.symbol] = { closes, currentPrice: usdToEur(y.currentPrice, lastTs) };
-    } else if (y.currency !== "EUR") {
-      // GBP, CHF, JPY… TODO: add more FX pairs
-      console.warn(`[metrics] Unhandled currency ${y.currency} for ${a.symbol}`);
+    if (y.currency === "EUR") {
       eurData[a.symbol] = { closes: y.closes, currentPrice: y.currentPrice };
     } else {
-      eurData[a.symbol] = { closes: y.closes, currentPrice: y.currentPrice };
+      const closes = y.closes.map((c, i) => c * getEurMultiplier(y.currency, y.timestamps[i]));
+      const lastTs = y.timestamps[y.timestamps.length - 1] || Date.now() / 1000;
+      eurData[a.symbol] = { closes, currentPrice: y.currentPrice * getEurMultiplier(y.currency, lastTs) };
     }
   }
 
