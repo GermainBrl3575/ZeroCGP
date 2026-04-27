@@ -45,8 +45,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch 1Y daily data for each asset (covers all period calculations + evolution chart)
-  const yahooData: Record<string, { currentPrice: number; closes: number[]; timestamps: number[] }> = {};
+  // Fetch 1Y daily data for each asset (with currency)
+  const yahooData: Record<string, {
+    currentPrice: number; closes: number[]; timestamps: number[]; currency: string;
+  }> = {};
   await Promise.all(assets.map(async (a) => {
     const result = await fetchYahoo(a.symbol, "1y", "1d");
     if (!result) return;
@@ -56,24 +58,65 @@ export async function GET(req: NextRequest) {
       currentPrice: result.meta?.regularMarketPrice || 0,
       closes,
       timestamps,
+      currency: result.meta?.currency || "EUR",
     };
   }));
 
-  // Enrich assets
+  // Fetch EUR/USD rates if any asset is quoted in USD
+  // EURUSD=X ≈ 1.08 means 1 EUR = 1.08 USD → to convert USD→EUR: price / rate
+  const needsUsd = Object.values(yahooData).some(d => d.currency === "USD");
+  let fxTs: number[] = [];
+  let fxCloses: number[] = [];
+  if (needsUsd) {
+    const fxResult = await fetchYahoo("EURUSD=X", "1y", "1d");
+    if (fxResult) {
+      fxTs = fxResult.timestamp || [];
+      fxCloses = (fxResult.indicators?.quote?.[0]?.close || []).map((c: number | null) => c ?? 1);
+    }
+  }
+
+  function usdToEur(usdPrice: number, targetTs: number): number {
+    if (!fxTs.length) return usdPrice;
+    let idx = 0;
+    for (let i = 0; i < fxTs.length; i++) {
+      if (fxTs[i] <= targetTs) idx = i;
+      else break;
+    }
+    const rate = fxCloses[idx] || 1;
+    return rate > 0 ? usdPrice / rate : usdPrice;
+  }
+
+  // Pre-compute EUR-converted closes + current price per asset
+  const eurData: Record<string, { closes: number[]; currentPrice: number }> = {};
+  for (const a of assets) {
+    const y = yahooData[a.symbol];
+    if (!y) { eurData[a.symbol] = { closes: [], currentPrice: 0 }; continue; }
+    if (y.currency === "USD") {
+      const closes = y.closes.map((c, i) => usdToEur(c, y.timestamps[i]));
+      const lastTs = y.timestamps[y.timestamps.length - 1] || Date.now() / 1000;
+      eurData[a.symbol] = { closes, currentPrice: usdToEur(y.currentPrice, lastTs) };
+    } else if (y.currency !== "EUR") {
+      // GBP, CHF, JPY… TODO: add more FX pairs
+      console.warn(`[metrics] Unhandled currency ${y.currency} for ${a.symbol}`);
+      eurData[a.symbol] = { closes: y.closes, currentPrice: y.currentPrice };
+    } else {
+      eurData[a.symbol] = { closes: y.closes, currentPrice: y.currentPrice };
+    }
+  }
+
+  // Enrich assets (all values in EUR)
   const capitalInitial = assets.reduce((s, a) => s + (a.target_amount || 0), 0);
   let valeurActuelle = 0;
 
   const enrichedAssets = assets.map(a => {
-    const yahoo = yahooData[a.symbol];
-    const currentPrice = yahoo?.currentPrice || 0;
-    // Detect placeholder quantities from old saves (amount/100)
+    const eur = eurData[a.symbol];
+    const currentPrice = eur?.currentPrice || 0;
+    const closes = eur?.closes || [];
+
     const isPlaceholder = a.target_amount > 0 && a.quantity > 0
       && Math.abs(a.quantity - a.target_amount / 100) < 0.02;
-    // Real quantity: use stored if valid, else compute from initial price
     let qty: number;
     if (isPlaceholder || !a.quantity) {
-      // Fallback: use first available close as proxy for creation price
-      const closes = yahoo?.closes || [];
       const initialPrice = closes[0] || currentPrice || 1;
       qty = a.target_amount > 0 ? a.target_amount / initialPrice : 0;
     } else {
@@ -82,7 +125,6 @@ export async function GET(req: NextRequest) {
     const currentValue = currentPrice > 0 ? currentPrice * qty : a.target_amount || 0;
     valeurActuelle += currentValue;
 
-    const closes = yahoo?.closes || [];
     const perfs: Record<string, number> = {};
     const periodsMap: [string, number][] = [["1D", 1], ["1M", 21], ["3M", 63], ["6M", 126], ["1Y", 252]];
     for (const [label, days] of periodsMap) {
@@ -111,7 +153,6 @@ export async function GET(req: NextRequest) {
     ? Math.round(((valeurActuelle - capitalInitial) / capitalInitial) * 10000) / 100
     : 0;
 
-  // Weighted portfolio perfs by period
   const totalWeight = enrichedAssets.reduce((s, a) => s + a.weight, 0) || 1;
   const portfolioPerfs: Record<string, number> = {};
   for (const period of ["1D", "1M", "3M", "6M", "1Y"]) {
@@ -120,13 +161,13 @@ export async function GET(req: NextRequest) {
     ) / 100;
   }
 
-  // Volatility (annualized std of daily returns, last 63 trading days)
+  // Volatility (annualized, EUR-converted closes)
   const dailyReturns: number[] = [];
-  const minLen = Math.min(...enrichedAssets.map(a => yahooData[a.symbol]?.closes?.length || 0));
+  const minLen = Math.min(...enrichedAssets.map(a => eurData[a.symbol]?.closes?.length || 0));
   for (let d = 1; d < Math.min(minLen, 63); d++) {
     let pfReturn = 0;
     enrichedAssets.forEach(a => {
-      const closes = yahooData[a.symbol]?.closes || [];
+      const closes = eurData[a.symbol]?.closes || [];
       if (closes[d] > 0 && closes[d - 1] > 0) {
         pfReturn += ((closes[d] - closes[d - 1]) / closes[d - 1]) * (a.weight / totalWeight);
       }
@@ -137,7 +178,6 @@ export async function GET(req: NextRequest) {
   const variance = dailyReturns.length > 0 ? dailyReturns.reduce((s, r) => s + (r - mean) ** 2, 0) / dailyReturns.length : 0;
   const volatilite = Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100;
 
-  // Sharpe + vol display: mask for portfolios < 30 days (not enough data)
   const daysSinceCreation = Math.max(1, Math.floor((Date.now() - new Date(portfolio.created_at).getTime()) / 86400000));
   const annualizedReturn = daysSinceCreation < 30 ? null : perfSinceCreation * (365 / daysSinceCreation);
   const volatiliteDisplay = daysSinceCreation < 30 ? null : volatilite;
@@ -156,32 +196,39 @@ export async function GET(req: NextRequest) {
   if (stocks >= 2 && etfs >= 2) diversificationScore++;
   diversificationScore = Math.min(diversificationScore, 10);
 
-  // Evolution: daily portfolio value
-  const evolution: { date: string; value: number }[] = [];
+  // Evolution: EUR-converted, starting from portfolio creation date
+  const creationTs = Math.floor(new Date(portfolio.created_at).getTime() / 1000);
   const refSymbol = enrichedAssets[0]?.symbol;
   const refTs = yahooData[refSymbol]?.timestamps || [];
-  for (let d = 0; d < refTs.length; d++) {
-    let dayValue = 0;
-    enrichedAssets.forEach(a => {
-      const closes = yahooData[a.symbol]?.closes || [];
-      const firstClose = closes[0] || 1;
-      const qty = a.targetAmount > 0 && firstClose > 0 ? a.targetAmount / firstClose : 0;
-      dayValue += (closes[d] || 0) * qty;
-    });
-    const date = new Date(refTs[d] * 1000).toISOString().split("T")[0];
-    evolution.push({ date, value: Math.round(dayValue) });
-  }
+  const creationIdx = refTs.findIndex(ts => ts >= creationTs);
 
-  // Filter evolution to only dates after portfolio creation
-  const creationTs = new Date(portfolio.created_at).getTime() / 1000;
-  const filteredEvolution = evolution.filter(e => {
-    const eTs = new Date(e.date).getTime() / 1000;
-    return eTs >= creationTs;
+  // Qty per asset based on EUR close at creation date
+  const evoQty: Record<string, number> = {};
+  enrichedAssets.forEach(a => {
+    const closes = eurData[a.symbol]?.closes || [];
+    const price = (creationIdx >= 0 ? closes[creationIdx] : null) || closes.find(c => c > 0) || 1;
+    evoQty[a.symbol] = a.targetAmount > 0 ? a.targetAmount / price : 0;
   });
 
-  // Max drawdown + peak (on real holding period only)
+  const evolution: { date: string; value: number }[] = [];
+  if (creationIdx >= 0) {
+    for (let d = creationIdx; d < refTs.length; d++) {
+      let dayValue = 0;
+      enrichedAssets.forEach(a => {
+        const closes = eurData[a.symbol]?.closes || [];
+        dayValue += (closes[d] || 0) * (evoQty[a.symbol] || 0);
+      });
+      evolution.push({
+        date: new Date(refTs[d] * 1000).toISOString().split("T")[0],
+        value: Math.round(dayValue),
+      });
+    }
+  }
+  const finalEvolution = evolution.length < 2 ? [] : evolution;
+
+  // Max drawdown + peak
   let peak = 0, maxDrawdown = 0;
-  filteredEvolution.forEach(e => {
+  finalEvolution.forEach(e => {
     if (e.value > peak) peak = e.value;
     const dd = peak > 0 ? ((e.value - peak) / peak) * 100 : 0;
     if (dd < maxDrawdown) maxDrawdown = dd;
@@ -200,7 +247,7 @@ export async function GET(req: NextRequest) {
       maxDrawdown: Math.round(maxDrawdown * 100) / 100,
       peakValue: Math.round(peak),
       daysSinceCreation: Math.floor((Date.now() - new Date(portfolio.created_at).getTime()) / 86400000),
-      evolution: filteredEvolution,
+      evolution: finalEvolution,
     },
     assets: enrichedAssets,
   });
