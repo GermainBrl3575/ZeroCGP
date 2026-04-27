@@ -182,14 +182,14 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
   const [userHov,sUH]=useState(false);
   const [loaded,sLd]=useState(false);
   const [loading,setLoading]=useState(true);
-  const [portfolios,setPortfolios]=useState<{id:string;name:string;type:string}[]>([]);
+  const [portfolios,setPortfolios]=useState<{id:string;name:string;type:string;updated_at:string}[]>([]);
   const [activeId,setActiveId]=useState("");
   const [userInitials,setUserInitials]=useState("U");
   const [userName,setUserName]=useState("Mon compte");
   const [isAdmin,setIsAdmin]=useState(false);
   const [dropOpen,setDropOpen]=useState(false);
   const [editModal,setEditModal]=useState(false);
-  const [editTarget,setEditTarget]=useState<{id:string;name:string;type:string}|null>(null);
+  const [editTarget,setEditTarget]=useState<{id:string;name:string;type:string;updated_at:string}|null>(null);
   const [editName,setEditName]=useState("");
   const [editType,setEditType]=useState("manual");
   const [editErr,setEditErr]=useState("");
@@ -210,7 +210,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
     setUserInitials(name.split(" ").map((w:string)=>w[0]).join("").toUpperCase().slice(0,2));
     setIsAdmin(email === "germain@burel.net" || data.user?.user_metadata?.is_admin === true);
     // Portfolios
-    const {data:pfs}=await supabase.from("portfolios").select("id,name,type").eq("user_id",data.user.id).order("created_at",{ascending:false});
+    const {data:pfs}=await supabase.from("portfolios").select("id,name,type,updated_at").eq("user_id",data.user.id).order("created_at",{ascending:false});
     if(pfs&&pfs.length>0){
       setPortfolios(pfs);
       const urlId=getUrlId();
@@ -335,7 +335,7 @@ export default function DashboardLayout({children}:{children:React.ReactNode}){
               </Link>
             );})}
           </nav>
-          <div style={{padding:"0 20px",marginBottom:12}}><div style={{height:".3px",marginBottom:10,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)"}}/><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.gold,opacity:.6}}/><span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)"}}>Optimisation : il y a 26 jours</span></div></div>
+          <div style={{padding:"0 20px",marginBottom:12}}><div style={{height:".3px",marginBottom:10,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)"}}/><div style={{display:"flex",alignItems:"center",gap:6}}><div style={{width:4,height:4,borderRadius:"50%",background:C.gold,opacity:.6}}/><span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)"}}>{(()=>{const pf=portfolios.find(p=>p.id===activeId);if(!pf?.updated_at)return"Aucun portfolio";const d=Math.floor((Date.now()-new Date(pf.updated_at).getTime())/86400000);return`Optimisation : ${d===0?"aujourd'hui":d===1?"hier":`il y a ${d} jours`}`;})()}</span></div></div>
           {isAdmin&&<div style={{margin:"0 9px 6px"}}><a href="/admin" style={{display:"flex",alignItems:"center",gap:8,padding:"9px 13px",borderRadius:6,background:"rgba(220,38,38,0.08)",border:".5px solid rgba(220,38,38,0.25)",color:"#DC2626",fontSize:10,fontWeight:600,letterSpacing:".1em",textTransform:"uppercase",textDecoration:"none",transition:"all .2s"}}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="1.5" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             Admin</a></div>}

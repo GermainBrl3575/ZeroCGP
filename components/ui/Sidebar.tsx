@@ -37,7 +37,7 @@ function NI({ t, a, h }: { t: string; a: boolean; h: boolean }) {
   return m[t] || null;
 }
 
-interface Portfolio { id:string; name:string; type:"manual"|"optimized" }
+interface Portfolio { id:string; name:string; type:"manual"|"optimized"; updated_at?:string }
 interface SidebarProps { portfolios?: Portfolio[]; activePortfolioId?: string }
 
 function SidebarInner({ portfolios=[], activePortfolioId="" }: SidebarProps) {
@@ -236,7 +236,7 @@ function SidebarInner({ portfolios=[], activePortfolioId="" }: SidebarProps) {
             <div style={{height:".3px",marginBottom:10,background:"linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent)"}}/>
             <div style={{display:"flex",alignItems:"center",gap:6}}>
               <div style={{width:4,height:4,borderRadius:"50%",background:C.gold,opacity:.6}}/>
-              <span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)",fontFamily:"'Inter',sans-serif"}}>Optimisation : il y a 26 jours</span>
+              <span style={{fontSize:9.5,fontWeight:400,color:"rgba(255,255,255,.38)",fontFamily:"'Inter',sans-serif"}}>{(()=>{if(!activePf?.updated_at)return"Aucun portfolio";const d=Math.floor((Date.now()-new Date(activePf.updated_at).getTime())/86400000);return`Optimisation : ${d===0?"aujourd'hui":d===1?"hier":`il y a ${d} jours`}`;})()}</span>
             </div>
           </div>
 
