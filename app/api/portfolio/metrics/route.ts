@@ -68,6 +68,8 @@ export async function GET(req: NextRequest) {
   const FX_TICKERS: Record<string, string> = {
     USD: "EURUSD=X", GBP: "EURGBP=X", GBp: "EURGBP=X", GBX: "EURGBP=X",
     CHF: "EURCHF=X", JPY: "EURJPY=X",
+    DKK: "EURDKK=X", SEK: "EURSEK=X", NOK: "EURNOK=X",
+    AUD: "EURAUD=X", CAD: "EURCAD=X", HKD: "EURHKD=X",
   };
   const currencies = new Set(Object.values(yahooData).map(d => d.currency));
   const neededFx = new Set<string>();
@@ -108,7 +110,6 @@ export async function GET(req: NextRequest) {
     }
     const ticker = FX_TICKERS[currency];
     if (!ticker) {
-      // HKD, CAD, AUD, SEK, NOK, DKK… TODO: add more pairs
       console.warn(`[metrics] Unsupported currency ${currency}, no conversion`);
       return 1;
     }
@@ -222,82 +223,54 @@ export async function GET(req: NextRequest) {
   if (stocks >= 2 && etfs >= 2) diversificationScore++;
   diversificationScore = Math.min(diversificationScore, 10);
 
-  // === DIAGNOSTIC LOGGING ===
-  console.log("[metrics] FX rates loaded:", [...neededFx].map(ticker => ({
-    ticker,
-    points: fxData[ticker]?.closes.length || 0,
-    lastClose: fxData[ticker]?.closes[fxData[ticker].closes.length - 1] || "MISSING",
-    lastTs: fxData[ticker]?.ts[fxData[ticker].ts.length - 1]
-      ? new Date(fxData[ticker].ts[fxData[ticker].ts.length - 1] * 1000).toISOString().split("T")[0]
-      : "MISSING",
-  })));
-  console.log("[metrics] Per-asset diagnostics:", enrichedAssets.map(a => ({
-    symbol: a.symbol,
-    currency: yahooData[a.symbol]?.currency || "?",
-    rawCloses: yahooData[a.symbol]?.closes?.length || 0,
-    eurCloses: eurData[a.symbol]?.closes?.length || 0,
-    currentPriceEUR: a.currentPrice,
-    targetAmount: a.targetAmount,
-    currentValue: a.currentValue,
-    lastRawClose: yahooData[a.symbol]?.closes?.slice(-3) || [],
-    lastEurClose: eurData[a.symbol]?.closes?.slice(-3).map(c => Math.round(c * 100) / 100) || [],
-    lastTs: yahooData[a.symbol]?.timestamps?.slice(-3).map(t => new Date(t * 1000).toISOString().split("T")[0]) || [],
-  })));
+  // Helper: find EUR close for an asset at a given timestamp (carry-forward)
+  function getCloseAtTs(symbol: string, targetTs: number): number {
+    const y = yahooData[symbol];
+    const eur = eurData[symbol];
+    if (!y?.timestamps.length || !eur?.closes.length) return 0;
+    let bestIdx = -1;
+    for (let i = 0; i < y.timestamps.length; i++) {
+      if (y.timestamps[i] <= targetTs) bestIdx = i;
+      else break;
+    }
+    if (bestIdx < 0) return eur.closes.find(c => c > 0) || 0;
+    // Carry forward: if close is 0 (null from Yahoo), step back
+    while (bestIdx >= 0 && !eur.closes[bestIdx]) bestIdx--;
+    return bestIdx >= 0 ? eur.closes[bestIdx] : 0;
+  }
 
-  // Evolution: EUR-converted, starting from portfolio creation date
+  // Evolution: date-indexed (union of all asset timestamps >= creationTs)
   const creationTs = Math.floor(new Date(portfolio.created_at).getTime() / 1000);
-  const refSymbol = enrichedAssets[0]?.symbol;
-  const refTs = yahooData[refSymbol]?.timestamps || [];
-  const creationIdx = refTs.findIndex(ts => ts >= creationTs);
 
-  console.log("[metrics] Evolution params:", {
-    refSymbol,
-    refTsLength: refTs.length,
-    creationIdx,
-    creationDate: portfolio.created_at,
-    assetLengths: enrichedAssets.map(a => `${a.symbol}:${eurData[a.symbol]?.closes?.length || 0}`).join(", "),
-  });
-
-  // Qty per asset based on EUR close at creation date
-  const evoQty: Record<string, number> = {};
+  // Build one data point per calendar date (max timestamp per date)
+  const dateTs: Record<string, number> = {};
   enrichedAssets.forEach(a => {
-    const closes = eurData[a.symbol]?.closes || [];
-    const price = (creationIdx >= 0 ? closes[creationIdx] : null) || closes.find(c => c > 0) || 1;
+    (yahooData[a.symbol]?.timestamps || []).forEach(t => {
+      if (t >= creationTs) {
+        const date = new Date(t * 1000).toISOString().split("T")[0];
+        dateTs[date] = Math.max(dateTs[date] || 0, t);
+      }
+    });
+  });
+  const sortedDates = Object.entries(dateTs).sort((a, b) => a[0].localeCompare(b[0]));
+
+  // Qty per asset: based on EUR close at first trading day >= creation
+  const evoQty: Record<string, number> = {};
+  const firstTs = sortedDates[0]?.[1] || creationTs;
+  enrichedAssets.forEach(a => {
+    const price = getCloseAtTs(a.symbol, firstTs) || 1;
     evoQty[a.symbol] = a.targetAmount > 0 ? a.targetAmount / price : 0;
   });
 
   const evolution: { date: string; value: number }[] = [];
-  if (creationIdx >= 0) {
-    for (let d = creationIdx; d < refTs.length; d++) {
-      let dayValue = 0;
-      const dayDebug: string[] = [];
-      enrichedAssets.forEach(a => {
-        const closes = eurData[a.symbol]?.closes || [];
-        const closeVal = closes[d];
-        const qty = evoQty[a.symbol] || 0;
-        const contrib = (closeVal || 0) * qty;
-        dayValue += contrib;
-        // Log if close is missing (undefined/0) — this is the crash signal
-        if (closeVal === undefined || closeVal === 0) {
-          dayDebug.push(`${a.symbol}:MISSING(idx=${d},len=${closes.length})`);
-        }
-      });
-      if (dayDebug.length > 0) {
-        console.log(`[metrics] Evolution d=${d} date=${new Date(refTs[d] * 1000).toISOString().split("T")[0]} value=${Math.round(dayValue)} MISSING:[${dayDebug.join(",")}]`);
-      }
-      evolution.push({
-        date: new Date(refTs[d] * 1000).toISOString().split("T")[0],
-        value: Math.round(dayValue),
-      });
-    }
+  for (const [date, ts] of sortedDates) {
+    let dayValue = 0;
+    enrichedAssets.forEach(a => {
+      dayValue += getCloseAtTs(a.symbol, ts) * (evoQty[a.symbol] || 0);
+    });
+    evolution.push({ date, value: Math.round(dayValue) });
   }
   const finalEvolution = evolution.length < 2 ? [] : evolution;
-
-  console.log("[metrics] Evolution result:", {
-    points: finalEvolution.length,
-    first: finalEvolution[0],
-    last3: finalEvolution.slice(-3),
-  });
 
   // Max drawdown + peak
   let peak = 0, maxDrawdown = 0;
