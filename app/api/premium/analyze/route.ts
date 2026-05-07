@@ -105,10 +105,13 @@ export async function POST(req: NextRequest) {
 
   // Build user prompt
   const assetList = assets.map(a =>
-    `- ${a.symbol} (${a.name}) : ${a.type}, poids ${(a.weight * 100).toFixed(1)}%, montant ${a.target_amount}€${a.isin ? `, ISIN ${a.isin}` : ""}`
+    `- ${a.symbol} (${a.name}) : ${a.type}, poids ${a.weight.toFixed(1)}%, montant ${a.target_amount}€${a.isin ? `, ISIN ${a.isin}` : ""}`
   ).join("\n");
 
-  const userPrompt = `Analyse ce portefeuille :
+  const today = new Date().toISOString().split("T")[0];
+  const userPrompt = `Date du jour : ${today}.
+
+Analyse ce portefeuille :
 Nom : ${portfolio.name}
 Type : ${portfolio.type}
 Capital initial : ${capitalInitial}€
@@ -120,13 +123,15 @@ ${assetList}`;
   try {
     // Call CGP agent (test for 1.1 — will be replaced by 6-agent orchestration)
     const response = await callAgent(CGP_SYSTEM, userPrompt, "sonnet");
-    const parsed = parseAgentJson(response.content);
+    const parsed = parseAgentJson<any>(response.content);
+    // Unwrap if agent wrapped in a top-level key (e.g. {conformite: {...}})
+    const conformiteData = parsed?.conformite || parsed;
 
     await supabase
       .from("premium_analyses")
       .update({
         status: "completed",
-        conformite: parsed || { raw: response.content },
+        conformite: conformiteData || { raw: response.content },
         completed_at: new Date().toISOString(),
         total_tokens_used: response.tokensIn + response.tokensOut,
         cost_usd: response.costUsd,
@@ -136,7 +141,7 @@ ${assetList}`;
     return NextResponse.json({
       analysisId: analysis.id,
       status: "completed",
-      conformite: parsed || { raw: response.content },
+      conformite: conformiteData || { raw: response.content },
       cost: { tokensIn: response.tokensIn, tokensOut: response.tokensOut, usd: response.costUsd },
     });
   } catch (err: any) {
